@@ -3,11 +3,6 @@ import DespesasFixas from "./DespesasFixas";
 import FolhaDePagamento from "./FolhaDePagamento";
 import EncargosSobreVenda from "./EncargosSobreVenda";
 
-const CATEGORIAS_PRINCIPAIS = [
-  { nome: "Despesas Fixas", subcategorias: [] },
-  { nome: "Folha de Pagamento", funcionarios: [] }
-];
-
 const CAMPOS_PERCENTUAIS = [
   { key: "fgts", label: "FGTS" },
   { key: "inss", label: "INSS" },
@@ -54,11 +49,8 @@ function parseBR(v) {
   return parseFloat(v.replace(/\./g, "").replace(",", "."));
 }
 
-export default function Custos({ catIdx = 0 }) {
-  const [categorias, setCategorias] = useState(() => {
-    const saved = localStorage.getItem("categoriasCustos2");
-    return saved ? JSON.parse(saved) : CATEGORIAS_PRINCIPAIS;
-  });
+// ATENÇÃO: Agora categorias e setCategorias vêm do PAI (App)
+export default function Custos({ catIdx = 0, categorias, setCategorias }) {
   const [categoriaPrincipal, setCategoriaPrincipal] = useState(catIdx);
   const [subcatIdx, setSubcatIdx] = useState(0);
   const [editandoSubcatIdx, setEditandoSubcatIdx] = useState(null);
@@ -79,10 +71,6 @@ export default function Custos({ catIdx = 0 }) {
   const [funcionarioTemp, setFuncionarioTemp] = useState(funcionarioInitial);
 
   const inputRefs = useRef([]);
-
-  useEffect(() => {
-    localStorage.setItem("categoriasCustos2", JSON.stringify(categorias));
-  }, [categorias]);
 
   useEffect(() => {
     setCategoriaPrincipal(catIdx);

@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import AbasModal from "./AbasModal";
 import DespesasFixasModal from "./DespesasFixasModal";
+import "./MarkupIdeal.css";
 
 // ==== HELPERS ====
 function parsePercent(v) {
   if (typeof v === "string") {
-    return Number(
-      v.replace("%", "")
-        .replace(/\s/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    ) || 0;
+    return Number(v.replace("%", "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".")) || 0;
   }
   return Number(v) || 0;
 }
@@ -103,186 +99,144 @@ function calcularMarkupIdeal(...percentuais) {
   });
 }
 
+function somaValoresEncargosSobreVenda(data, outros = []) {
+  let total = 0;
+  Object.values(data || {}).forEach(item => {
+    if (item && item.value !== undefined && item.value !== null && !isNaN(item.value)) {
+      total += Number(item.value) / 100;
+    }
+  });
+  (outros || []).forEach(item => {
+    if (item && item.value !== undefined && item.value !== null && !isNaN(item.value)) {
+      total += Number(item.value) / 100;
+    }
+  });
+  return total;
+}
+
 // ==== COMPONENTES AUXILIARES ====
-function LinhaVisual({ label, percentual, valor, markup, bold, centralizado, lucroEditable, onLucroChange, onLucroFocus, onLucroBlur, lucroInputRef }) {
+function LinhaVisual(props) {
+  const {
+    label,
+    percentual,
+    markup,
+    lucroEditable,
+    onLucroChange,
+    onLucroFocus,
+    onLucroBlur,
+    lucroEdit,
+    lucro,
+  } = props;
+
   if (markup !== undefined) {
     return (
       <tr>
-        <td colSpan={2}>
-          <div style={{
-            marginTop: 14, background: "#211535", borderRadius: 16,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "0 38px 0 19px", fontWeight: 800, fontSize: 20, height: 54, color: "#fff"
-          }}>
-            <span style={{ color: "#d4b9fd" }}>{label}</span>
-            <span style={{
-              display: "flex", alignItems: "center", border: "2px solid #a98ce2",
-              background: "rgba(122,60,255,0.10)", borderRadius: 14, padding: "9px 38px",
-              fontWeight: 900, fontSize: 22, color: "#fff", boxShadow: "0 1px 6px #0002",
-              minWidth: 70, minHeight: 36, justifyContent: "center"
-            }}>{markup}</span>
-          </div>
+        <td className="markup-ideal-row-label" style={{ fontWeight: 900 }}>{label}</td>
+        <td className="markup-ideal-row-value-set">
+          <span className="markup-ideal-row-markup-value">{markup}</span>
         </td>
       </tr>
     );
   }
-  if (centralizado) {
+
+  if (lucroEditable) {
     return (
       <tr>
-        <td colSpan={2}>
-          <div style={{
-            background: "#211535", borderRadius: 16, display: "flex", alignItems: "center",
-            justifyContent: "space-between", padding: "0 38px 0 19px",
-            fontWeight: 700, fontSize: 18, marginBottom: 11, height: 54, color: "#fff"
-          }}>
-            <span style={{ color: "#d4b9fd" }}>{label}</span>
-            {lucroEditable ? (
-              <div style={{
-                background: "rgba(122,60,255,0.09)", border: "2px solid #a98ce2", borderRadius: 14,
-                fontWeight: 700, fontSize: 22, color: "#fff", padding: "9px 32px",
-                display: "flex", alignItems: "center", letterSpacing: 1
-              }}>
-                <input
-                  ref={lucroInputRef}
-                  type="text"
-                  style={{
-                    background: "transparent", border: "none", outline: "none", color: "#fff",
-                    fontWeight: 700, fontSize: 20, textAlign: "right", width: 65, marginRight: 5
-                  }}
-                  value={percentual}
-                  onChange={onLucroChange}
-                  onFocus={onLucroFocus}
-                  onBlur={onLucroBlur}
-                  maxLength={9}
-                  inputMode="numeric"
-                  autoComplete="off"
-                />
-                <span style={{ fontWeight: 500, marginLeft: 0, fontSize: 18, color: "#d4b9fd" }}>%</span>
-              </div>
-            ) : (
-              <div style={{
-                background: "rgba(122,60,255,0.09)", border: "2px solid #a98ce2", borderRadius: 14,
-                fontWeight: 700, fontSize: 22, color: "#fff", padding: "9px 32px",
-                display: "flex", alignItems: "center", letterSpacing: 1
-              }}>
-                <span>{percentual}</span>
-                <span style={{ fontWeight: 500, marginLeft: 6, fontSize: 19, color: "#d4b9fd" }}>%</span>
-              </div>
-            )}
-          </div>
+        <td className="markup-ideal-row-label">{label}</td>
+        <td className="markup-ideal-row-value-set">
+          <span className="markup-ideal-box">
+            <input
+              type="text"
+              value={lucroEdit ? formatNumberBR(lucro) : formatNumberBRNoZeros(lucro)}
+              onChange={onLucroChange}
+              onFocus={onLucroFocus}
+              onBlur={onLucroBlur}
+              maxLength={6}
+              className="markup-ideal-lucro-input"
+            />
+            <span className="markup-ideal-box-percent">%</span>
+          </span>
         </td>
       </tr>
     );
   }
+
   return (
     <tr>
-      <td colSpan={2}>
-        <div style={{
-          background: "#211535", borderRadius: 16, display: "flex", alignItems: "center",
-          justifyContent: "space-between", padding: "0 21px 0 19px", fontWeight: 700, fontSize: 18,
-          marginBottom: 11, height: 54, color: "#fff"
-        }}>
-          <span style={{ color: "#d4b9fd" }}>{label}</span>
-          <div style={{ display: "flex", gap: 9 }}>
-            <div style={{
-              display: "flex", alignItems: "center", border: "2px solid #a98ce2",
-              background: "rgba(122,60,255,0.10)", borderRadius: 14,
-              padding: "8px 20px 8px 17px", fontWeight: 700, fontSize: 18, color: "#fff",
-              boxShadow: "0 1px 6px #0002", minWidth: 70, minHeight: 36, justifyContent: "center"
-            }}>
-              <span>{percentual}</span>
-              <span style={{ fontWeight: 500, marginLeft: 5, fontSize: 17, color: "#d4b9fd" }}>%</span>
-            </div>
-            {valor !== undefined &&
-              <div style={{
-                display: "flex", alignItems: "center", border: "2px solid #a98ce2",
-                background: "rgba(122,60,255,0.10)", borderRadius: 14, padding: "8px 21px 8px 15px",
-                fontWeight: 700, fontSize: 18, color: "#fff", boxShadow: "0 1px 6px #0002",
-                minWidth: 70, minHeight: 36, justifyContent: "center"
-              }}>
-                <span style={{ color: "#d4b9fd", marginRight: 4 }}>R$</span>
-                <span>{valor}</span>
-              </div>
-            }
-          </div>
-        </div>
+      <td className="markup-ideal-row-label">{label}</td>
+      <td className="markup-ideal-row-value-set">
+        <span className="markup-ideal-box">{percentual} %</span>
       </td>
     </tr>
   );
 }
 
-// ============== BLOCO SUBRECEITA FIXO (NÃO MEXE!!) ==================
 function BlocoSubReceita() {
-  const [nome, setNome] = useState("Sub-Receitas");
+  const [nome, setNome] = useState("subreceita");
   const [editando, setEditando] = useState(false);
 
+  const confirmarEdicao = () => setEditando(false);
+
   return (
-    <div style={{
-      background: "#21193c", borderRadius: 22, width: "100%", maxWidth: 550, margin: "32px 0 0 0",
-      border: "1.5px solid #a98ce260", boxShadow: "0 4px 28px #0003", position: "relative"
-    }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 0, marginTop: 12
-      }}>
-        <h3 style={{
-          background: "#24163c", color: "#fff", borderRadius: 13, border: "2px solid #a98ce2",
-          padding: "13px 30px 13px 30px", textAlign: "center", margin: "0 0 22px 0",
-          fontWeight: 900, fontSize: 29, letterSpacing: 0.5, minWidth: 270
-        }}>
-          {nome}
-        </h3>
-        <span
-          onClick={() => setEditando(true)}
-          style={{
-            cursor: "pointer",
-            fontSize: 25,
-            userSelect: "none"
-          }}
-          title="Editar nome"
-          role="button"
-        >✏️</span>
-      </div>
-      {editando && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-          <input
-            value={nome}
-            autoFocus
-            onChange={e => setNome(e.target.value)}
-            onBlur={() => setEditando(false)}
-            onKeyDown={e => { if (e.key === "Enter") setEditando(false); }}
-            style={{
-              fontWeight: 800, fontSize: 26, color: "#fff", background: "#2c2442", border: "2px solid #a98ce2",
-              borderRadius: 9, padding: "10px 16px", width: 300, textAlign: "center", outline: "none"
-            }}
-            maxLength={40}
-          />
+    <div className="markup-ideal-outer">
+      <div className="markup-ideal-inner">
+        <div className="markup-ideal-title-row">
+          <span className="markup-ideal-title">{nome}</span>
+          <div className="markup-ideal-title-group">
+            {!editando && (
+              <button
+                className="markup-ideal-edit-btn"
+                onClick={() => setEditando(true)}
+                title="Editar nome"
+              >✏️</button>
+            )}
+            {editando && (
+              <div className="markup-ideal-title-editbox">
+                <input
+                  value={nome}
+                  autoFocus
+                  onChange={e => setNome(e.target.value)}
+                  onBlur={confirmarEdicao}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") confirmarEdicao();
+                  }}
+                  maxLength={40}
+                  className="markup-ideal-title-input-edit"
+                />
+                <button
+                  className="markup-ideal-confirm-btn"
+                  onClick={confirmarEdicao}
+                  title="Confirmar edição"
+                  tabIndex={-1}
+                >✔️</button>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
-        <tbody>
-          <LinhaVisual label="Gasto sobre faturamento" percentual="0" centralizado />
-          <LinhaVisual label="Impostos" percentual="0" valor="0,00" />
-          <LinhaVisual label="Taxas de meios de pagamento" percentual="0" valor="0,00" />
-          <LinhaVisual label="Comissões e plataformas" percentual="0" valor="0,00" />
-          <LinhaVisual label="Outros" percentual="0" valor="0,00" />
-          <LinhaVisual label="Lucro desejado sobre venda" percentual="0" centralizado />
-          <LinhaVisual label="Markup ideal" markup="1,000" bold centralizado />
-        </tbody>
-      </table>
-      <div style={{
-        color: "#beadfa", fontSize: 13, background: "#21193c", marginTop: 16,
-        borderRadius: 8, padding: "13px 13px 9px 13px", border: "1px dashed #a98ce2"
-      }}>
-        <b>*Sub-Receita</b> é bloqueado pois serve para subprodutos que não serão vendidos, ou seja,
-        serão usados como ingredientes: como massas, recheios, coberturas, etc. Esta categoria garante
-        que não haverá duplicação da margem de lucro no produto final.
+        <table className="markup-ideal-table">
+          <tbody>
+            <LinhaVisual label="Gasto sobre faturamento" percentual="0" />
+            <LinhaVisual label="Impostos" percentual="0" />
+            <LinhaVisual label="Taxas de meios de pagamento" percentual="0" />
+            <LinhaVisual label="Comissões e plataformas" percentual="0" />
+            <LinhaVisual label="Outros" percentual="0" />
+            <LinhaVisual label="Lucro desejado sobre venda" percentual="0" />
+            <LinhaVisual label="Markup ideal" markup="1,000" />
+          </tbody>
+        </table>
+        <div className="markup-ideal-tip">
+          <b>*Sub-Receita</b> é bloqueado pois serve para subprodutos que não serão vendidos, ou seja,
+          serão usados como ingredientes: como massas, recheios, coberturas, etc. Esta categoria garante
+          que não haverá duplicação da margem de lucro no produto final.
+        </div>
       </div>
     </div>
   );
 }
 
-// ========== BLOCO CUSTOMIZADO ==========
-function BlocoCard({ nome, campos, onChangeNome, onDelete, fixo, obs, onConfig }) {
+function BlocoCard({
+  nome, campos, onChangeNome, onDelete, obs, lucro, lucroEdit, onLucroChange, onLucroFocus, onLucroBlur, markupIdeal, onConfig, encargosData, outrosEncargos
+}) {
   const [editando, setEditando] = useState(false);
   const [inputNome, setInputNome] = useState(nome);
 
@@ -291,41 +245,18 @@ function BlocoCard({ nome, campos, onChangeNome, onDelete, fixo, obs, onConfig }
     if (inputNome.trim() && onChangeNome) onChangeNome(inputNome);
   };
 
-  const [hover, setHover] = useState(false);
-  const styleBloco = {
-    background: "#21193c", borderRadius: 22, width: "100%", maxWidth: 550, margin: "32px 0 0 0",
-    border: hover && !fixo ? "1.5px solid #a98ce2" : "1.5px solid #a98ce260",
-    boxShadow: hover && !fixo ? "0 8px 32px #a98ce280" : "0 4px 24px #0002",
-    transition: "box-shadow 0.2s, border 0.2s, transform 0.18s",
-    position: "relative",
-    transform: hover && !fixo ? "translateY(-3px) scale(1.015)" : "none",
-  };
+  useEffect(() => {
+    setInputNome(nome);
+  }, [nome]);
+
+  const totalEncargosReais = somaValoresEncargosSobreVenda(encargosData, outrosEncargos);
 
   return (
-    <div style={styleBloco}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 0, marginTop: 12, gap: 0 }}>
-        <h3
-          style={{
-            background: fixo ? "#a98ce2" : "#24163c",
-            color: fixo ? "#271453" : "#fff",
-            borderRadius: 13,
-            border: "2px solid #a98ce2",
-            padding: "13px 30px 13px 30px",
-            textAlign: "center",
-            margin: "0 0 22px 0",
-            fontWeight: 900,
-            fontSize: 27,
-            letterSpacing: 0.4,
-            minWidth: 230,
-            flex: 1,
-            display: "flex",
-            alignItems: "center"
-          }}>
+    <div className="markup-ideal-outer">
+      <div className="markup-ideal-inner">
+        <div className="markup-ideal-title-row">
           {editando ? (
-            <>
+            <div className="markup-ideal-title-editbox">
               <input
                 type="text"
                 value={inputNome}
@@ -333,82 +264,153 @@ function BlocoCard({ nome, campos, onChangeNome, onDelete, fixo, obs, onConfig }
                 onChange={e => setInputNome(e.target.value)}
                 onBlur={handleNomeBlur}
                 onKeyDown={e => { if (e.key === "Enter") handleNomeBlur(); }}
-                maxLength={30}
-                style={{
-                  fontWeight: 800, fontSize: 26, color: "#fff", background: "#2c2442",
-                  border: "2px solid #a98ce2", borderRadius: 9, padding: "10px 16px",
-                  width: 210, textAlign: "center", margin: "0 0 16px 0", outline: "none"
-                }}
+                maxLength={40}
+                className="markup-ideal-title-input-edit"
               />
               <button
                 onClick={handleNomeBlur}
                 title="Confirmar edição"
-                style={{
-                  marginLeft: 14, marginBottom: 9, background: "none", border: "none",
-                  color: "#5bf67b", fontSize: 30, cursor: "pointer"
-                }}
+                className="markup-ideal-confirm-btn"
+                tabIndex={-1}
               >✔️</button>
-            </>
+            </div>
           ) : (
-            <span>{nome}</span>
+            <>
+              <span className="markup-ideal-title">{nome}</span>
+              <div className="markup-ideal-title-group">
+                <button
+                  className="markup-ideal-edit-btn"
+                  onClick={() => setEditando(true)}
+                  title="Editar nome"
+                >✏️</button>
+                <button
+                  className="markup-ideal-edit-btn"
+                  onClick={onConfig}
+                  title="Configurar bloco"
+                  style={{ color: "#7b57e7" }}
+                >⚙️</button>
+                <button
+                  className="markup-ideal-edit-btn"
+                  onClick={onDelete}
+                  title="Excluir bloco"
+                  style={{ color: "#e15c5c" }}
+                >🗑️</button>
+              </div>
+            </>
           )}
-        </h3>
-        {!fixo && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 8 }}>
-            {/* Lápis */}
-            <span
-              onClick={() => setEditando(true)}
-              title="Editar nome"
-              style={{
-                cursor: "pointer",
-                fontSize: 25,
-                userSelect: "none",
-                color: "#ffd76f"
-              }}
-            >✏️</span>
-            {/* Engrenagem */}
-            <span
-              title="Configurações"
-              style={{
-                cursor: "pointer",
-                fontSize: 24,
-                color: "#7b57e7"
-              }}
-              onClick={onConfig}
-            >⚙️</span>
-            {/* Lixeira */}
-            <button
-              onClick={onDelete}
-              title="Excluir bloco"
-              style={{
-                background: "none", border: "none", color: "#e15c5c",
-                fontSize: 28, fontWeight: 800, cursor: "pointer", marginBottom: 0, marginTop: 0
-              }}
-            >🗑️</button>
+        </div>
+        <table className="markup-ideal-table">
+          <tbody>
+            {campos.map((linha, idx) =>
+              <LinhaVisual key={linha.label} {...linha} />
+            )}
+          </tbody>
+        </table>
+        {(typeof totalEncargosReais === "number" && !isNaN(totalEncargosReais) && totalEncargosReais > 0) && (
+          <div className="markup-ideal-total-rs">
+            total em {totalEncargosReais.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </div>
         )}
+        {obs}
       </div>
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
-        <tbody>
-          {campos.map((linha, idx) => (
-            <LinhaVisual key={linha.label} {...linha} />
-          ))}
-        </tbody>
-      </table>
-      {obs}
     </div>
   );
 }
 
-// ==== MAIN COMPONENT ====
-export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], despesasFixasSubcats = [] }) {
+// NOVO COMPONENTE: Aba "Folha de Pagamento" só com indiretos, busca dinâmico!
+function FolhaPagamentoModalAba({
+  funcionarios = [],
+  ativos = {},
+  onToggle,
+  calcularTotalFuncionarioObj
+}) {
+  // Busca e filtra os indiretos
+  const indiretos = Array.isArray(funcionarios)
+    ? funcionarios.filter(f => f.tipoMaoDeObra === "Indireta")
+    : [];
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      {indiretos.length === 0 && (
+        <div style={{ color: "#ffe060", fontWeight: 700 }}>
+          Nenhuma mão de obra indireta cadastrada.
+        </div>
+      )}
+      {indiretos.map((f, idx) => {
+        // Preferencialmente use um id único real
+        const id = f.id ?? f._id ?? idx;
+        const ativo = ativos[id];
+        return (
+          <div
+            key={id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              marginBottom: 10,
+              padding: "10px 0",
+              borderBottom: "1px solid #2c2054"
+            }}
+          >
+            <button
+              onClick={() => onToggle(id)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: "none",
+                background: ativo ? "#a4ffb7" : "#39206a",
+                color: ativo ? "#1a1440" : "#888",
+                fontWeight: 800,
+                fontSize: 18,
+                cursor: "pointer",
+                boxShadow: ativo ? "0 0 7px #59ff82" : "none",
+                transition: "background .2s"
+              }}
+              title={ativo ? "Desativar" : "Ativar"}
+            >
+              {ativo ? "✓" : "•"}
+            </button>
+            <span style={{
+              flex: 1,
+              fontWeight: 700,
+              color: ativo ? "#fff" : "#888"
+            }}>
+              {f.nome}
+            </span>
+            <span style={{
+              fontWeight: 700,
+              color: "#b088ff",
+              fontSize: 17,
+              minWidth: 110,
+              textAlign: "right"
+            }}>
+              {calcularTotalFuncionarioObj
+                ? calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : (f.custoTotal ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+              }
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function MarkupIdeal({
+  encargosData = {},
+  outrosEncargos = [],
+  despesasFixasSubcats = [],
+  funcionarios = [],
+  calcularTotalFuncionarioObj
+}) {
   const [modalConfigIdx, setModalConfigIdx] = useState(null);
   const [abaModalSelecionada, setAbaModalSelecionada] = useState("despesas");
   const [custosAtivosPorBloco, setCustosAtivosPorBloco] = useState({});
-  const impostosTotais = somaImpostos(encargosData);
-  const taxasTotais = somaTaxas(encargosData);
-  const comissoesTotais = somaComissoes(encargosData);
-  const outrosTotais = somaOutros(encargosData, outrosEncargos);
+  const impostosTotais = somaImpostos(encargosData || {});
+  const taxasTotais = somaTaxas(encargosData || {});
+  const comissoesTotais = somaComissoes(encargosData || {});
+  const outrosTotais = somaOutros(encargosData || {}, outrosEncargos || []);
 
   function getPercentualGastosFaturamento() {
     const v = localStorage.getItem("percentualGastosFaturamento");
@@ -416,13 +418,12 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
   }
   const gastoSobreFaturamento = getPercentualGastosFaturamento();
 
-  // --- BLOCOS CUSTOMIZADOS (dinâmico) ---
   const [blocos, setBlocos] = useState(() => {
-    const salvos = localStorage.getItem("markup-blocos-v3");
+    const salvos = localStorage.getItem("markup-blocos-v4");
     return salvos ? JSON.parse(salvos) : [];
   });
   useEffect(() => {
-    localStorage.setItem("markup-blocos-v3", JSON.stringify(blocos));
+    localStorage.setItem("markup-blocos-v4", JSON.stringify(blocos));
   }, [blocos]);
 
   function handleLucroBlocoChange(idx, e) {
@@ -447,12 +448,15 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
       )
     );
   }
+
+  const [inputNovo, setInputNovo] = useState("");
+
   const handleAddBloco = () => {
     if (inputNovo.trim() === "") return;
     setBlocos([...blocos, { nome: inputNovo.trim(), lucro: "", lucroEdit: false }]);
     setInputNovo("");
-    setShowInput(false);
   };
+
   const handleChangeNome = (idx, novoNome) => {
     setBlocos(blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
   };
@@ -460,10 +464,6 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
     setBlocos(blocos.filter((_, i) => i !== idx));
   };
 
-  const [inputNovo, setInputNovo] = useState("");
-  const [showInput, setShowInput] = useState(false);
-
-  // --- CUSTOS ATIVOS DE CADA BLOCO (passa pra modal) ---
   const custosAtivos = modalConfigIdx !== null ? (custosAtivosPorBloco[modalConfigIdx] || {}) : {};
 
   function handleToggleCusto(custoId) {
@@ -477,19 +477,53 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
     }));
   }
 
-  // Corrigido: montarCamposBloco agora recebe idx
+  useEffect(() => {
+    if (
+      modalConfigIdx !== null &&
+      despesasFixasSubcats &&
+      despesasFixasSubcats.length > 0
+    ) {
+      setCustosAtivosPorBloco(prev => {
+        const antigos = prev[modalConfigIdx] || {};
+        const novos = { ...antigos };
+
+        despesasFixasSubcats.forEach(subcat => {
+          (subcat.despesas || []).forEach(custo => {
+            const key = `${subcat.nome}-${custo.nome}`;
+            if (!(key in novos)) novos[key] = true;
+          });
+        });
+
+        Object.keys(novos).forEach(key => {
+          const [subcatNome, ...nomeArr] = key.split("-");
+          const custoNome = nomeArr.join("-");
+          const existe = despesasFixasSubcats.some(subcat =>
+            subcat.nome === subcatNome &&
+            (subcat.despesas || []).some(custo => custo.nome === custoNome)
+          );
+          if (!existe) delete novos[key];
+        });
+
+        return {
+          ...prev,
+          [modalConfigIdx]: novos
+        };
+      });
+    }
+  }, [modalConfigIdx, despesasFixasSubcats]);
+
   function montarCamposBloco(idx, lucro, lucroEdit) {
     return [
       {
         label: "Gasto sobre faturamento",
-        percentual: formatNumberBRNoZeros(gastoSobreFaturamento.toString()),
+        percentual: formatNumberBRNoZeros((gastoSobreFaturamento ?? "").toString()),
         valor: "",
         centralizado: true
       },
-      { label: "Impostos", percentual: formatNumberBRNoZeros(impostosTotais.percent.toString()), valor: formatBR(impostosTotais.value) },
-      { label: "Taxas de meios de pagamento", percentual: formatNumberBRNoZeros(taxasTotais.percent.toString()), valor: formatBR(taxasTotais.value) },
-      { label: "Comissões e plataformas", percentual: formatNumberBRNoZeros(comissoesTotais.percent.toString()), valor: formatBR(comissoesTotais.value) },
-      { label: "Outros", percentual: formatNumberBRNoZeros(outrosTotais.percent.toString()), valor: formatBR(outrosTotais.value) },
+      { label: "Impostos", percentual: formatNumberBRNoZeros(((impostosTotais?.percent ?? "")).toString()) },
+      { label: "Taxas de meios de pagamento", percentual: formatNumberBRNoZeros(((taxasTotais?.percent ?? "")).toString()) },
+      { label: "Comissões e plataformas", percentual: formatNumberBRNoZeros(((comissoesTotais?.percent ?? "")).toString()) },
+      { label: "Outros", percentual: formatNumberBRNoZeros(((outrosTotais?.percent ?? "")).toString()) },
       {
         label: "Lucro desejado sobre venda",
         percentual: lucroEdit ? formatNumberBR(lucro) : formatNumberBRNoZeros(lucro),
@@ -497,91 +531,70 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
         onLucroChange: e => handleLucroBlocoChange(idx, e),
         onLucroFocus: () => handleLucroBlocoFocus(idx),
         onLucroBlur: () => handleLucroBlocoBlur(idx),
-        lucroInputRef: null,
+        lucroEdit: lucroEdit,
+        lucro: lucro,
         centralizado: true
       },
       { label: "Markup ideal", markup: calcularMarkupIdeal(
         toDecimal(gastoSobreFaturamento),
-        toDecimal(impostosTotais.percent),
-        toDecimal(taxasTotais.percent),
-        toDecimal(comissoesTotais.percent),
-        toDecimal(outrosTotais.percent),
+        toDecimal(impostosTotais?.percent),
+        toDecimal(taxasTotais?.percent),
+        toDecimal(comissoesTotais?.percent),
+        toDecimal(outrosTotais?.percent),
         toDecimal(lucro)
-      ), bold: true, centralizado: true }
+      ), bold: true }
     ];
   }
 
-  // --- RENDER ---
   return (
-    <div style={{ width: "100%", minHeight: "100vh", padding: "0px 0 0 0", background: "none" }}>
-      {/* HEADER E ADICIONAR BLOCO */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{
-          fontSize: 28, fontWeight: 900, letterSpacing: 0.3,
-          marginBottom: 22, marginTop: 0, color: "#FFD76F",
-          textShadow: "0 2px 12px #0004", marginLeft: 28, paddingLeft: 0
+    <>
+      <div className="markup-ideal-main">
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          margin: "18px 0 32px 0"
         }}>
-          Markup Ideal
-        </h2>
-        <div style={{ marginRight: 54 }}>
-          {!showInput && (
-            <button
-              style={{
-                background: "#a98ce2", color: "#271453", fontWeight: 700, fontSize: 16,
-                border: "2px solid #a98ce2", borderRadius: 18, padding: "8px 22px",
-                cursor: "pointer", boxShadow: "0 2px 12px #0001", transition: ".2s"
-              }}
-              onClick={() => setShowInput(true)}
-            >
-              + Adicionar Campo
-            </button>
-          )}
-          {showInput && (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <input
-                type="text"
-                value={inputNovo}
-                onChange={e => setInputNovo(e.target.value)}
-                placeholder="Nome do campo..."
-                maxLength={30}
-                autoFocus
-                style={{
-                  fontWeight: 700, fontSize: 16, border: "2px solid #a98ce2",
-                  borderRadius: 18, padding: "8px 18px", marginRight: 6,
-                  background: "#2c2442", color: "#fff", outline: "none", boxShadow: "0 1px 4px #0002"
-                }}
-                onKeyDown={e => {
-                  if (e.key === "Enter") handleAddBloco();
-                  if (e.key === "Escape") {
-                    setInputNovo("");
-                    setShowInput(false);
-                  }
-                }}
-              />
-              <button
-                onClick={handleAddBloco}
-                style={{
-                  background: "#a98ce2", color: "#271453", fontWeight: 700, fontSize: 16,
-                  border: "2px solid #a98ce2", borderRadius: 18, padding: "8px 18px",
-                  cursor: "pointer", marginRight: 3
-                }}
-              >Adicionar</button>
-              <button
-                onClick={() => { setInputNovo(""); setShowInput(false); }}
-                style={{
-                  background: "none", border: "none", color: "#a98ce2",
-                  fontWeight: 700, fontSize: 22, cursor: "pointer"
-                }}
-                title="Cancelar"
-              >×</button>
-            </div>
-          )}
+          <input
+            type="text"
+            placeholder="Nome do novo card..."
+            value={inputNovo}
+            onChange={e => setInputNovo(e.target.value)}
+            maxLength={40}
+            className="markup-ideal-input-edit"
+            style={{
+              width: 260,
+              fontWeight: 700,
+              fontSize: 20,
+              padding: "13px 18px",
+              background: "#231d3c",
+              border: "2px solid #a780ff",
+              color: "#adadff"
+            }}
+            onKeyDown={e => { if (e.key === "Enter" && inputNovo.trim()) handleAddBloco(); }}
+          />
+          <button
+            className="markup-ideal-add-btn"
+            style={{
+              color: "#ffe060",
+              fontWeight: 800,
+              fontSize: 22,
+              border: "2px solid #fff",
+              borderRadius: 10,
+              padding: "12px 26px",
+              marginLeft: 8,
+              background: inputNovo.trim() ? "#18132a" : "#2a2450",
+              boxShadow: "0 3px 20px #0007",
+              opacity: inputNovo.trim() ? 1 : 0.5,
+              cursor: inputNovo.trim() ? "pointer" : "not-allowed"
+            }}
+            disabled={!inputNovo.trim()}
+            onClick={handleAddBloco}
+          >
+            + Adicionar Card
+          </button>
         </div>
-      </div>
-      <div style={{
-        background: "#2c2442", borderRadius: 24, padding: "32px 32px 24px 28px",
-        maxWidth: 610, marginLeft: 28, boxShadow: "0 4px 24px #0002", border: "2px solid #7b57e7"
-      }}>
+
         <BlocoSubReceita />
         {blocos.map((bloco, idx) => (
           <BlocoCard
@@ -590,69 +603,50 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
             campos={montarCamposBloco(idx, bloco.lucro, bloco.lucroEdit)}
             onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
             onDelete={() => handleDeleteBloco(idx)}
-            fixo={false}
+            lucro={bloco.lucro}
+            lucroEdit={bloco.lucroEdit}
+            onLucroChange={e => handleLucroBlocoChange(idx, e)}
+            onLucroFocus={() => handleLucroBlocoFocus(idx)}
+            onLucroBlur={() => handleLucroBlocoBlur(idx)}
+            markupIdeal={calcularMarkupIdeal(
+              toDecimal(gastoSobreFaturamento),
+              toDecimal(impostosTotais?.percent),
+              toDecimal(taxasTotais?.percent),
+              toDecimal(comissoesTotais?.percent),
+              toDecimal(outrosTotais?.percent),
+              toDecimal(bloco.lucro)
+            )}
             obs={null}
             onConfig={() => setModalConfigIdx(idx)}
+            encargosData={encargosData}
+            outrosEncargos={outrosEncargos}
           />
         ))}
       </div>
-      {/* MODAL DE CONFIGURAÇÃO */}
+
+      {/* MODAL OVERLAY FORA DA .markup-ideal-main */}
       {modalConfigIdx !== null && (
         <div
-          style={{
-            position: "fixed",
-            left: 0, right: 0, top: 0, bottom: 0,
-            zIndex: 3000,
-            background: "rgba(20,16,40,0.82)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
+          className="markup-ideal-modal-bg"
           onClick={() => setModalConfigIdx(null)}
         >
           <div
-            style={{
-              background: "#2c2442",
-              borderRadius: 18,
-              minWidth: 620,
-              minHeight: 230,
-              boxShadow: "0 6px 48px #0009",
-              color: "#ffe95c",
-              padding: "32px 44px 24px 44px",
-              fontWeight: 900,
-              fontSize: 22,
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              gap: 20
-            }}
+            className="markup-ideal-modal"
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontSize: 28, color: "#ffe95c", fontWeight: 800 }}>
-                {blocos[modalConfigIdx]?.nome}
-              </span>
+            <div className="markup-ideal-modal-header">
+              <span>{blocos[modalConfigIdx]?.nome}</span>
               <button
+                className="markup-ideal-modal-close"
                 onClick={() => setModalConfigIdx(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#fff",
-                  fontSize: 28,
-                  cursor: "pointer",
-                  marginLeft: 22
-                }}
                 title="Fechar"
               >×</button>
             </div>
-            {/* Abas */}
             <AbasModal
               selected={abaModalSelecionada}
               onAbaChange={setAbaModalSelecionada}
             />
-            {/* Conteúdo da aba */}
-            <div style={{ background: "none", marginTop: 8 }}>
+            <div className="markup-ideal-modal-content">
               {abaModalSelecionada === "despesas" && (
                 <DespesasFixasModal
                   subcategorias={despesasFixasSubcats}
@@ -660,11 +654,19 @@ export default function MarkupIdeal({ encargosData = {}, outrosEncargos = [], de
                   onToggleCusto={handleToggleCusto}
                 />
               )}
-              {/* As próximas abas vão aqui... */}
+              {abaModalSelecionada === "folha" && (
+                <FolhaPagamentoModalAba
+                  funcionarios={funcionarios}
+                  ativos={custosAtivos}
+                  onToggle={handleToggleCusto}
+                  calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+                />
+              )}
+              {/* Outras abas podem ser adicionadas aqui */}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

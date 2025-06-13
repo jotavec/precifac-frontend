@@ -1,16 +1,52 @@
 import { useEffect, useState } from "react";
 import Modal from "react-modal";
 
-// FUNÇÃO DE MÁSCARA DE PERCENTUAL (mostra zeros apenas editando)
+// Funções utilitárias
+function parseBR(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(/\./g, "").replace(",", "."));
+}
+function parsePercentBR(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(",", "."));
+}
+function maskMoneyBR(str) {
+  if (!str) return "0,00";
+  let v = str.replace(/\D/g, "");
+  if (!v) return "0,00";
+  let num = parseFloat(v) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function formatPercentForDisplay(value, editing) {
   let v = (value || "").replace(/\D/g, "");
   if (!v) return editing ? "" : "0";
-  let number = parseFloat(v) / 100;
-  let str = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (!editing && str.endsWith(",00")) {
-    return str.slice(0, -3);
+  if (editing) {
+    while (v.length < 3) v = "0" + v;
+    let intPart = v.slice(0, v.length - 2);
+    let decPart = v.slice(-2);
+    let res = intPart + "," + decPart;
+    res = res.replace(/^0+(\d)/, "$1");
+    return res;
+  } else {
+    let perc = parsePercentBR(value);
+    return perc.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,00$/, "");
   }
-  return str;
+}
+function valorHoraFuncionario(f, calcularTotalFuncionarioObj) {
+  const horas = Number(f.totalHorasMes || 220);
+  if (!horas) return 0;
+  const custo = calcularTotalFuncionarioObj ? calcularTotalFuncionarioObj(f) : f.custoTotal;
+  return custo / horas;
+}
+function valorHoraMedio(funcionarios, calcularTotalFuncionarioObj) {
+  if (!funcionarios.length) return 0;
+  let totalCusto = 0, totalHoras = 0;
+  funcionarios.forEach(f => {
+    const h = Number(f.totalHorasMes || 220);
+    totalCusto += calcularTotalFuncionarioObj ? calcularTotalFuncionarioObj(f) : (f.custoTotal || 0);
+    totalHoras += h;
+  });
+  return totalHoras ? (totalCusto / totalHoras) : 0;
 }
 
 export default function FolhaDePagamento({
@@ -28,11 +64,11 @@ export default function FolhaDePagamento({
   handleSalvarFuncionario,
   inputRefs,
   handleTab,
-  CAMPOS_PERCENTUAIS,
-  maskMoneyBR,
-  parseBR
+  CAMPOS_PERCENTUAIS
 }) {
   const [editingPercent, setEditingPercent] = useState({});
+  const horasDefault = funcionarioTemp.totalHorasMes || "220";
+  const [totalHorasMes, setTotalHorasMes] = useState(horasDefault);
 
   useEffect(() => {
     if (!funcionarioTemp.salario) return;
@@ -41,7 +77,7 @@ export default function FolhaDePagamento({
       let novo = { ...ft };
       CAMPOS_PERCENTUAIS.forEach(item => {
         let percStr = ft[item.key] || "0";
-        let percNum = parseBR(percStr);
+        let percNum = parsePercentBR(percStr);
         let valorNum = salarioNum * (percNum / 100);
         novo[`${item.key}Valor`] = maskMoneyBR(String(Math.round(valorNum * 100)));
       });
@@ -50,45 +86,105 @@ export default function FolhaDePagamento({
     // eslint-disable-next-line
   }, [funcionarioTemp.salario]);
 
+  useEffect(() => {
+    setFuncionarioTemp(ft => ({
+      ...ft,
+      totalHorasMes: totalHorasMes
+    }));
+    // eslint-disable-next-line
+  }, [totalHorasMes]);
+
   const calcularTotalFuncionario = () => calcularTotalFuncionarioObj(funcionarioTemp);
+  const custoTotalFuncionario = calcularTotalFuncionario();
+  const horasMesNumber = Number(totalHorasMes.replace(/\D/g, "")) || 220;
+  const valorHora = custoTotalFuncionario / horasMesNumber;
+
+  // ---------------------------------------------
+  // HEADER BONITO COM MÉDIA DA HORA (só se > 1 funcionário)
+  // ---------------------------------------------
+  const valorMedioHora = valorHoraMedio(categorias[1].funcionarios, calcularTotalFuncionarioObj);
 
   return (
     <>
+      <style>
+        {`
+          .ReactModal__Content {
+            max-height: 88vh;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: #a780ff #221c3a;
+          }
+          .ReactModal__Content::-webkit-scrollbar {
+            width: 9px;
+            background: transparent;
+          }
+          .ReactModal__Content::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #39206a 30%, #a780ff 90%);
+            border-radius: 8px;
+            min-height: 48px;
+            border: 2.5px solid #221c3a;
+            transition: background 0.2s;
+          }
+          .ReactModal__Content::-webkit-scrollbar-thumb:hover {
+            background: #a780ff;
+          }
+          .ReactModal__Content::-webkit-scrollbar-track {
+            background: transparent;
+            border-radius: 8px;
+          }
+        `}
+      </style>
       <div
         style={{
           minWidth: 340,
-          maxWidth: 800,
+          maxWidth: 900,
           background: "#1a1440",
           borderRadius: 24,
           padding: 36,
           color: "#fff",
           marginTop: 36,
-          marginLeft: 0,
-          marginRight: 0,
           boxShadow: "0 4px 24px #0003",
           position: "relative",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            right: 32,
-            top: 28,
-            color: "#ffe060",
-            fontWeight: 800,
-            fontSize: 19,
-            letterSpacing: 0.2,
-            textAlign: "right",
-            zIndex: 1,
-          }}
-        >
-          Total da Folha:<br />
-          <span style={{ fontSize: 23, color: "#b088ff" }}>
-            {totalFolha.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          </span>
-        </div>
-        <div style={{ fontWeight: 800, fontSize: 26, marginBottom: 18, color: "#ffe060" }}>
-          Folha de Pagamento
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 8
+        }}>
+          <div style={{ fontWeight: 800, fontSize: 26, color: "#ffe060" }}>
+            Folha de Pagamento
+          </div>
+          <div>
+            <div style={{ color: "#ffe060", fontWeight: 800, fontSize: 19, letterSpacing: 0.2, textAlign: "right" }}>
+              Total da Folha:
+            </div>
+            <div style={{ fontSize: 26, color: "#b088ff", fontWeight: 900, textAlign: "right" }}>
+              {totalFolha.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </div>
+            {categorias[1].funcionarios.length > 1 && (
+              <div style={{
+                fontSize: 16,
+                color: "#ffe060",
+                fontWeight: 700,
+                background: "#2c2054",
+                padding: "3px 16px",
+                borderRadius: 12,
+                marginTop: 7,
+                letterSpacing: 0.5,
+                boxShadow: "0 2px 8px #0002",
+                textAlign: "right",
+                minWidth: 180
+              }}>
+                Valor médio da hora:{" "}
+                <span style={{ color: "#fff", fontWeight: 900 }}>
+                  {valorMedioHora.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         <table
           style={{
@@ -98,138 +194,144 @@ export default function FolhaDePagamento({
             borderCollapse: "separate",
             borderSpacing: 0,
             fontSize: 17,
+            marginTop: 16
           }}
         >
           <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: "8px 8px", fontWeight: 700, letterSpacing: 0.5, minWidth: 150 }}>Nome</th>
-              <th style={{ textAlign: "left", padding: "8px 8px", fontWeight: 700, letterSpacing: 0.5, minWidth: 100 }}>Cargo</th>
-              <th style={{ textAlign: "center", padding: "8px 8px", fontWeight: 700, letterSpacing: 0.5 }}>Tipo</th>
-              <th style={{ textAlign: "right", padding: "8px 8px", fontWeight: 700, letterSpacing: 0.5 }}>Custo Total</th>
-              <th style={{ textAlign: "center", padding: "8px 8px", fontWeight: 700, letterSpacing: 0.5 }}>Ações</th>
+              <th style={{ textAlign: "left", padding: "8px 8px", fontWeight: 700, minWidth: 150 }}>Nome</th>
+              <th style={{ textAlign: "left", padding: "8px 8px", fontWeight: 700, minWidth: 100 }}>Cargo</th>
+              <th style={{ textAlign: "center", padding: "8px 8px", fontWeight: 700 }}>Tipo</th>
+              <th style={{ textAlign: "right", padding: "8px 8px", fontWeight: 700, minWidth: 120 }}>Custo Total</th>
+              <th style={{ textAlign: "right", padding: "8px 8px", fontWeight: 700, minWidth: 120 }}>Valor da Hora</th>
+              <th style={{ textAlign: "center", padding: "8px 8px", fontWeight: 700 }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {categorias[1].funcionarios.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ color: "#aaa", textAlign: "center", padding: 24 }}>
+                <td colSpan={6} style={{ color: "#aaa", textAlign: "center", padding: 24 }}>
                   Nenhum funcionário cadastrado.<br />
                   Clique em <b>Adicionar Funcionário</b> para começar.
                 </td>
               </tr>
             )}
-            {categorias[1].funcionarios.map((f, idx) => (
-              <tr
-                key={idx}
-                style={{
-                  background: "#201d41",
-                  borderRadius: 12,
-                  marginBottom: 10,
-                  boxShadow: "none",
-                  verticalAlign: "middle",
-                  height: "auto"
-                }}
-              >
-                <td style={{
-                  padding: "14px 10px",
-                  maxWidth: 220,
-                  verticalAlign: "top"
-                }}>
-                  <span style={{
+            {categorias[1].funcionarios.map((f, idx) => {
+              const valorHoraF = valorHoraFuncionario(f, calcularTotalFuncionarioObj);
+              return (
+                <tr
+                  key={idx}
+                  style={{
+                    background: "#201d41",
+                    borderRadius: 12,
+                    marginBottom: 10,
+                    boxShadow: "none",
+                    verticalAlign: "middle",
+                    height: "auto"
+                  }}
+                >
+                  <td style={{
+                    padding: "14px 10px",
+                    maxWidth: 220,
+                    verticalAlign: "top",
                     fontWeight: 500,
-                    color: "#fff",
-                    whiteSpace: "pre-line",
-                    wordBreak: "break-word",
-                    fontSize: 17,
+                    whiteSpace: "pre-line"
                   }}>
                     {f.nome}
-                  </span>
-                </td>
-                <td style={{
-                  padding: "14px 10px",
-                  maxWidth: 130,
-                  verticalAlign: "top"
-                }}>
-                  <span style={{
+                  </td>
+                  <td style={{
+                    padding: "14px 10px",
+                    maxWidth: 130,
+                    verticalAlign: "top",
                     fontWeight: 500,
-                    color: "#fff",
-                    whiteSpace: "pre-line",
-                    wordBreak: "break-word",
-                    fontSize: 17,
+                    whiteSpace: "pre-line"
                   }}>
                     {f.cargo}
-                  </span>
-                </td>
-                <td style={{
-                  padding: "14px 10px",
-                  textAlign: "center",
-                  minWidth: 80,
-                  fontWeight: 500,
-                  color: "#fff"
-                }}>
-                  {f.tipoMaoDeObra || "Direta"}
-                </td>
-                <td style={{
-                  padding: "14px 10px",
-                  textAlign: "right",
-                  whiteSpace: "nowrap",
-                  minWidth: 120,
-                  fontWeight: 700,
-                  color: "#b088ff",
-                  fontSize: 16,
-                }}>
-                  {calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </td>
-                <td style={{
-                  padding: "12px 10px",
-                  textAlign: "center",
-                  minWidth: 140,
-                  display: "flex",
-                  gap: 12,
-                  justifyContent: "center"
-                }}>
-                  <button
-                    onClick={() => handleEditarFuncionario(idx)}
-                    style={{
-                      color: "#222",
-                      background: "#ffe060",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "7px 20px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: 15,
-                      marginRight: 0,
-                      outline: "none",
-                      transition: "background .2s"
-                    }}
-                    onMouseOver={e => (e.currentTarget.style.background = "#ffe7a0")}
-                    onMouseOut={e => (e.currentTarget.style.background = "#ffe060")}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleExcluirFuncionario(idx)}
-                    style={{
-                      color: "#fff",
-                      background: "#3c3160",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "7px 20px",
-                      fontWeight: 700,
-                      fontSize: 15,
-                      cursor: "pointer",
-                      outline: "none",
-                      transition: "background .2s"
-                    }}
-                    onMouseOver={e => (e.currentTarget.style.background = "#6d5c99")}
-                    onMouseOut={e => (e.currentTarget.style.background = "#3c3160")}
-                  >
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{
+                    padding: "14px 10px",
+                    textAlign: "center",
+                    minWidth: 80,
+                    fontWeight: 500,
+                    color: "#fff"
+                  }}>
+                    {f.tipoMaoDeObra || "Direta"}
+                  </td>
+                  <td style={{
+                    padding: "14px 10px",
+                    textAlign: "right",
+                    whiteSpace: "nowrap",
+                    minWidth: 120,
+                    fontWeight: 700,
+                    color: "#b088ff",
+                    fontSize: 16,
+                  }}>
+                    {calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </td>
+                  <td style={{
+                    padding: "14px 10px",
+                    textAlign: "right",
+                    fontWeight: 800,
+                    color: "#ffe060",
+                    fontSize: 16,
+                    whiteSpace: "nowrap",
+                    background: "#2c2054",
+                    borderRadius: 8,
+                    letterSpacing: 0.2
+                  }}>
+                    {valorHoraF.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </td>
+                  <td style={{
+                    padding: "12px 10px",
+                    textAlign: "center",
+                    minWidth: 140,
+                    display: "flex",
+                    gap: 12,
+                    justifyContent: "center"
+                  }}>
+                    <button
+                      onClick={() => handleEditarFuncionario(idx)}
+                      style={{
+                        color: "#222",
+                        background: "#ffe060",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "7px 20px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontSize: 15,
+                        marginRight: 0,
+                        outline: "none",
+                        transition: "background .2s"
+                      }}
+                      onMouseOver={e => (e.currentTarget.style.background = "#ffe7a0")}
+                      onMouseOut={e => (e.currentTarget.style.background = "#ffe060")}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluirFuncionario(idx)}
+                      style={{
+                        color: "#fff",
+                        background: "#6e5aac",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "7px 20px",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        cursor: "pointer",
+                        outline: "none",
+                        transition: "background .2s"
+                      }}
+                      onMouseOver={e => (e.currentTarget.style.background = "#a780ff")}
+                      onMouseOut={e => (e.currentTarget.style.background = "#6e5aac")}
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         <div style={{ marginTop: 34, textAlign: "left" }}>
@@ -463,10 +565,12 @@ export default function FolhaDePagamento({
                     onFocus={() => setEditingPercent(ep => ({ ...ep, [item.key]: true }))}
                     onBlur={() => setEditingPercent(ep => ({ ...ep, [item.key]: false }))}
                     onChange={e => {
-                      let percStr = e.target.value.replace(/[^0-9]/g, "");
+                      let raw = e.target.value.replace(/\D/g, "");
+                      while (raw.length < 3) raw = "0" + raw;
+                      let percStr = raw.slice(0, raw.length - 2) + "," + raw.slice(-2);
                       setFuncionarioTemp(ft => {
                         const salarioNum = parseBR(ft.salario);
-                        const percNum = parseBR(percStr);
+                        const percNum = parsePercentBR(percStr);
                         const valorNum = salarioNum * (percNum / 100);
                         let valorStr = maskMoneyBR(String(Math.round(valorNum * 100)));
                         return {
@@ -525,9 +629,7 @@ export default function FolhaDePagamento({
                         const valorNum = parseBR(formatted);
                         const perc = salarioNum ? ((valorNum / salarioNum) * 100) : 0;
                         let percStr = perc
-                          .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          .replace(/,00$/, "")
-                          .replace(/,0$/, "");
+                          .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         return {
                           ...ft,
                           [item.key]: percStr,
@@ -561,6 +663,69 @@ export default function FolhaDePagamento({
             Custo Total deste Funcionário:&nbsp;
             {calcularTotalFuncionario().toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </div>
+
+          <div
+            style={{
+              margin: "14px 0 8px 0",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+              background: "#231d3c",
+              borderRadius: "10px",
+              padding: "17px 18px 10px 18px"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#ffe060", fontWeight: 700, fontSize: 16 }}>
+                Total de horas mensais:
+              </span>
+              <input
+                type="text"
+                value={totalHorasMes}
+                onChange={e => {
+                  const onlyNum = e.target.value.replace(/\D/g, "");
+                  setTotalHorasMes(onlyNum);
+                  setFuncionarioTemp(ft => ({ ...ft, totalHorasMes: onlyNum }));
+                }}
+                style={{
+                  width: 60,
+                  background: "#191730",
+                  color: "#fff",
+                  border: "1.5px solid #4b3ca0",
+                  borderRadius: 6,
+                  fontWeight: 700,
+                  fontSize: 16,
+                  textAlign: "center",
+                  padding: "4px 6px",
+                }}
+                min="1"
+                maxLength={4}
+                placeholder="220"
+              />
+              <span style={{ color: "#ffe060", fontWeight: 700, fontSize: 16 }}>
+                h/mês
+              </span>
+            </div>
+            <div style={{
+              color: "#ffe060",
+              fontWeight: 800,
+              fontSize: 20,
+              marginTop: 8,
+              letterSpacing: 0.3,
+              background: "#18132a",
+              borderRadius: 7,
+              padding: "6px 18px"
+            }}>
+              Valor da hora (custo total):&nbsp;
+              <span style={{ color: "#b088ff" }}>
+                {isFinite(valorHora) && valorHora > 0
+                  ? valorHora.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                  : "R$ 0,00"}
+              </span>
+            </div>
+          </div>
+
           <div style={{
             display: "flex",
             gap: 12,
