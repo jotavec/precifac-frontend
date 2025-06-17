@@ -1,77 +1,84 @@
 import React from "react";
 
-// Recebe: subcategorias, custosAtivos (objeto {id: true/false}), onToggleCusto (função)
+// Função para converter valor string ou number para number real
+function parseValor(valor) {
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string") {
+    // remove pontos de milhar e troca vírgula por ponto
+    const limpo = valor.replace(/\./g, "").replace(",", ".");
+    const n = Number(limpo);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
 export default function DespesasFixasModal({
   subcategorias = [],
   custosAtivos = {},
   onToggleCusto,
+  ToggleComponent = () => null
 }) {
-  if (!subcategorias.length) {
-    return (
-      <div style={{ color: "#fff", fontSize: 18, margin: 22 }}>
-        Nenhuma subcategoria encontrada!
-      </div>
-    );
-  }
-
   return (
-    <div style={{ marginTop: 8, minWidth: 380, color: "#fff" }}>
-      {subcategorias.map((subcat, i) => (
-        <div key={i} style={{ marginBottom: 22 }}>
-          <div style={{
-            fontWeight: 800,
-            fontSize: 19,
-            color: "#ffe95c",
-            marginBottom: 4
-          }}>
-            {subcat.nome}
-          </div>
-          {(!subcat.despesas || subcat.despesas.length === 0) && (
+    <div style={{ marginTop: 10 }}>
+      {subcategorias && subcategorias.length > 0 ? (
+        subcategorias.map((subcat, i) => (
+          <div key={i} style={{ marginBottom: 24 }}>
             <div style={{
-              color: "#bdbadd",
-              fontWeight: 600,
-              fontSize: 15,
-              marginLeft: 6
+              color: "#ffe060",
+              fontWeight: 800,
+              fontSize: "1.08rem",
+              marginBottom: 3,
+              marginTop: i === 0 ? 0 : 12
             }}>
-              Nenhum custo cadastrado.
+              {subcat.nome}
             </div>
-          )}
-          {subcat.despesas && subcat.despesas.map((custo, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 3,
-                marginLeft: 14,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={!!custosAtivos[`${subcat.nome}-${custo.nome}`]}
-                onChange={() => onToggleCusto(`${subcat.nome}-${custo.nome}`)}
-                style={{ accentColor: "#ffd76f", width: 19, height: 19 }}
-              />
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: "#bfa9ff"
-                }}
-              >{custo.nome}</span>
-              <span
-                style={{
-                  fontWeight: 800,
-                  marginLeft: 8,
-                  color: "#b388ff"
-                }}
-              >
-                - R$ {custo.valor}
-              </span>
-            </div>
-          ))}
+            {(subcat.despesas && subcat.despesas.length > 0) ? (
+              subcat.despesas.map((custo, idx) => {
+                const id = `${subcat.nome}-${custo.nome}`;
+                const ativo = !!custosAtivos[id];
+                return (
+                  <div key={id} className="markupideal-listitem">
+                    <ToggleComponent
+                      checked={ativo}
+                      onChange={() => onToggleCusto(id)}
+                    />
+                    <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
+                      {custo.nome}
+                    </span>
+                    <span className="markupideal-listitem-valor">
+                      {parseValor(custo.valor).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL"
+                      })}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{
+                color: "#ffe060",
+                fontWeight: 400,
+                opacity: 0.65,
+                fontSize: "1rem",
+                marginLeft: 2,
+                marginBottom: 4
+              }}>
+                Nenhum custo cadastrado.
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <div style={{
+          color: "#ffe060",
+          fontWeight: 400,
+          opacity: 0.7,
+          fontSize: "1rem",
+          marginLeft: 2
+        }}>
+          Nenhuma subcategoria de despesa cadastrada.
         </div>
-      ))}
+      )}
     </div>
   );
 }

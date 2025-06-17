@@ -13,7 +13,43 @@ import SidebarMenu from "./SidebarMenu";
 import "./App.css";
 import "./AppContainer.css";
 
-// Estado inicial igual EncargosSobreVenda
+// ====== NOVO: Função para calcular custo total do funcionário ======
+
+// Array de campos percentuais conforme seu modal
+const CAMPOS_PERCENTUAIS = [
+  { key: "fgts", label: "FGTS (%)" },
+  { key: "inss", label: "INSS (%)" },
+  { key: "rat", label: "RAT (%)" },
+  { key: "ferias13", label: "Férias + 13º (%)" },
+  { key: "valeTransporte", label: "Vale Transporte (%)" },
+  { key: "valeAlimentacao", label: "Vale Alimentação (%)" },
+  { key: "valeRefeicao", label: "Vale Refeição (%)" },
+  { key: "planoSaude", label: "Plano de Saúde (%)" },
+  { key: "outros", label: "Outros (%)" }
+];
+
+function parseBR(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(/\./g, "").replace(",", "."));
+}
+function parsePercentBR(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(",", "."));
+}
+
+// Esta função pode ser usada em qualquer lugar, inclusive no MarkupIdeal
+function calcularTotalFuncionarioObj(f) {
+  const salarioNum = parseBR(f.salario);
+  let total = salarioNum;
+  CAMPOS_PERCENTUAIS.forEach(item => {
+    const percNum = parsePercentBR(f[item.key] || "0");
+    total += salarioNum * (percNum / 100);
+  });
+  return Number(total) || 0;
+}
+
+// ===============================================================
+
 const initialEncargosState = {
   icms: { percent: "", value: "" },
   iss: { percent: "", value: "" },
@@ -219,6 +255,8 @@ export default function App() {
                       outrosEncargos={outrosEncargos}
                       gastoSobreFaturamento={gastoSobreFaturamento}
                       despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
+                      funcionarios={categoriasCustos[1]?.funcionarios || []}
+                      calcularTotalFuncionarioObj={calcularTotalFuncionarioObj} // <-- ADICIONADO!
                     />
                   )
                   : null

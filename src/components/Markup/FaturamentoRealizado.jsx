@@ -147,24 +147,37 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
   // Só últimos 6 meses para o gráfico!
   const ultimos6 = lista.slice(-6);
 
-  // ====== RESUMO DE GASTOS SOBRE FATURAMENTO ======
+  // ====== RESUMO DE GASTOS SOBRE FATURAMENTO (considerando só ATIVOS do bloco 0 do MarkupIdeal) ======
   const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
 
-  const totalDespesasFixas = categorias[0]?.subcategorias?.reduce(
-    (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0), 0) || 0)
-    , 0) || 0;
+  // Pega os ativos do bloco 0 do MarkupIdeal
+  const custosAtivosPorBloco = JSON.parse(localStorage.getItem("markup-custosAtivosPorBloco-v1") || "{}");
+  const ativos = custosAtivosPorBloco[0] || {};
 
-  const totalFolha = categorias[1]?.funcionarios?.reduce(
-    (acc, f) => acc + (
-      (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
-      [
-        "fgts", "inss", "rat", "provisao", "valeTransporte",
-        "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
-      ].reduce((soma, key) => {
-        const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
-        return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
-      }, 0)
-    ), 0
+  // Soma só despesas fixas ATIVAS
+  const totalDespesasFixas = categorias?.[0]?.subcategorias?.reduce(
+    (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
+      const chave = `${sub.nome}-${d.nome}`;
+      return ativos[chave] ? soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0) : soma;
+    }, 0) || 0)
+  , 0) || 0;
+
+  // Soma só funcionários ATIVOS
+  const totalFolha = categorias?.[1]?.funcionarios?.reduce(
+    (acc, f) => {
+      const id = f.id ?? f._id ?? f.nome;
+      if (!ativos[id]) return acc;
+      return acc + (
+        (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
+        [
+          "fgts", "inss", "rat", "provisao", "valeTransporte",
+          "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
+        ].reduce((soma, key) => {
+          const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
+          return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
+        }, 0)
+      );
+    }, 0
   ) || 0;
 
   const percentualGastos = mediaCustom > 0

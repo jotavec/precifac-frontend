@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // SECTIONS dos blocos tradicionais:
 const SECTIONS = [
@@ -38,9 +38,9 @@ const SECTIONS = [
   }
 ];
 
-// Máscara de valor em reais (igual a dos outros blocos)
+// Máscara de valor em reais
 function maskValueBRLInput(v) {
-  v = (v || "").replace(/[^\d]/g, "");
+  v = (v ?? "").toString().replace(/[^\d]/g, "");
   if (v.length === 0) return "";
   while (v.length < 3) v = "0" + v;
   let reais = v.slice(0, -2);
@@ -49,111 +49,211 @@ function maskValueBRLInput(v) {
   return reais.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + centavos;
 }
 
-// Máscara para digitação do percentual (com separador)
-function formatNumberBR(v) {
-  let value = (v || "").replace(/\D/g, "");
-  if (!value) return "";
-  let number = parseFloat(value) / 100;
-  return number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Máscara para percentuais: igual valor em reais, mas só para % (ex: digita 1500, vira 15,00)
+function maskPercentBRLInput(v) {
+  v = (v ?? "").toString().replace(/[^\d]/g, "");
+  if (v.length === 0) return "";
+  while (v.length < 3) v = "0" + v;
+  let inteiro = v.slice(0, -2);
+  let decimal = v.slice(-2);
+  inteiro = inteiro.replace(/^0+/, "") || "0";
+  return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + decimal;
 }
 
-// Máscara para exibir percentual sem zeros se não precisar
-function formatNumberBRNoZeros(v) {
-  let value = (v || "").replace(/\D/g, "");
-  if (!value) return "0";
-  let number = parseFloat(value) / 100;
-  let [inteiro, decimal] = number
-    .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    .split(",");
-  if (decimal === "00") return inteiro;
-  return inteiro + "," + decimal;
+// Exibição final, tira zeros desnecessários das casas decimais
+function formatPercentDisplay(v) {
+  if (v === "" || v === undefined || v === null) return "0";
+  let num = Number(typeof v === "string" ? v.replace(",", ".") : v);
+  if (isNaN(num)) return "0";
+  if (Number.isInteger(num)) {
+    return num.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+  }
+  let str = num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  str = str.replace(/,00$/, "");
+  str = str.replace(/,(\d)0$/, ",$1");
+  return str;
 }
 
 export default function EncargosSobreVenda({ data, setData, outros, setOutros }) {
-  // Estados para edição dos percentuais
-  const [editingPercent, setEditingPercent] = useState({});
-  const [editingPercentOutros, setEditingPercentOutros] = useState({});
-  const [parcelas, setParcelas] = useState(0);
-  const [parcelasData, setParcelasData] = useState({});
-  const [criandoOutro, setCriandoOutro] = useState(false);
-  const [nomeNovoOutro, setNomeNovoOutro] = useState("");
+  // ----------- INÍCIO DA CORREÇÃO: Persistência do crédito parcelado -----------  
+  // Estado para array de parcelas (persistente)
+  const [parcelasArr, setParcelasArr] = useState(() => {
+    // tenta pegar do data.creditoParcelado, que deve ser um array
+    if (Array.isArray(data.creditoParcelado)) {
+      return data.creditoParcelado;
+    }
+    return [];
+  });
 
-  function handleChangePercent(e, key) {
-    const num = e.target.value.replace(/\D/g, "");
+  // Sempre que mudar data.creditoParcelado fora, sincroniza
+  useEffect(() => {
+    if (Array.isArray(data.creditoParcelado)) {
+      setParcelasArr(data.creditoParcelado);
+    }
+  }, [data.creditoParcelado]);
+
+  // Sempre que mudar parcelasArr, salva no objeto data.creditoParcelado
+  useEffect(() => {
     setData(prev => ({
       ...prev,
-      [key]: { ...prev[key], percent: num }
+      creditoParcelado: parcelasArr
     }));
-  }
-  function handleBlurPercent(key) {
-    setEditingPercent(prev => ({ ...prev, [key]: false }));
+    // eslint-disable-next-line
+  }, [parcelasArr]);
+  // ----------- FIM DA CORREÇÃO -----------
+
+  // Estados para edição dos percentuais
+  const [editingPercent, setEditingPercent] = useState({});
+  const [percentInput, setPercentInput] = useState({});
+
+  const [editingPercentOutros, setEditingPercentOutros] = useState({});
+  const [percentInputOutros, setPercentInputOutros] = useState({});
+
+  // ----------- HANDLERS PARA PERCENTUAIS PADRÃO -----------
+
+  function handleChangePercent(e, key) {
+    setPercentInput(prev => ({
+      ...prev,
+      [key]: e.target.value.replace(/[^\d]/g, "")
+    }));
   }
   function handleFocusPercent(key) {
     setEditingPercent(prev => ({ ...prev, [key]: true }));
+    let val = data[key]?.percent;
+    if (val === undefined || val === null) val = "";
+    else {
+      val = Math.round(Number(val) * 100).toString();
+    }
+    setPercentInput(prev => ({
+      ...prev,
+      [key]: val
+    }));
   }
+  function handleBlurPercent(key) {
+    let raw = percentInput[key] ?? "";
+    if (raw === "") raw = "0";
+    while (raw.length < 3) raw = "0" + raw;
+    let inteiro = raw.slice(0, -2).replace(/^0+/, "") || "0";
+    let decimal = raw.slice(-2);
+    const num = Number(inteiro + "." + decimal);
+    setData(prev => ({
+      ...prev,
+      [key]: { ...prev[key], percent: isNaN(num) ? 0 : num }
+    }));
+    setEditingPercent(prev => ({ ...prev, [key]: false }));
+    setPercentInput(prev => ({ ...prev, [key]: undefined }));
+  }
+
   function handleChangeValue(e, key) {
-    const value = e.target.value.replace(/\D/g, "");
+    const value = (e.target.value ?? "").toString().replace(/\D/g, "");
     setData(prev => ({
       ...prev,
       [key]: { ...prev[key], value }
     }));
   }
 
-  // PARCELAS
-  function handleAddParcela() {
-    setParcelas(qtd => qtd + 1);
-  }
-  function handleRemoveLastParcela() {
-    setParcelas(qtd => {
-      if (qtd <= 0) return 0;
-      setParcelasData(prev => {
-        const copy = { ...prev };
-        delete copy[qtd + 1];
-        delete copy[qtd];
-        return copy;
-      });
-      return qtd - 1;
+  // ----------- HANDLERS PARA PARCELAS (agora persistente!) -----------
+
+  function handleChangeParcelaPercent(e, idx) {
+    setParcelasArr(prev => {
+      const clone = [...prev];
+      const value = e.target.value.replace(/[^\d]/g, "");
+      clone[idx] = { ...clone[idx], percent: value };
+      return clone;
     });
   }
-  function handleChangeParcelaPercent(e, parcelaNum) {
-    const num = e.target.value.replace(/\D/g, "");
-    setParcelasData(prev => ({
-      ...prev,
-      [parcelaNum]: { ...prev[parcelaNum], percent: num }
-    }));
+  function handleFocusParcelaPercent(idx) {
+    setParcelasArr(prev => {
+      const clone = [...prev];
+      let val = clone[idx]?.percent;
+      if (val === undefined || val === null) val = "";
+      else {
+        val = Math.round(Number(val) * 100).toString();
+      }
+      clone[idx] = { ...clone[idx], percent: val };
+      return clone;
+    });
   }
-  function handleChangeParcelaValue(e, parcelaNum) {
-    const value = e.target.value.replace(/\D/g, "");
-    setParcelasData(prev => ({
-      ...prev,
-      [parcelaNum]: { ...prev[parcelaNum], value }
-    }));
+  function handleBlurParcelaPercent(idx) {
+    setParcelasArr(prev => {
+      const clone = [...prev];
+      let raw = clone[idx]?.percent ?? "";
+      if (raw === "") raw = "0";
+      while (raw.length < 3) raw = "0" + raw;
+      let inteiro = raw.slice(0, -2).replace(/^0+/, "") || "0";
+      let decimal = raw.slice(-2);
+      const num = Number(inteiro + "." + decimal);
+      clone[idx] = { ...clone[idx], percent: isNaN(num) ? 0 : num };
+      return clone;
+    });
   }
-  function handleBlurParcelaPercent(parcelaNum) {
-    setEditingPercent(prev => ({ ...prev, [`parcela${parcelaNum}`]: false }));
-  }
-  function handleFocusParcelaPercent(parcelaNum) {
-    setEditingPercent(prev => ({ ...prev, [`parcela${parcelaNum}`]: true }));
+  function handleChangeParcelaValue(e, idx) {
+    setParcelasArr(prev => {
+      const clone = [...prev];
+      const value = (e.target.value ?? "").toString().replace(/\D/g, "");
+      clone[idx] = { ...clone[idx], value };
+      return clone;
+    });
   }
 
-  // OUTROS COM MÁSCARA IGUAL
-  function handleChangeOutroPercent(e, idx) {
-    const num = e.target.value.replace(/\D/g, "");
-    setOutros(outros.map((o, i) => i === idx ? { ...o, percent: num } : o));
+  function handleChangeParcelaNome(e, idx) {
+    setParcelasArr(prev => {
+      const clone = [...prev];
+      clone[idx] = { ...clone[idx], nome: e.target.value };
+      return clone;
+    });
   }
-  function handleBlurOutroPercent(idx) {
-    setEditingPercentOutros(prev => ({ ...prev, [idx]: false }));
+
+  function handleAddParcela() {
+    setParcelasArr(prev => [
+      ...prev,
+      { nome: `${prev.length + 2}x`, percent: "", value: "" }
+    ]);
+  }
+  function handleRemoveLastParcela() {
+    setParcelasArr(prev => prev.slice(0, -1));
+  }
+
+  // ----------- HANDLERS PARA PERCENTUAIS OUTROS -----------
+
+  function handleChangeOutroPercent(e, idx) {
+    setPercentInputOutros(prev => ({
+      ...prev,
+      [idx]: e.target.value.replace(/[^\d]/g, "")
+    }));
   }
   function handleFocusOutroPercent(idx) {
     setEditingPercentOutros(prev => ({ ...prev, [idx]: true }));
+    let val = outros[idx]?.percent;
+    if (val === undefined || val === null) val = "";
+    else {
+      val = Math.round(Number(val) * 100).toString();
+    }
+    setPercentInputOutros(prev => ({
+      ...prev,
+      [idx]: val
+    }));
+  }
+  function handleBlurOutroPercent(idx) {
+    let raw = percentInputOutros[idx] ?? "";
+    if (raw === "") raw = "0";
+    while (raw.length < 3) raw = "0" + raw;
+    let inteiro = raw.slice(0, -2).replace(/^0+/, "") || "0";
+    let decimal = raw.slice(-2);
+    const num = Number(inteiro + "." + decimal);
+    setOutros(outros.map((o, i) => i === idx ? { ...o, percent: isNaN(num) ? 0 : num } : o));
+    setEditingPercentOutros(prev => ({ ...prev, [idx]: false }));
+    setPercentInputOutros(prev => ({ ...prev, [idx]: undefined }));
   }
   function handleChangeOutroValue(e, idx) {
-    const value = e.target.value.replace(/\D/g, "");
+    const value = (e.target.value ?? "").toString().replace(/\D/g, "");
     setOutros(outros.map((o, i) => i === idx ? { ...o, value } : o));
   }
   function handleRemoveOutro(idx) {
     setOutros(outros.filter((_, i) => i !== idx));
   }
+  const [criandoOutro, setCriandoOutro] = useState(false);
+  const [nomeNovoOutro, setNomeNovoOutro] = useState("");
   function handleAddOutro() {
     if (!nomeNovoOutro.trim()) return;
     setOutros([
@@ -192,7 +292,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     border: "none",
     outline: "none",
     color: "#fff",
-    width: 68,
+    width: 84,
     fontWeight: 600,
     fontSize: 18,
     textAlign: "right",
@@ -312,13 +412,13 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
                           placeholder="0,00"
                           value={
                             editingPercentOutros[idx]
-                              ? formatNumberBR(outro.percent)
-                              : formatNumberBRNoZeros(outro.percent)
+                              ? maskPercentBRLInput(percentInputOutros[idx] ?? "")
+                              : formatPercentDisplay(outros[idx]?.percent)
                           }
                           onChange={e => handleChangeOutroPercent(e, idx)}
                           onFocus={() => handleFocusOutroPercent(idx)}
                           onBlur={() => handleBlurOutroPercent(idx)}
-                          maxLength={9}
+                          maxLength={13}
                           inputMode="numeric"
                           autoComplete="off"
                         />
@@ -440,7 +540,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
                           >
                             + Adicionar parcela
                           </button>
-                          {parcelas > 0 && (
+                          {parcelasArr.length > 0 && (
                             <button
                               style={trashButtonStyle}
                               aria-label="Remover última parcela"
@@ -458,53 +558,60 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
                           )}
                         </div>
                       </div>
-                      {[...Array(parcelas)].map((_, idx) => {
-                        const parcelaNum = idx + 2;
-                        return (
-                          <div key={"parcela-" + parcelaNum} style={{ ...fieldRow, marginLeft: 60 }}>
-                            <span style={{
+                      {parcelasArr.map((parcela, idx) => (
+                        <div key={"parcela-" + idx} style={{ ...fieldRow, marginLeft: 60 }}>
+                          <input
+                            style={{
                               ...labelStyle,
                               minWidth: 40,
                               fontWeight: 700,
-                              color: "#ffe060"
-                            }}>{parcelaNum}x</span>
-                            <div style={blocosWrapper}>
-                              <div style={inputBlock}>
-                                <input
-                                  style={inputInnerPercent}
-                                  type="text"
-                                  placeholder="0,00"
-                                  value={
-                                    editingPercent[`parcela${parcelaNum}`]
-                                      ? formatNumberBR(parcelasData[parcelaNum]?.percent || "")
-                                      : formatNumberBRNoZeros(parcelasData[parcelaNum]?.percent || "")
-                                  }
-                                  onChange={e => handleChangeParcelaPercent(e, parcelaNum)}
-                                  onFocus={() => handleFocusParcelaPercent(parcelaNum)}
-                                  onBlur={() => handleBlurParcelaPercent(parcelaNum)}
-                                  maxLength={9}
-                                  inputMode="numeric"
-                                  autoComplete="off"
-                                />
-                                <span style={suffixPercent}>%</span>
-                              </div>
-                              <div style={inputBlockMoney}>
-                                <span style={prefixMoney}>R$</span>
-                                <input
-                                  style={inputInnerMoney}
-                                  type="text"
-                                  placeholder="0,00"
-                                  value={maskValueBRLInput(parcelasData[parcelaNum]?.value || "")}
-                                  onChange={e => handleChangeParcelaValue(e, parcelaNum)}
-                                  maxLength={12}
-                                  inputMode="numeric"
-                                  autoComplete="off"
-                                />
-                              </div>
+                              color: "#ffe060",
+                              background: "transparent",
+                              border: "none",
+                              outline: "none",
+                              width: 40
+                            }}
+                            type="text"
+                            value={parcela.nome || `${idx + 2}x`}
+                            onChange={e => handleChangeParcelaNome(e, idx)}
+                            maxLength={20}
+                          />
+                          <div style={blocosWrapper}>
+                            <div style={inputBlock}>
+                              <input
+                                style={inputInnerPercent}
+                                type="text"
+                                placeholder="0,00"
+                                value={
+                                  typeof parcela.percent === "string"
+                                    ? maskPercentBRLInput(parcela.percent)
+                                    : formatPercentDisplay(parcela.percent)
+                                }
+                                onChange={e => handleChangeParcelaPercent(e, idx)}
+                                onFocus={() => handleFocusParcelaPercent(idx)}
+                                onBlur={() => handleBlurParcelaPercent(idx)}
+                                maxLength={13}
+                                inputMode="numeric"
+                                autoComplete="off"
+                              />
+                              <span style={suffixPercent}>%</span>
+                            </div>
+                            <div style={inputBlockMoney}>
+                              <span style={prefixMoney}>R$</span>
+                              <input
+                                style={inputInnerMoney}
+                                type="text"
+                                placeholder="0,00"
+                                value={maskValueBRLInput(parcela.value || "")}
+                                onChange={e => handleChangeParcelaValue(e, idx)}
+                                maxLength={12}
+                                inputMode="numeric"
+                                autoComplete="off"
+                              />
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </>
                   ) : (
                     <div style={fieldRow}>
@@ -517,13 +624,13 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
                             placeholder="0,00"
                             value={
                               editingPercent[field.key]
-                                ? formatNumberBR(data[field.key].percent)
-                                : formatNumberBRNoZeros(data[field.key].percent)
+                                ? maskPercentBRLInput(percentInput[field.key] ?? "")
+                                : formatPercentDisplay(data[field.key]?.percent)
                             }
                             onChange={e => handleChangePercent(e, field.key)}
                             onFocus={() => handleFocusPercent(field.key)}
                             onBlur={() => handleBlurPercent(field.key)}
-                            maxLength={9}
+                            maxLength={13}
                             inputMode="numeric"
                             autoComplete="off"
                           />
