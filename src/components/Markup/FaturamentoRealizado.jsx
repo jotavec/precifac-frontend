@@ -58,17 +58,13 @@ function TooltipCustom({ active, payload, label }) {
   return null;
 }
 
-export default function FaturamentoRealizado({ user, setGastoSobreFaturamento }) {
+export default function FaturamentoRealizado({ user, setGastoSobreFaturamento, mediaTipoDefault = "6", categorias = [], custosAtivosPorBloco = {} }) {
   const USER_ID = user?.id;
 
   const [month, setMonth] = useState("");
   const [value, setValue] = useState("");
   const [lista, setLista] = useState([]);
-
-  // Filtro de média salvo
-  const [mediaTipo, setMediaTipo] = useState(() =>
-    localStorage.getItem("faturamento-media-tipo") || "6"
-  );
+  const [mediaTipo, setMediaTipo] = useState(mediaTipoDefault);
   const [modalOpen, setModalOpen] = useState(false);
   const modalRef = useRef();
   const opcoes = [
@@ -92,7 +88,6 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
 
   function handleSelect(tipo) {
     setMediaTipo(tipo);
-    localStorage.setItem("faturamento-media-tipo", tipo); // salva!
     setModalOpen(false);
   }
 
@@ -148,13 +143,8 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
   const ultimos6 = lista.slice(-6);
 
   // ====== RESUMO DE GASTOS SOBRE FATURAMENTO (considerando só ATIVOS do bloco 0 do MarkupIdeal) ======
-  const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-
-  // Pega os ativos do bloco 0 do MarkupIdeal
-  const custosAtivosPorBloco = JSON.parse(localStorage.getItem("markup-custosAtivosPorBloco-v1") || "{}");
   const ativos = custosAtivosPorBloco[0] || {};
 
-  // Soma só despesas fixas ATIVAS
   const totalDespesasFixas = categorias?.[0]?.subcategorias?.reduce(
     (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
       const chave = `${sub.nome}-${d.nome}`;
@@ -162,7 +152,6 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
     }, 0) || 0)
   , 0) || 0;
 
-  // Soma só funcionários ATIVOS
   const totalFolha = categorias?.[1]?.funcionarios?.reduce(
     (acc, f) => {
       const id = f.id ?? f._id ?? f.nome;
@@ -189,12 +178,10 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
       ? percentualGastos.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
       : percentualGastos.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-  // 🔥 Aqui salva sempre a % para o MarkupIdeal puxar!
   useEffect(() => {
     if (setGastoSobreFaturamento) {
       setGastoSobreFaturamento(percentualGastosFormatado);
     }
-    localStorage.setItem("percentualGastosFaturamento", percentualGastosFormatado);
   }, [percentualGastosFormatado, setGastoSobreFaturamento]);
 
   return (

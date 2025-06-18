@@ -82,12 +82,6 @@ function toDecimal(v) {
   if (typeof v === "number") return v / 100;
   return 0;
 }
-function normalizePercentString(v) {
-  if (!v) return "0,00";
-  v = String(v).replace(",", ".");
-  const num = Number(v);
-  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 function calcularMarkupIdeal(...percentuais) {
   const soma = percentuais.reduce(
     (acc, val) => acc + (parseFloat(val) || 0) / 100, 0
@@ -112,11 +106,6 @@ function somaValoresEncargosSobreVenda(data, outros = []) {
     }
   });
   return total;
-}
-
-// ==== Normalização robusta para nomes de blocos e categorias ====
-function normalizeNome(str) {
-  return (str || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 // ==== TOGGLE SWITCH COMPONENT (INLINE) ====
@@ -254,6 +243,7 @@ function BlocoSubReceita() {
   );
 }
 
+// BlocoCard
 function BlocoCard({
   nome, campos, onChangeNome, onDelete, obs, lucro, lucroEdit, onLucroChange, onLucroFocus, onLucroBlur, markupIdeal, onConfig, encargosData, outrosEncargos
 }) {
@@ -337,6 +327,7 @@ function BlocoCard({
   );
 }
 
+// FolhaPagamentoModalAba
 function FolhaPagamentoModalAba({
   funcionarios = [],
   ativos = {},
@@ -379,93 +370,93 @@ function FolhaPagamentoModalAba({
   );
 }
 
+// ==== LÓGICA DE FATURAMENTO E GASTOS ====
+// AGORA: Recebe por props do FaturamentoRealizado!
+function getMediaFaturamentoGlobal(lista, mediaTipo) {
+  let listaMedia;
+  if (mediaTipo === "all") listaMedia = lista;
+  else listaMedia = lista.slice(-Number(mediaTipo));
+
+  const mediaCustom = listaMedia.length > 0
+    ? listaMedia.reduce((acc, cur) => acc + (Number(cur.value) || 0), 0) / listaMedia.length
+    : 0;
+
+  return mediaCustom;
+}
+
+// AJUSTE: calcula só com custos ATIVOS do bloco
+function getPercentualGastosFaturamento(idx, funcionarios, despesasFixasSubcats, custosAtivosPorBloco, mediaFaturamento) {
+  const ativos = custosAtivosPorBloco[idx] || {};
+
+  // Soma despesas fixas ATIVAS do bloco
+  const totalDespesasFixas = (despesasFixasSubcats || []).reduce(
+    (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
+      const chave = `${sub.nome}-${d.nome}`;
+      return ativos[chave] ? soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0) : soma;
+    }, 0) || 0), 0
+  );
+
+  // Soma funcionários ATIVOS do bloco
+  const totalFolha = (funcionarios || []).reduce((a, f) => {
+    const id = f.id ?? f._id ?? f.nome;
+    if (!ativos[id]) return a;
+    return a + (
+      (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
+      [
+        "fgts", "inss", "rat", "provisao", "valeTransporte",
+        "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
+      ].reduce((soma, key) => {
+        const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
+        return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
+      }, 0)
+    );
+  }, 0);
+
+  const totalCustos = totalDespesasFixas + totalFolha;
+
+  const percentualGastos = mediaFaturamento > 0
+    ? (totalCustos / mediaFaturamento) * 100
+    : 0;
+
+  // Mostra sempre DUAS casas decimais, igual tela de faturamento!
+  return percentualGastos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ==== COMPONENTE PRINCIPAL ====
 export default function MarkupIdeal({
   encargosData = {},
   outrosEncargos = [],
   despesasFixasSubcats = [],
   funcionarios = [],
-  calcularTotalFuncionarioObj
+  calcularTotalFuncionarioObj,
+  faturamentoLista = [],
+  faturamentoMediaTipo = "6"
 }) {
-  const [modalConfigIdx, setModalConfigIdx] = useState(null);
-  const [abaModalSelecionada, setAbaModalSelecionada] = useState("despesas");
+  // Persistência dos blocos no localStorage
+  const [blocos, setBlocos] = useState(() => {
+    const salvo = localStorage.getItem("markup-blocos-v4");
+    return salvo ? JSON.parse(salvo) : [];
+  });
+  useEffect(() => {
+    localStorage.setItem("markup-blocos-v4", JSON.stringify(blocos));
+  }, [blocos]);
+
+  // Persistência dos custos ativos por bloco
   const [custosAtivosPorBloco, setCustosAtivosPorBloco] = useState(() => {
-    const salvos = localStorage.getItem("markup-custosAtivosPorBloco-v1");
-    return salvos ? JSON.parse(salvos) : {};
+    const salvo = localStorage.getItem("markup-custosAtivosPorBloco-v1");
+    return salvo ? JSON.parse(salvo) : {};
   });
   useEffect(() => {
     localStorage.setItem("markup-custosAtivosPorBloco-v1", JSON.stringify(custosAtivosPorBloco));
   }, [custosAtivosPorBloco]);
 
+  const [modalConfigIdx, setModalConfigIdx] = useState(null);
+  const [abaModalSelecionada, setAbaModalSelecionada] = useState("despesas");
   const [inputNovo, setInputNovo] = useState("");
   const impostosTotais = somaImpostos(encargosData || {});
   const taxasTotais = somaTaxas(encargosData || {});
   const comissoesTotais = somaComissoes(encargosData || {});
   const outrosTotais = somaOutros(encargosData || {}, outrosEncargos || []);
-
-  function getMediaFaturamentoGlobal() {
-    const mediaTipo = localStorage.getItem("faturamento-media-tipo") || "6";
-    const lista = JSON.parse(localStorage.getItem("faturamentoLista") || "[]");
-    let listaMedia;
-    if (mediaTipo === "all") listaMedia = lista;
-    else listaMedia = lista.slice(-Number(mediaTipo));
-    const mediaCustom = listaMedia.length > 0
-      ? listaMedia.reduce((acc, cur) => acc + cur.value, 0) / listaMedia.length
-      : 0;
-    return mediaCustom;
-  }
-
-  // Busca categoria pelo nome do bloco/card (robusto, ignora acento/capitalização)
-  function getPercentualGastosFaturamento(idx) {
-    const mediaFaturamento = getMediaFaturamentoGlobal();
-
-    const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-    const blocos = JSON.parse(localStorage.getItem("markup-blocos-v4") || "[]");
-    const nomeBloco = normalizeNome(blocos?.[idx]?.nome);
-    const categoriaBloco = categorias.find(cat => normalizeNome(cat.nome || cat.Nome) === nomeBloco);
-
-    const custosAtivosPorBloco = JSON.parse(localStorage.getItem("markup-custosAtivosPorBloco-v1") || "{}");
-    const ativos = custosAtivosPorBloco[idx] || {};
-
-    const totalDespesasFixas = categoriaBloco?.subcategorias?.reduce(
-      (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
-        const chave = `${sub.nome}-${d.nome}`;
-        return ativos[chave] ? soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0) : soma;
-      }, 0) || 0), 0
-    ) || 0;
-
-    const totalFolha = categoriaBloco?.funcionarios?.reduce(
-      (acc, f) => {
-        const id = f.id ?? f._id ?? f.nome;
-        if (!ativos[id]) return acc;
-        return acc + (
-          (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
-          [
-            "fgts", "inss", "rat", "provisao", "valeTransporte",
-            "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
-          ].reduce((soma, key) => {
-            const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
-            return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
-          }, 0)
-        );
-      }, 0
-    ) || 0;
-
-    const percentualGastos = mediaFaturamento > 0
-      ? ((totalDespesasFixas + totalFolha) / mediaFaturamento) * 100
-      : 0;
-
-    return percentualGastos % 1 === 0
-      ? percentualGastos.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
-      : percentualGastos.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
-
-  const [blocos, setBlocos] = useState(() => {
-    const salvos = localStorage.getItem("markup-blocos-v4");
-    return salvos ? JSON.parse(salvos) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem("markup-blocos-v4", JSON.stringify(blocos));
-  }, [blocos]);
 
   function getActiveIdsForBloco(tipo) {
     if (tipo === "despesas") {
@@ -570,7 +561,14 @@ export default function MarkupIdeal({
   }
 
   function montarCamposBloco(idx, lucro, lucroEdit) {
-    const gastoSobreFaturamento = getPercentualGastosFaturamento(idx);
+    const mediaFaturamento = getMediaFaturamentoGlobal(faturamentoLista, faturamentoMediaTipo);
+    const gastoSobreFaturamento = getPercentualGastosFaturamento(
+      idx,
+      funcionarios,
+      despesasFixasSubcats,
+      custosAtivosPorBloco,
+      mediaFaturamento
+    );
     return [
       {
         label: "Gasto sobre faturamento",
@@ -667,7 +665,10 @@ export default function MarkupIdeal({
             onLucroFocus={() => handleLucroBlocoFocus(idx)}
             onLucroBlur={() => handleLucroBlocoBlur(idx)}
             markupIdeal={calcularMarkupIdeal(
-              toDecimal(getPercentualGastosFaturamento(idx)),
+              toDecimal(getPercentualGastosFaturamento(
+                idx, funcionarios, despesasFixasSubcats, custosAtivosPorBloco,
+                getMediaFaturamentoGlobal(faturamentoLista, faturamentoMediaTipo)
+              )),
               toDecimal(impostosTotais?.percent),
               toDecimal(taxasTotais?.percent),
               toDecimal(comissoesTotais?.percent),
