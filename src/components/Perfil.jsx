@@ -3,12 +3,12 @@ import axios from "axios";
 
 const API_URL = "http://localhost:3000";
 
-// --- ESTILOS --- //
+// --- [ESTILOS] ---
 const perfilCard = {
   maxWidth: 420,
   width: "100%",
-  marginTop: 32,    // só espaço em cima
-  marginLeft: 0,    // cola na esquerda do main-content
+  marginTop: 32,
+  marginLeft: 0,
   background: "#19172c",
   border: "1.5px solid #28244a",
   borderRadius: 12,
@@ -98,7 +98,6 @@ const btnSec = {
   transition: "background 0.18s, color 0.18s, filter 0.18s"
 };
 
-// --- CEP FIELD: Botão independente, input arredondado dos dois lados --- //
 const blocoCep = {
   display: "flex",
   alignItems: "center",
@@ -155,7 +154,6 @@ const btnCepDisabled = {
   cursor: "not-allowed"
 };
 
-// --- NÚMERO + SEM NÚMERO: botão independente do lado direito --- //
 const blocoNumero = {
   display: "flex",
   alignItems: "center",
@@ -186,7 +184,6 @@ const inputNumeroDisabled = {
   cursor: "not-allowed"
 };
 
-// Botão "Sem número" independente
 const btnSemNumero = {
   background: "#28244a",
   color: "#ffe060",
@@ -269,37 +266,18 @@ export default function Perfil({ user = {} }) {
     bairro: "",
     cidade: "",
     estado: "",
-    cpf: ""
+    cpf: user.cpf || ""
   });
 
   useEffect(() => {
-    async function carregarEmpresa() {
-      if (!user?.id) return;
-      try {
-        const res = await axios.get(`${API_URL}/company-config`, {
-          params: { userId: user.id }
-        });
-        if (res.data) {
-          setForm(f => ({
-            ...f,
-            empresaNome: res.data.companyName || "",
-            cnpj: res.data.cnpj || "",
-            telefoneEmpresa: res.data.phone || "",
-            cep: res.data.cep || "",
-            rua: res.data.rua || "",
-            numero: res.data.numero || "",
-            bairro: res.data.bairro || "",
-            cidade: res.data.cidade || "",
-            estado: res.data.estado || "",
-            semNumero: res.data.numero === "",
-            cpf: res.data.cpf || ""
-          }));
-        }
-      } catch {
-        // Sem dados, ignora
-      }
-    }
-    carregarEmpresa();
+    setForm(f => ({
+      ...f,
+      nome: user.name || "",
+      email: user.email || "",
+      telefone: user.telefone || "",
+      cpf: user.cpf || ""
+    }));
+    // Carregar os dados da empresa, se precisar
     // eslint-disable-next-line
   }, [user]);
 
@@ -324,7 +302,6 @@ export default function Perfil({ user = {} }) {
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     let val = value;
-    // Máscaras automáticas em TODOS os campos relevantes
     if (name === "cnpj") val = formatCNPJ(value);
     if (name === "cpf") val = formatCPF(value);
     if (name === "cep") val = formatCEP(value);
@@ -349,6 +326,14 @@ export default function Perfil({ user = {} }) {
   async function handleSalvar() {
     setEditando(false);
     try {
+      // ATUALIZA USUÁRIO USANDO O ID!
+      await axios.put(`${API_URL}/users/${user.id}`, {
+        name: form.nome,
+        email: form.email,
+        cpf: form.cpf,
+        telefone: form.telefone
+      });
+
       await axios.post(`${API_URL}/company-config`, {
         userId: user.id,
         companyName: form.empresaNome,
@@ -362,6 +347,7 @@ export default function Perfil({ user = {} }) {
         estado: form.estado,
         cpf: form.cpf
       });
+
       alert("Configurações salvas!");
     } catch (err) {
       alert("Erro ao salvar configurações");
@@ -370,30 +356,8 @@ export default function Perfil({ user = {} }) {
 
   function handleCancelar() {
     setEditando(false);
-    if (user?.id) {
-      axios.get(`${API_URL}/company-config`, { params: { userId: user.id } })
-        .then(res => {
-          if (res.data) {
-            setForm(f => ({
-              ...f,
-              empresaNome: res.data.companyName || "",
-              cnpj: res.data.cnpj || "",
-              telefoneEmpresa: res.data.phone || "",
-              cep: res.data.cep || "",
-              rua: res.data.rua || "",
-              numero: res.data.numero || "",
-              bairro: res.data.bairro || "",
-              cidade: res.data.cidade || "",
-              estado: res.data.estado || "",
-              semNumero: res.data.numero === "",
-              cpf: res.data.cpf || ""
-            }));
-          }
-        });
-    }
   }
 
-  // Hover states
   const [mainHover, setMainHover] = useState(false);
   const [secHover, setSecHover] = useState(false);
   const [cepHover, setCepHover] = useState(false);

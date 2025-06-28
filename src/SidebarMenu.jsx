@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { FaUser, FaCog, FaMoneyBill, FaPercent, FaBoxes, FaChartLine, FaPowerOff } from "react-icons/fa";
+import {
+  FaUser,
+  FaCog,
+  FaMoneyBill,
+  FaPercent,
+  FaBoxes,
+  FaChartLine,
+  FaPowerOff,
+} from "react-icons/fa";
 import { GiChefToque } from "react-icons/gi";
 import "./SidebarMenu.css";
 
@@ -10,10 +18,11 @@ export default function SidebarMenu({
   subCategoriasPrincipais = [],
   subCategoriasMarkup = [],
   sidebarExpanded,
-  setSidebarExpanded
+  setSidebarExpanded,
 }) {
   const [custosOpen, setCustosOpen] = useState(false);
   const [markupOpen, setMarkupOpen] = useState(false);
+  const [estoqueOpen, setEstoqueOpen] = useState(false);
 
   const menuItems = [
     { label: "Perfil", icon: <FaUser /> },
@@ -32,7 +41,14 @@ export default function SidebarMenu({
         label: cat.label,
       })),
     },
-    { label: "Estoque", icon: <FaBoxes /> },
+    {
+      label: "Estoque",
+      icon: <FaBoxes />,
+      subItems: [
+        { label: "Cadastros" },
+        // Aqui você pode adicionar mais submenus futuramente!
+      ],
+    },
     { label: "Quadro de Receitas", icon: <GiChefToque size={22} /> },
     {
       label: "Planejamento de Vendas",
@@ -45,13 +61,20 @@ export default function SidebarMenu({
     if (item.label === "Custos") {
       setCustosOpen((open) => !open);
       setMarkupOpen(false);
+      setEstoqueOpen(false);
     } else if (item.label === "Markup") {
       setMarkupOpen((open) => !open);
       setCustosOpen(false);
+      setEstoqueOpen(false);
+    } else if (item.label === "Estoque") {
+      setEstoqueOpen((open) => !open);
+      setCustosOpen(false);
+      setMarkupOpen(false);
     } else {
       onSelect(item.label);
       setCustosOpen(false);
       setMarkupOpen(false);
+      setEstoqueOpen(false);
     }
   }
 
@@ -67,6 +90,7 @@ export default function SidebarMenu({
         setSidebarExpanded(false);
         setCustosOpen(false);
         setMarkupOpen(false);
+        setEstoqueOpen(false);
       }}
     >
       <div className="sidebar-logo" />
@@ -118,8 +142,26 @@ export default function SidebarMenu({
                     </svg>
                   </span>
                 )}
+                {item.label === "Estoque" && item.subItems && (
+                  <span
+                    className="submenu-arrow"
+                    style={{
+                      transition: "transform 0.2s",
+                      display: "inline-block",
+                      transform: estoqueOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      marginLeft: 22,
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                      <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    </svg>
+                  </span>
+                )}
               </span>
             </div>
+
+            {/* SUBMENUS */}
             {item.label === "Custos" && item.subItems && custosOpen && (
               <ul className="sidebar-submenu">
                 {item.subItems.map((sub) => (
@@ -160,12 +202,34 @@ export default function SidebarMenu({
                 ))}
               </ul>
             )}
+            {item.label === "Estoque" && item.subItems && estoqueOpen && (
+              <ul className="sidebar-submenu">
+                {item.subItems.map((sub) => (
+                  <li
+                    key={sub.label}
+                    className={
+                      "sidebar-subitem"
+                      + (selected === `Estoque:${sub.label}` ? " selected" : "")
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSubItemClick("Estoque", sub);
+                    }}
+                    tabIndex={0}
+                  >
+                    <span className="label-text">{sub.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>
       <hr className="sidebar-divider" />
       <div className="sidebar-list-item logout" onClick={onLogout} tabIndex={0}>
-        <span className="icon"><FaPowerOff /></span>
+        <span className="icon">
+          <FaPowerOff />
+        </span>
         <span className="label">
           <span className="label-text">Sair</span>
         </span>

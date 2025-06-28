@@ -1,78 +1,58 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import AbasModal from "./AbasModal";
 import DespesasFixasModal from "./DespesasFixasModal";
 import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
 import "./MarkupIdeal.css";
 
-// ==== HELPERS ====
+// Helpers
+function maskPercentInput(valorDigitado) {
+  let v = valorDigitado.replace(/\D/g, "");
+  if (v.length === 0) v = "0";
+  v = v.slice(0, 6);
+  while (v.length < 3) v = "0" + v;
+  let int = v.slice(0, -2).replace(/^0+/, "") || "0";
+  let dec = v.slice(-2);
+  return `${int},${dec}`;
+}
+
+function formatPercentBRMask(v) {
+  if (!v) return "0 %";
+  let n = Number(v.replace(",", "."));
+  if (isNaN(n)) return "0 %";
+  if (Number.isInteger(n)) {
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: 0 }) + " %";
+  }
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " %";
+}
+
 function parsePercent(v) {
   if (typeof v === "string") {
     return Number(v.replace("%", "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".")) || 0;
   }
   return Number(v) || 0;
 }
-function onlyNumbers(s) {
-  return (s || "").replace(/\D/g, "");
+
+function onlyNumbersAndComma(s) {
+  return (s || "").replace(/[^\d,]/g, "");
 }
+
 function formatNumberBRNoZeros(v) {
-  let value = (v || "").replace(/\D/g, "");
-  if (!value) return "0";
-  let number = parseFloat(value) / 100;
-  let [inteiro, decimal] = number
-    .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    .split(",");
-  if (decimal === "00") return inteiro;
-  return inteiro + "," + decimal;
+  if (v == null || v === "") return "0";
+  let s = v.toString().replace(/[^\d,]/g, "");
+  if (!s) return "0";
+  if (s.indexOf(",") === -1) s = s.replace(/^0+/, "") || "0";
+  let [int, dec = ""] = s.split(",");
+  dec = dec.slice(0, 2);
+  if (dec === "") return int;
+  return int + "," + dec;
 }
+
 function formatNumberBR(v) {
-  let value = (v || "").replace(/\D/g, "");
-  if (!value) return "";
-  let number = parseFloat(value) / 100;
-  return number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let n = Number((v || "0").toString().replace(",", "."));
+  if (isNaN(n)) return "";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function formatBR(val, casas = 2) {
-  if (typeof val === "string") val = val.replace(/[^\d.-]/g, "");
-  if (!val || isNaN(val)) val = 0;
-  return Number(val).toLocaleString("pt-BR", {
-    minimumFractionDigits: casas,
-    maximumFractionDigits: casas,
-  });
-}
-function somaImpostos(data) {
-  const keys = ["icms", "iss", "pisCofins", "irpjCsll", "ipi"];
-  let totalPercent = 0, totalValue = 0;
-  keys.forEach(k => {
-    totalPercent += parsePercent(data?.[k]?.percent);
-    totalValue += parsePercent(data?.[k]?.value);
-  });
-  return { percent: totalPercent, value: totalValue };
-}
-function somaTaxas(data) {
-  const keys = ["debito", "credito", "creditoParcelado", "boleto", "pix", "gateway"];
-  let totalPercent = 0, totalValue = 0;
-  keys.forEach(k => {
-    totalPercent += parsePercent(data?.[k]?.percent);
-    totalValue += parsePercent(data?.[k]?.value);
-  });
-  return { percent: totalPercent, value: totalValue };
-}
-function somaComissoes(data) {
-  const keys = ["marketing", "delivery", "saas", "colaboradores"];
-  let totalPercent = 0, totalValue = 0;
-  keys.forEach(k => {
-    totalPercent += parsePercent(data?.[k]?.percent);
-    totalValue += parsePercent(data?.[k]?.value);
-  });
-  return { percent: totalPercent, value: totalValue };
-}
-function somaOutros(data, outros = []) {
-  let totalPercent = 0, totalValue = 0;
-  (outros || []).forEach(item => {
-    totalPercent += parsePercent(item.percent);
-    totalValue += parsePercent(item.value);
-  });
-  return { percent: totalPercent, value: totalValue };
-}
+
 function toDecimal(v) {
   if (typeof v === "string") {
     v = v.replace("%", "").replace(/\./g, "").replace(",", ".");
@@ -82,9 +62,10 @@ function toDecimal(v) {
   if (typeof v === "number") return v / 100;
   return 0;
 }
+
 function calcularMarkupIdeal(...percentuais) {
   const soma = percentuais.reduce(
-    (acc, val) => acc + (parseFloat(val) || 0) / 100, 0
+    (acc, val) => acc + (parseFloat(val) || 0), 0
   );
   if (soma >= 1) return "Markup inviável!";
   const result = 1 / (1 - soma);
@@ -93,22 +74,107 @@ function calcularMarkupIdeal(...percentuais) {
     maximumFractionDigits: 3
   });
 }
-function somaValoresEncargosSobreVenda(data, outros = []) {
-  let total = 0;
-  Object.values(data || {}).forEach(item => {
-    if (item && item.value !== undefined && item.value !== null && !isNaN(item.value)) {
-      total += Number(item.value) / 100;
-    }
+
+function somaImpostos(data, ativos = {}) {
+  const keys = ["icms", "iss", "pisCofins", "irpjCsll", "ipi"];
+  let totalPercent = 0;
+  keys.forEach(k => {
+    if (!ativos[k]) return;
+    totalPercent += parsePercent(data?.[k]?.percent);
   });
-  (outros || []).forEach(item => {
-    if (item && item.value !== undefined && item.value !== null && !isNaN(item.value)) {
-      total += Number(item.value) / 100;
-    }
-  });
-  return total;
+  return { percent: totalPercent };
 }
 
-// ==== TOGGLE SWITCH COMPONENT (INLINE) ====
+function somaTaxas(data, ativos = {}) {
+  const keys = ["debito", "credito", "boleto", "pix", "gateway"];
+  let totalPercent = 0;
+  keys.forEach(k => {
+    if (!ativos[k]) return;
+    totalPercent += parsePercent(data?.[k]?.percent);
+  });
+  if (Array.isArray(data.creditoParcelado)) {
+    data.creditoParcelado.forEach((parcela, idx) => {
+      const keyParcela = `creditoParcelado_${parcela.nome || idx}`;
+      if (!ativos[keyParcela]) return;
+      totalPercent += parsePercent(parcela.percent);
+    });
+  }
+  return { percent: totalPercent };
+}
+
+function somaComissoes(data, ativos = {}) {
+  const keys = ["marketing", "delivery", "saas", "colaboradores"];
+  let totalPercent = 0;
+  keys.forEach(k => {
+    if (!ativos[k]) return;
+    totalPercent += parsePercent(data?.[k]?.percent);
+  });
+  return { percent: totalPercent };
+}
+
+function somaOutros(data, outros = [], ativos = {}) {
+  let totalPercent = 0;
+  (outros || []).forEach(item => {
+    const key = item.id ?? item.nome;
+    if (!ativos[key]) return;
+    totalPercent += parsePercent(item.percent);
+  });
+  return { percent: totalPercent };
+}
+
+function getPercentualGastosFaturamento(idx, funcionarios, despesasFixasSubcats, custosAtivosPorBloco) {
+  // Removido localStorage! Coloque seu cálculo de média de faturamento vindo do backend/state
+  const mediaFaturamento = 0; // Substitua por valor correto do backend/state
+  const ativos = custosAtivosPorBloco[idx] || {};
+  const totalDespesasFixas = (despesasFixasSubcats || []).reduce((acc, sub) => {
+    const subtotal = (sub.despesas || []).reduce((soma, d) => {
+      const chave = `${sub.nome}-${d.nome}`;
+      if (!ativos[chave]) return soma;
+      let valor = d.valor;
+      if (typeof valor === "string") {
+        valor = valor.replace(/\./g, "").replace(",", ".");
+        valor = Number(valor);
+      }
+      if (valor > 100000) valor = valor / 100;
+      return soma + (valor || 0);
+    }, 0);
+    return acc + subtotal;
+  }, 0);
+  const totalFolha = (funcionarios || []).reduce((acc, f) => {
+    const id = f.id ?? f._id ?? f.nome;
+    if (!ativos[id]) return acc;
+    let salario = f.salario;
+    if (typeof salario === "string") {
+      salario = salario.replace(/\./g, "").replace(",", ".");
+      salario = Number(salario);
+    }
+    if (salario > 100000) salario = salario / 100;
+    const encargos = [
+      "fgts", "inss", "rat", "provisao", "valeTransporte",
+      "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
+    ];
+    const totalEncargos = encargos.reduce((soma, key) => {
+      let perc = f[key];
+      if (typeof perc === "string") {
+        perc = perc.replace(/\./g, "").replace(",", ".");
+        perc = Number(perc);
+      }
+      if (perc > 100) perc = perc / 100;
+      return soma + ((salario || 0) * ((perc || 0) / 100));
+    }, 0);
+    return acc + salario + totalEncargos;
+  }, 0);
+  const total = totalDespesasFixas + totalFolha;
+  const percentualGastos = mediaFaturamento > 0
+    ? (total / mediaFaturamento) * 100
+    : 0;
+  return percentualGastos.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Toggle Switch
 function ToggleSwitchRoxo({ checked, onChange, disabled }) {
   return (
     <label className="markupideal-switch">
@@ -123,7 +189,6 @@ function ToggleSwitchRoxo({ checked, onChange, disabled }) {
   );
 }
 
-// ==== COMPONENTES AUXILIARES ====
 function LinhaVisual(props) {
   const {
     label,
@@ -134,7 +199,7 @@ function LinhaVisual(props) {
     onLucroFocus,
     onLucroBlur,
     lucroEdit,
-    lucro,
+    lucro
   } = props;
 
   if (markup !== undefined) {
@@ -147,7 +212,6 @@ function LinhaVisual(props) {
       </tr>
     );
   }
-
   if (lucroEditable) {
     return (
       <tr>
@@ -156,12 +220,15 @@ function LinhaVisual(props) {
           <span className="markup-ideal-box">
             <input
               type="text"
-              value={lucroEdit ? formatNumberBR(lucro) : formatNumberBRNoZeros(lucro)}
-              onChange={onLucroChange}
+              value={lucro}
+              onChange={e => onLucroChange(maskPercentInput(e.target.value))}
               onFocus={onLucroFocus}
               onBlur={onLucroBlur}
               maxLength={6}
               className="markup-ideal-lucro-input"
+              style={{ textAlign: "right" }}
+              inputMode="decimal"
+              placeholder="0,00"
             />
             <span className="markup-ideal-box-percent">%</span>
           </span>
@@ -169,58 +236,57 @@ function LinhaVisual(props) {
       </tr>
     );
   }
-
   return (
     <tr>
       <td className="markup-ideal-row-label">{label}</td>
       <td className="markup-ideal-row-value-set">
-        <span className="markup-ideal-box">{percentual} %</span>
+        <span className="markup-ideal-box">{formatPercentBRMask(percentual)}</span>
       </td>
     </tr>
   );
 }
 
 function BlocoSubReceita() {
-  const [nome, setNome] = useState("subreceita");
+  const [nome, setNome] = useState("SubReceita");
   const [editando, setEditando] = useState(false);
-
   const confirmarEdicao = () => setEditando(false);
 
   return (
     <div className="markup-ideal-outer">
       <div className="markup-ideal-inner">
         <div className="markup-ideal-title-row">
-          <span className="markup-ideal-title">{nome}</span>
-          <div className="markup-ideal-title-group">
-            {!editando && (
+          {editando ? (
+            <div className="markup-ideal-title-editbox">
+              <input
+                value={nome}
+                autoFocus
+                onChange={e => setNome(e.target.value)}
+                onBlur={confirmarEdicao}
+                onKeyDown={e => {
+                  if (e.key === "Enter") confirmarEdicao();
+                }}
+                maxLength={40}
+                className="markup-ideal-title-input-edit"
+              />
               <button
-                className="markup-ideal-edit-btn"
-                onClick={() => setEditando(true)}
-                title="Editar nome"
-              >✏️</button>
-            )}
-            {editando && (
-              <div className="markup-ideal-title-editbox">
-                <input
-                  value={nome}
-                  autoFocus
-                  onChange={e => setNome(e.target.value)}
-                  onBlur={confirmarEdicao}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") confirmarEdicao();
-                  }}
-                  maxLength={40}
-                  className="markup-ideal-title-input-edit"
-                />
+                className="markup-ideal-confirm-btn"
+                onClick={confirmarEdicao}
+                title="Confirmar edição"
+                tabIndex={-1}
+              >✔️</button>
+            </div>
+          ) : (
+            <>
+              <span className="markup-ideal-title">{nome}</span>
+              <div className="markup-ideal-title-group">
                 <button
-                  className="markup-ideal-confirm-btn"
-                  onClick={confirmarEdicao}
-                  title="Confirmar edição"
-                  tabIndex={-1}
-                >✔️</button>
+                  className="markup-ideal-edit-btn"
+                  onClick={() => setEditando(true)}
+                  title="Editar nome"
+                >✏️</button>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
         <table className="markup-ideal-table">
           <tbody>
@@ -234,33 +300,25 @@ function BlocoSubReceita() {
           </tbody>
         </table>
         <div className="markup-ideal-tip">
-          <b>*Sub-Receita</b> é bloqueado pois serve para subprodutos que não serão vendidos, ou seja,
-          serão usados como ingredientes: como massas, recheios, coberturas, etc. Esta categoria garante
-          que não haverá duplicação da margem de lucro no produto final.
+          <b>Atenção:</b> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em outras receitas, evitando que a margem de lucro seja aplicada duas vezes no produto final.
         </div>
       </div>
     </div>
   );
 }
 
-// BlocoCard
 function BlocoCard({
-  nome, campos, onChangeNome, onDelete, obs, lucro, lucroEdit, onLucroChange, onLucroFocus, onLucroBlur, markupIdeal, onConfig, encargosData, outrosEncargos
+  nome, campos, onChangeNome, onDelete, obs, onConfig
 }) {
   const [editando, setEditando] = useState(false);
   const [inputNome, setInputNome] = useState(nome);
-
   const handleNomeBlur = () => {
     setEditando(false);
     if (inputNome.trim() && onChangeNome) onChangeNome(inputNome);
   };
-
   useEffect(() => {
     setInputNome(nome);
   }, [nome]);
-
-  const totalEncargosReais = somaValoresEncargosSobreVenda(encargosData, outrosEncargos);
-
   return (
     <div className="markup-ideal-outer">
       <div className="markup-ideal-inner">
@@ -288,46 +346,49 @@ function BlocoCard({
             <>
               <span className="markup-ideal-title">{nome}</span>
               <div className="markup-ideal-title-group">
-                <button
-                  className="markup-ideal-edit-btn"
-                  onClick={() => setEditando(true)}
-                  title="Editar nome"
-                >✏️</button>
-                <button
-                  className="markup-ideal-edit-btn"
-                  onClick={onConfig}
-                  title="Configurar bloco"
-                  style={{ color: "#7b57e7" }}
-                >⚙️</button>
-                <button
-                  className="markup-ideal-edit-btn"
-                  onClick={onDelete}
-                  title="Excluir bloco"
-                  style={{ color: "#e15c5c" }}
-                >🗑️</button>
+                {onChangeNome && (
+                  <button
+                    className="markup-ideal-edit-btn"
+                    onClick={() => setEditando(true)}
+                    title="Editar nome"
+                  >✏️</button>
+                )}
+                {onConfig && (
+                  <button
+                    className="markup-ideal-edit-btn"
+                    onClick={onConfig}
+                    title="Configurar bloco"
+                    style={{ color: "#7b57e7" }}
+                  >⚙️</button>
+                )}
+                {onDelete && (
+                  <button
+                    className="markup-ideal-edit-btn"
+                    onClick={onDelete}
+                    title="Excluir bloco"
+                    style={{ color: "#e15c5c" }}
+                  >🗑️</button>
+                )}
               </div>
             </>
           )}
         </div>
         <table className="markup-ideal-table">
           <tbody>
-            {campos.map((linha, idx) =>
-              <LinhaVisual key={linha.label} {...linha} />
-            )}
+            {campos.map((linha, idx) => (
+              <LinhaVisual
+                key={linha.label}
+                {...linha}
+              />
+            ))}
           </tbody>
         </table>
-        {(typeof totalEncargosReais === "number" && !isNaN(totalEncargosReais) && totalEncargosReais > 0) && (
-          <div className="markup-ideal-total-rs">
-            total em {totalEncargosReais.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          </div>
-        )}
         {obs}
       </div>
     </div>
   );
 }
 
-// FolhaPagamentoModalAba
 function FolhaPagamentoModalAba({
   funcionarios = [],
   ativos = {},
@@ -350,10 +411,14 @@ function FolhaPagamentoModalAba({
         const ativo = !!ativos[id];
         return (
           <div key={id} className="markupideal-listitem">
-            <ToggleSwitchRoxo
-              checked={ativo}
-              onChange={() => onToggle(id)}
-            />
+            <label className="markupideal-switch">
+              <input
+                type="checkbox"
+                checked={ativo}
+                onChange={() => onToggle(id)}
+              />
+              <span className="markupideal-slider" />
+            </label>
             <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
               {f.nome}
             </span>
@@ -370,59 +435,7 @@ function FolhaPagamentoModalAba({
   );
 }
 
-// ==== LÓGICA DE FATURAMENTO E GASTOS ====
-// AGORA: Recebe por props do FaturamentoRealizado!
-function getMediaFaturamentoGlobal(lista, mediaTipo) {
-  let listaMedia;
-  if (mediaTipo === "all") listaMedia = lista;
-  else listaMedia = lista.slice(-Number(mediaTipo));
-
-  const mediaCustom = listaMedia.length > 0
-    ? listaMedia.reduce((acc, cur) => acc + (Number(cur.value) || 0), 0) / listaMedia.length
-    : 0;
-
-  return mediaCustom;
-}
-
-// AJUSTE: calcula só com custos ATIVOS do bloco
-function getPercentualGastosFaturamento(idx, funcionarios, despesasFixasSubcats, custosAtivosPorBloco, mediaFaturamento) {
-  const ativos = custosAtivosPorBloco[idx] || {};
-
-  // Soma despesas fixas ATIVAS do bloco
-  const totalDespesasFixas = (despesasFixasSubcats || []).reduce(
-    (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
-      const chave = `${sub.nome}-${d.nome}`;
-      return ativos[chave] ? soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0) : soma;
-    }, 0) || 0), 0
-  );
-
-  // Soma funcionários ATIVOS do bloco
-  const totalFolha = (funcionarios || []).reduce((a, f) => {
-    const id = f.id ?? f._id ?? f.nome;
-    if (!ativos[id]) return a;
-    return a + (
-      (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
-      [
-        "fgts", "inss", "rat", "provisao", "valeTransporte",
-        "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
-      ].reduce((soma, key) => {
-        const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
-        return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
-      }, 0)
-    );
-  }, 0);
-
-  const totalCustos = totalDespesasFixas + totalFolha;
-
-  const percentualGastos = mediaFaturamento > 0
-    ? (totalCustos / mediaFaturamento) * 100
-    : 0;
-
-  // Mostra sempre DUAS casas decimais, igual tela de faturamento!
-  return percentualGastos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// ==== COMPONENTE PRINCIPAL ====
+// MarkupIdeal Principal
 export default function MarkupIdeal({
   encargosData = {},
   outrosEncargos = [],
@@ -432,31 +445,112 @@ export default function MarkupIdeal({
   faturamentoLista = [],
   faturamentoMediaTipo = "6"
 }) {
-  // Persistência dos blocos no localStorage
-  const [blocos, setBlocos] = useState(() => {
-    const salvo = localStorage.getItem("markup-blocos-v4");
-    return salvo ? JSON.parse(salvo) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem("markup-blocos-v4", JSON.stringify(blocos));
-  }, [blocos]);
-
-  // Persistência dos custos ativos por bloco
-  const [custosAtivosPorBloco, setCustosAtivosPorBloco] = useState(() => {
-    const salvo = localStorage.getItem("markup-custosAtivosPorBloco-v1");
-    return salvo ? JSON.parse(salvo) : {};
-  });
-  useEffect(() => {
-    localStorage.setItem("markup-custosAtivosPorBloco-v1", JSON.stringify(custosAtivosPorBloco));
-  }, [custosAtivosPorBloco]);
-
+  // Aqui só states, nada de localStorage!
+  const [blocos, setBlocos] = useState([]);
+  const [custosAtivosPorBloco, setCustosAtivosPorBloco] = useState({});
   const [modalConfigIdx, setModalConfigIdx] = useState(null);
   const [abaModalSelecionada, setAbaModalSelecionada] = useState("despesas");
   const [inputNovo, setInputNovo] = useState("");
-  const impostosTotais = somaImpostos(encargosData || {});
-  const taxasTotais = somaTaxas(encargosData || {});
-  const comissoesTotais = somaComissoes(encargosData || {});
-  const outrosTotais = somaOutros(encargosData || {}, outrosEncargos || []);
+
+  function montarCamposBloco(idx, lucro, lucroEdit) {
+    const ativos = custosAtivosPorBloco[idx] || {};
+    const impostosTotais = somaImpostos(encargosData || {}, ativos);
+    const taxasTotais = somaTaxas(encargosData || {}, ativos);
+    const comissoesTotais = somaComissoes(encargosData || {}, ativos);
+    const outrosTotais = somaOutros(encargosData || {}, outrosEncargos || [], ativos);
+    const gastoSobreFaturamento = getPercentualGastosFaturamento(
+      idx,
+      funcionarios,
+      despesasFixasSubcats,
+      custosAtivosPorBloco
+    );
+    return [
+      {
+        label: "Gasto sobre faturamento",
+        percentual: formatNumberBRNoZeros((gastoSobreFaturamento ?? "").toString()),
+        valor: "",
+        centralizado: true
+      },
+      { label: "Impostos", percentual: formatNumberBRNoZeros(impostosTotais?.percent) },
+      { label: "Taxas de meios de pagamento", percentual: formatNumberBRNoZeros(taxasTotais?.percent) },
+      { label: "Comissões e plataformas", percentual: formatNumberBRNoZeros(comissoesTotais?.percent) },
+      { label: "Outros", percentual: formatNumberBRNoZeros(outrosTotais?.percent) },
+      {
+        label: "Lucro desejado sobre venda",
+        percentual: "",
+        lucroEditable: true,
+        onLucroChange: (valor) => handleLucroBlocoChange(idx, valor),
+        onLucroFocus: () => handleLucroBlocoFocus(idx),
+        onLucroBlur: () => handleLucroBlocoBlur(idx),
+        lucroEdit: lucroEdit,
+        lucro: lucro
+      },
+      { 
+        label: "Markup ideal", 
+        markup: calcularMarkupIdeal(
+          toDecimal(gastoSobreFaturamento),
+          toDecimal(impostosTotais?.percent),
+          toDecimal(taxasTotais?.percent),
+          toDecimal(comissoesTotais?.percent),
+          toDecimal(outrosTotais?.percent),
+          toDecimal(lucro)
+        ),
+        bold: true 
+      }
+    ];
+  }
+
+  const handleLucroBlocoChange = (idx, valorFormatado) => {
+    setBlocos(blocos =>
+      blocos.map((b, i) =>
+        i === idx ? { ...b, lucro: valorFormatado } : b
+      )
+    );
+  };
+
+  const handleLucroBlocoFocus = (idx) => {
+    setBlocos(blocos =>
+      blocos.map((b, i) =>
+        i === idx ? { ...b, lucroEdit: true } : b
+      )
+    );
+  };
+
+  const handleLucroBlocoBlur = (idx) => {
+    setBlocos(blocos =>
+      blocos.map((b, i) =>
+        i === idx ? { ...b, lucroEdit: false } : b
+      )
+    );
+  };
+
+  const handleAddBloco = () => {
+    if (inputNovo.trim() === "") return;
+    const novoIdx = blocos.length;
+    setBlocos([...blocos, { nome: inputNovo.trim(), lucro: "0,00", lucroEdit: false }]);
+    setCustosAtivosPorBloco(prev => ({
+      ...prev,
+      [novoIdx]: {
+        ...getActiveIdsForBloco("despesas"),
+        ...getActiveIdsForBloco("folha"),
+        ...getActiveIdsForBloco("encargos"),
+      }
+    }));
+    setInputNovo("");
+  };
+
+  const handleChangeNome = (idx, novoNome) => {
+    setBlocos(blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
+  };
+
+  const handleDeleteBloco = idx => {
+    setBlocos(blocos.filter((_, i) => i !== idx));
+    setCustosAtivosPorBloco(prev => {
+      const novo = { ...prev };
+      delete novo[idx];
+      return novo;
+    });
+  };
 
   function getActiveIdsForBloco(tipo) {
     if (tipo === "despesas") {
@@ -488,6 +582,12 @@ export default function MarkupIdeal({
       ].forEach(key => {
         ativos[key] = true;
       });
+      if (Array.isArray(encargosData.creditoParcelado)) {
+        encargosData.creditoParcelado.forEach((parcela, idx) => {
+          const keyParcela = `creditoParcelado_${parcela.nome || idx}`;
+          ativos[keyParcela] = true;
+        });
+      }
       (outrosEncargos || []).forEach(item => {
         const id = item.id ?? item.nome;
         ativos[id] = true;
@@ -496,56 +596,6 @@ export default function MarkupIdeal({
     }
     return {};
   }
-
-  const handleLucroBlocoChange = (idx, e) => {
-    const raw = onlyNumbers(e.target.value);
-    setBlocos(blocos =>
-      blocos.map((b, i) =>
-        i === idx ? { ...b, lucro: raw } : b
-      )
-    );
-  };
-  const handleLucroBlocoFocus = (idx) => {
-    setBlocos(blocos =>
-      blocos.map((b, i) =>
-        i === idx ? { ...b, lucroEdit: true } : b
-      )
-    );
-  };
-  const handleLucroBlocoBlur = (idx) => {
-    setBlocos(blocos =>
-      blocos.map((b, i) =>
-        i === idx ? { ...b, lucroEdit: false } : b
-      )
-    );
-  };
-
-  const handleAddBloco = () => {
-    if (inputNovo.trim() === "") return;
-    const novoIdx = blocos.length;
-    setBlocos([...blocos, { nome: inputNovo.trim(), lucro: "", lucroEdit: false }]);
-    setCustosAtivosPorBloco(prev => ({
-      ...prev,
-      [novoIdx]: {
-        ...getActiveIdsForBloco("despesas"),
-        ...getActiveIdsForBloco("folha"),
-        ...getActiveIdsForBloco("encargos"),
-      }
-    }));
-    setInputNovo("");
-  };
-
-  const handleChangeNome = (idx, novoNome) => {
-    setBlocos(blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
-  };
-  const handleDeleteBloco = idx => {
-    setBlocos(blocos.filter((_, i) => i !== idx));
-    setCustosAtivosPorBloco(prev => {
-      const novo = { ...prev };
-      delete novo[idx];
-      return novo;
-    });
-  };
 
   const custosAtivos = modalConfigIdx !== null ? (custosAtivosPorBloco[modalConfigIdx] || {}) : {};
 
@@ -558,48 +608,6 @@ export default function MarkupIdeal({
         [custoId]: !prev[modalConfigIdx]?.[custoId]
       }
     }));
-  }
-
-  function montarCamposBloco(idx, lucro, lucroEdit) {
-    const mediaFaturamento = getMediaFaturamentoGlobal(faturamentoLista, faturamentoMediaTipo);
-    const gastoSobreFaturamento = getPercentualGastosFaturamento(
-      idx,
-      funcionarios,
-      despesasFixasSubcats,
-      custosAtivosPorBloco,
-      mediaFaturamento
-    );
-    return [
-      {
-        label: "Gasto sobre faturamento",
-        percentual: formatNumberBRNoZeros((gastoSobreFaturamento ?? "").toString()),
-        valor: "",
-        centralizado: true
-      },
-      { label: "Impostos", percentual: formatNumberBRNoZeros(((impostosTotais?.percent ?? "")).toString()) },
-      { label: "Taxas de meios de pagamento", percentual: formatNumberBRNoZeros(((taxasTotais?.percent ?? "")).toString()) },
-      { label: "Comissões e plataformas", percentual: formatNumberBRNoZeros(((comissoesTotais?.percent ?? "")).toString()) },
-      { label: "Outros", percentual: formatNumberBRNoZeros(((outrosTotais?.percent ?? "")).toString()) },
-      {
-        label: "Lucro desejado sobre venda",
-        percentual: lucroEdit ? formatNumberBR(lucro) : formatNumberBRNoZeros(lucro),
-        lucroEditable: true,
-        onLucroChange: e => handleLucroBlocoChange(idx, e),
-        onLucroFocus: () => handleLucroBlocoFocus(idx),
-        onLucroBlur: () => handleLucroBlocoBlur(idx),
-        lucroEdit: lucroEdit,
-        lucro: lucro,
-        centralizado: true
-      },
-      { label: "Markup ideal", markup: calcularMarkupIdeal(
-        toDecimal(gastoSobreFaturamento),
-        toDecimal(impostosTotais?.percent),
-        toDecimal(taxasTotais?.percent),
-        toDecimal(comissoesTotais?.percent),
-        toDecimal(outrosTotais?.percent),
-        toDecimal(lucro)
-      ), bold: true }
-    ];
   }
 
   return (
@@ -652,6 +660,8 @@ export default function MarkupIdeal({
         </div>
 
         <BlocoSubReceita />
+
+        {/* BLOCO DINÂMICOS */}
         {blocos.map((bloco, idx) => (
           <BlocoCard
             key={idx}
@@ -659,30 +669,10 @@ export default function MarkupIdeal({
             campos={montarCamposBloco(idx, bloco.lucro, bloco.lucroEdit)}
             onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
             onDelete={() => handleDeleteBloco(idx)}
-            lucro={bloco.lucro}
-            lucroEdit={bloco.lucroEdit}
-            onLucroChange={e => handleLucroBlocoChange(idx, e)}
-            onLucroFocus={() => handleLucroBlocoFocus(idx)}
-            onLucroBlur={() => handleLucroBlocoBlur(idx)}
-            markupIdeal={calcularMarkupIdeal(
-              toDecimal(getPercentualGastosFaturamento(
-                idx, funcionarios, despesasFixasSubcats, custosAtivosPorBloco,
-                getMediaFaturamentoGlobal(faturamentoLista, faturamentoMediaTipo)
-              )),
-              toDecimal(impostosTotais?.percent),
-              toDecimal(taxasTotais?.percent),
-              toDecimal(comissoesTotais?.percent),
-              toDecimal(outrosTotais?.percent),
-              toDecimal(bloco.lucro)
-            )}
-            obs={null}
             onConfig={() => setModalConfigIdx(idx)}
-            encargosData={encargosData}
-            outrosEncargos={outrosEncargos}
           />
         ))}
       </div>
-
       {modalConfigIdx !== null && (
         <div
           className="markup-ideal-modal-bg"

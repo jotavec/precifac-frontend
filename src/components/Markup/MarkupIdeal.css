@@ -5,8 +5,8 @@
 .markup-ideal-main {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;  /* cards no canto esquerdo */
-  padding-left: 88px;       /* afasta do menu lateral */
+  align-items: flex-start;
+  padding-left: 88px;
   padding-top: 32px;
   width: 100vw;
   min-height: 100vh;
@@ -86,7 +86,8 @@
   min-width: 0;
   max-width: 320px;
   width: auto;
-  text-transform: lowercase;
+  /* ATENÇÃO: Aqui tirei o text-transform! */
+  /* text-transform: lowercase; */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,7 +209,7 @@
   border-radius: 10px;
   font-weight: 700;
   font-size: 1.13rem;
-  min-width: 90px;
+  min-width: 125px;
   min-height: 44px;
   padding: 0 16px;
   display: flex;
@@ -225,7 +226,7 @@
   color: #fff;
   font-weight: 700;
   font-size: 1.13rem;
-  width: 44px;
+  width: 60px;
   text-align: right;
   padding: 0;
   margin-right: 2px;
@@ -477,7 +478,7 @@
   align-items: center;
   gap: 16px;
   padding: 8px 0;
-  border-bottom: 1px solid #34255a44; /* linha sutil */
+  border-bottom: 1px solid #34255a44;
 }
 .markupideal-listitem:last-child {
   border-bottom: none;

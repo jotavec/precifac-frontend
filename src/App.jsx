@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -6,14 +6,14 @@ import Markup from "./components/Markup/Markup";
 import FaturamentoRealizado from "./components/Markup/FaturamentoRealizado";
 import MarkupIdeal from "./components/Markup/MarkupIdeal";
 import EncargosSobreVenda from "./components/Custos/EncargosSobreVenda";
-import Estoque from "./components/Estoque";
+import Estoque from "./components/Estoque/Estoque";
+import Cadastro from "./components/Estoque/Cadastro";
 import QuadroReceitas from "./components/QuadroReceitas";
-import PlanejamentoVendas from "./components/PlanejamentoVendas/PlanejamentoVendas";
+import PlanejamentoVendas from "./components/PlanejamentoVendas";
 import SidebarMenu from "./SidebarMenu";
 import "./App.css";
 import "./AppContainer.css";
-
-// ====== NOVO: Função para calcular custo total do funcionário ======
+import TesteIcones from "./TesteIcones";
 
 // Array de campos percentuais conforme seu modal
 const CAMPOS_PERCENTUAIS = [
@@ -37,7 +37,6 @@ function parsePercentBR(str) {
   return parseFloat(str.replace(",", "."));
 }
 
-// Esta função pode ser usada em qualquer lugar, inclusive no MarkupIdeal
 function calcularTotalFuncionarioObj(f) {
   const salarioNum = parseBR(f.salario);
   let total = salarioNum;
@@ -47,8 +46,6 @@ function calcularTotalFuncionarioObj(f) {
   });
   return Number(total) || 0;
 }
-
-// ===============================================================
 
 const initialEncargosState = {
   icms: { percent: "", value: "" },
@@ -75,7 +72,7 @@ const abasPrincipais = [
   { label: "Markup", component: Markup },
   { label: "Estoque", component: Estoque },
   { label: "Quadro de Receitas", component: QuadroReceitas },
-  { label: "Planejamento de Vendas", component: PlanejamentoVendas },
+  { label: "Planejamento de Vendas", component: PlanejamentoVendas }
 ];
 
 const subCategoriasPrincipais = [
@@ -86,16 +83,16 @@ const subCategoriasPrincipais = [
 
 const subCategoriasMarkup = [
   { label: "Faturamentos Realizados" },
-  { label: "Markup Ideal" },
+  { label: "Markup Ideal" }
 ];
 
-// NOVO: Estado inicial para categorias de custos
 const initialCategoriasCustos = [
   { nome: "Despesas Fixas", subcategorias: [] },
   { nome: "Folha de Pagamento", funcionarios: [] }
 ];
 
 export default function App() {
+  // Removido userId do localStorage, só existe user no state
   const [screen, setScreen] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [user, setUser] = useState(null);
@@ -105,35 +102,11 @@ export default function App() {
   const [subCatMarkup, setSubCatMarkup] = useState(0);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
-  // ESTADO GLOBAL dos Encargos (com persistência!)
-  const [encargosData, setEncargosData] = useState(() => {
-    const salvo = localStorage.getItem("encargosData");
-    return salvo ? JSON.parse(salvo) : initialEncargosState;
-  });
-  const [outrosEncargos, setOutrosEncargos] = useState(() => {
-    const salvo = localStorage.getItem("outrosEncargos");
-    return salvo ? JSON.parse(salvo) : [];
-  });
-
-  // NOVO: Estado global para % gasto sobre faturamento!
+  // Tudo só em state, nada de localStorage!
+  const [encargosData, setEncargosData] = useState(initialEncargosState);
+  const [outrosEncargos, setOutrosEncargos] = useState([]);
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
-
-  // CENTRALIZAÇÃO: Estado global de todas as categorias de custos
-  const [categoriasCustos, setCategoriasCustos] = useState(() => {
-    const saved = localStorage.getItem("categoriasCustos2");
-    return saved ? JSON.parse(saved) : initialCategoriasCustos;
-  });
-
-  // Sincroniza mudanças no localStorage!
-  useEffect(() => {
-    localStorage.setItem("encargosData", JSON.stringify(encargosData));
-  }, [encargosData]);
-  useEffect(() => {
-    localStorage.setItem("outrosEncargos", JSON.stringify(outrosEncargos));
-  }, [outrosEncargos]);
-  useEffect(() => {
-    localStorage.setItem("categoriasCustos2", JSON.stringify(categoriasCustos));
-  }, [categoriasCustos]);
+  const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -142,6 +115,7 @@ export default function App() {
   async function handleRegister(e) {
     e.preventDefault();
     setMsg("Enviando...");
+    // Aqui você deve chamar a API de cadastro
     setMsg("Cadastro realizado! Faça login.");
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
@@ -185,7 +159,10 @@ export default function App() {
     if (aba === 3) {
       return `Markup:${subCategoriasMarkup[subCatMarkup]?.label || ""}`;
     }
-    return abasPrincipais[aba].label;
+    if (aba === "cadastros") {
+      return "Estoque:Cadastros";
+    }
+    return abasPrincipais[aba]?.label || "";
   }
 
   function handleSidebarSelect(label) {
@@ -199,6 +176,8 @@ export default function App() {
       const sub = label.split(":")[1];
       const idx = subCategoriasMarkup.findIndex(x => x.label === sub);
       setSubCatMarkup(idx >= 0 ? idx : 0);
+    } else if (label === "Estoque:Cadastros") {
+      setAba("cadastros");
     } else {
       const idx = abasPrincipais.findIndex(x => x.label === label);
       setAba(idx >= 0 ? idx : 0);
@@ -208,7 +187,7 @@ export default function App() {
   }
 
   if (user) {
-    const AbaComponent = abasPrincipais[aba].component;
+    const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
     return (
       <div className={`app-container${sidebarExpanded ? " sidebar-expanded" : ""}`}>
         <SidebarMenu
@@ -221,53 +200,59 @@ export default function App() {
           setSidebarExpanded={setSidebarExpanded}
         />
         <main className="main-content">
-          {aba === 2
-            ? catIdx === 2
-              ? (
-                <EncargosSobreVenda
-                  data={encargosData}
-                  setData={setEncargosData}
-                  outros={outrosEncargos}
-                  setOutros={setOutrosEncargos}
-                />
-              )
-              : (
-                <Custos
-                  catIdx={catIdx}
-                  categorias={categoriasCustos}
-                  setCategorias={setCategoriasCustos}
-                  user={user}
-                />
-              )
-            : aba === 3
-              ? subCatMarkup === 0
-                ? (
-                  <FaturamentoRealizado
-                    user={user}
-                    setGastoSobreFaturamento={setGastoSobreFaturamento}
-                  />
-                )
-                : subCatMarkup === 1
-                  ? (
-                    <MarkupIdeal
-                      user={user}
-                      encargosData={encargosData}
-                      outrosEncargos={outrosEncargos}
-                      gastoSobreFaturamento={gastoSobreFaturamento}
-                      despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
-                      funcionarios={categoriasCustos[1]?.funcionarios || []}
-                      calcularTotalFuncionarioObj={calcularTotalFuncionarioObj} // <-- ADICIONADO!
-                    />
-                  )
-                  : null
-              : <AbaComponent user={user} />}
+          {aba === 2 ? (
+            catIdx === 2 ? (
+              <EncargosSobreVenda
+                data={encargosData}
+                setData={setEncargosData}
+                outros={outrosEncargos}
+                setOutros={setOutrosEncargos}
+                user={user}
+              />
+            ) : (
+              <Custos
+                catIdx={catIdx}
+                categorias={categoriasCustos}
+                setCategorias={setCategoriasCustos}
+                user={user}
+              />
+            )
+          ) : aba === 3 ? (
+            subCatMarkup === 0 ? (
+              <FaturamentoRealizado
+                user={user}
+                setGastoSobreFaturamento={setGastoSobreFaturamento}
+              />
+            ) : subCatMarkup === 1 ? (
+              <MarkupIdeal
+                user={user}
+                encargosData={encargosData}
+                outrosEncargos={outrosEncargos}
+                gastoSobreFaturamento={gastoSobreFaturamento}
+                despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
+                funcionarios={categoriasCustos[1]?.funcionarios || []}
+                calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+              />
+            ) : null
+          ) : aba === "cadastros" ? (
+            <Cadastro />
+          ) : AbaComponent ? (
+            <AbaComponent user={user} />
+          ) : null}
         </main>
       </div>
     );
   }
 
+  // LOGIN/CADASTRO
   return (
-    <div style={{ maxWidth: 360, margin: "2rem auto", padding: 32, border: "1px solid #ccc", borderRadius: 16 }}>
+    <div style={{
+      maxWidth: 360,
+      margin: "2rem auto",
+      padding: 32,
+      border: "1px solid #ccc",
+      borderRadius: 16
+    }}>
       <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
       <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
         {screen === "register" && (
@@ -307,7 +292,12 @@ export default function App() {
           setScreen(screen === "login" ? "register" : "login");
           setMsg("");
         }}
-        style={{ width: "100%", background: "#eee", border: "none", color: "#222" }}
+        style={{
+          width: "100%",
+          background: "#eee",
+          border: "none",
+          color: "#222"
+        }}
       >
         {screen === "login"
           ? "Não tem conta? Cadastre-se"

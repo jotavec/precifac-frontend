@@ -58,13 +58,15 @@ function TooltipCustom({ active, payload, label }) {
   return null;
 }
 
-export default function FaturamentoRealizado({ user, setGastoSobreFaturamento, mediaTipoDefault = "6", categorias = [], custosAtivosPorBloco = {} }) {
+export default function FaturamentoRealizado({ user, setGastoSobreFaturamento }) {
   const USER_ID = user?.id;
 
   const [month, setMonth] = useState("");
   const [value, setValue] = useState("");
   const [lista, setLista] = useState([]);
-  const [mediaTipo, setMediaTipo] = useState(mediaTipoDefault);
+
+  // Filtro de média só em state (padrão 6 meses)
+  const [mediaTipo, setMediaTipo] = useState("6");
   const [modalOpen, setModalOpen] = useState(false);
   const modalRef = useRef();
   const opcoes = [
@@ -142,32 +144,10 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento, m
   // Só últimos 6 meses para o gráfico!
   const ultimos6 = lista.slice(-6);
 
-  // ====== RESUMO DE GASTOS SOBRE FATURAMENTO (considerando só ATIVOS do bloco 0 do MarkupIdeal) ======
-  const ativos = custosAtivosPorBloco[0] || {};
-
-  const totalDespesasFixas = categorias?.[0]?.subcategorias?.reduce(
-    (acc, sub) => acc + (sub.despesas?.reduce((soma, d) => {
-      const chave = `${sub.nome}-${d.nome}`;
-      return ativos[chave] ? soma + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0) : soma;
-    }, 0) || 0)
-  , 0) || 0;
-
-  const totalFolha = categorias?.[1]?.funcionarios?.reduce(
-    (acc, f) => {
-      const id = f.id ?? f._id ?? f.nome;
-      if (!ativos[id]) return acc;
-      return acc + (
-        (Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) +
-        [
-          "fgts", "inss", "rat", "provisao", "valeTransporte",
-          "valeAlimentacao", "valeRefeicao", "planoSaude", "outros"
-        ].reduce((soma, key) => {
-          const perc = Number(String(f[key]).replace(/\./g, "").replace(",", ".")) || 0;
-          return soma + ((Number(String(f.salario).replace(/\./g, "").replace(",", ".")) || 0) * (perc / 100));
-        }, 0)
-      );
-    }, 0
-  ) || 0;
+  // ====== RESUMO DE GASTOS SOBRE FATURAMENTO (ATENÇÃO: AQUI PRECISA AJUSTAR PARA PEGAR DO BACKEND!) ======
+  // Para migrar 100% pro backend, as despesas fixas e folha devem ser buscadas via API!
+  const totalDespesasFixas = 0; // Coloque aqui a soma real, via API
+  const totalFolha = 0; // Coloque aqui a soma real, via API
 
   const percentualGastos = mediaCustom > 0
     ? ((totalDespesasFixas + totalFolha) / mediaCustom) * 100
@@ -177,12 +157,6 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento, m
     percentualGastos % 1 === 0
       ? percentualGastos.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
       : percentualGastos.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-  useEffect(() => {
-    if (setGastoSobreFaturamento) {
-      setGastoSobreFaturamento(percentualGastosFormatado);
-    }
-  }, [percentualGastosFormatado, setGastoSobreFaturamento]);
 
   return (
     <>

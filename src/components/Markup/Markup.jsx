@@ -2,15 +2,24 @@ import React, { useState, useEffect } from "react";
 import MarkupIdeal from "./MarkupIdeal";
 
 // Componente responsável por gerenciar o estado das despesas fixas e repassar para MarkupIdeal.
-// Todas as funções de adicionar/editar/remover custo DEVEM passar por aqui para atualizar o estado e o localStorage.
-export default function Markup() {
+// Versão sem localStorage.
+export default function Markup({ user }) {
   const [despesasFixasSubcats, setDespesasFixasSubcats] = useState([]);
 
-  // Carrega as subcategorias do localStorage ao montar o componente
   useEffect(() => {
-    const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-    setDespesasFixasSubcats(categorias[0]?.subcategorias || []);
-  }, []);
+    // Aqui você deve buscar as categorias do backend usando o user.id
+    async function buscarCategorias() {
+      if (!user) return;
+      try {
+        const resp = await fetch(`http://localhost:3000/categorias?userId=${user.id}`);
+        const data = await resp.json();
+        setDespesasFixasSubcats(data[0]?.subcategorias || []);
+      } catch {
+        setDespesasFixasSubcats([]);
+      }
+    }
+    buscarCategorias();
+  }, [user]);
 
   // Adiciona um novo custo dentro de uma subcategoria
   function adicionarCusto(subcatNome, novoCusto) {
@@ -20,10 +29,7 @@ export default function Markup() {
           ? { ...subcat, despesas: [...(subcat.despesas || []), novoCusto] }
           : subcat
       );
-      // Atualiza localStorage para persistir
-      const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-      if (categorias[0]) categorias[0].subcategorias = novas;
-      localStorage.setItem("categoriasCustos2", JSON.stringify(categorias));
+      // Aqui você deve atualizar via API também
       return novas;
     });
   }
@@ -41,9 +47,7 @@ export default function Markup() {
             }
           : subcat
       );
-      const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-      if (categorias[0]) categorias[0].subcategorias = novas;
-      localStorage.setItem("categoriasCustos2", JSON.stringify(categorias));
+      // Aqui você deve atualizar via API também
       return novas;
     });
   }
@@ -59,9 +63,7 @@ export default function Markup() {
             }
           : subcat
       );
-      const categorias = JSON.parse(localStorage.getItem("categoriasCustos2") || "[]");
-      if (categorias[0]) categorias[0].subcategorias = novas;
-      localStorage.setItem("categoriasCustos2", JSON.stringify(categorias));
+      // Aqui você deve atualizar via API também
       return novas;
     });
   }

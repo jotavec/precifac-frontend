@@ -29,7 +29,6 @@ export default function EncargosSobreVendaModal({
   onToggle,
   ToggleComponent
 }) {
-  // Chaves dos encargos fixos (sem creditoParcelado aqui!)
   const CHAVES = [
     { key: "icms", label: "ICMS" },
     { key: "iss", label: "ISS" },
@@ -38,7 +37,6 @@ export default function EncargosSobreVendaModal({
     { key: "ipi", label: "IPI" },
     { key: "debito", label: "Taxa Débito" },
     { key: "credito", label: "Taxa Crédito" },
-    // As parcelas de crédito vão logo abaixo de "credito"
     { key: "boleto", label: "Taxa Boleto" },
     { key: "pix", label: "Taxa Pix" },
     { key: "gateway", label: "Taxa Gateway" },
@@ -53,147 +51,77 @@ export default function EncargosSobreVendaModal({
     ? encargosData.creditoParcelado
     : [];
 
+  const renderLinha = (key, label, percent, value) => {
+    const percentMasked = maskPercentBRLInput(Math.round(Number(percent) * 100).toString());
+    const valueMasked = maskValueBRLInput(value);
+    return (
+      <tr key={key}>
+        <td style={{ width: 56, textAlign: "center" }}>
+          <ToggleComponent checked={!!ativos[key]} onChange={() => onToggle(key)} />
+        </td>
+        <td style={{ color: "#fff", fontWeight: 500 }}>{label}</td>
+        <td style={{ width: 90, textAlign: "right" }}>
+          <span style={{ color: purple, fontWeight: 700, minWidth: 60 }}>{percentMasked} %</span>
+        </td>
+        <td style={{ width: 120, textAlign: "right" }}>
+          <span style={{ color: purple, fontWeight: 700, minWidth: 60 }}>R$ {valueMasked}</span>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <table className="markup-ideal-table" style={{ width: "100%" }}>
       <tbody>
-        {CHAVES.flatMap(({ key, label }) => {
-          // Linha padrão
-          const percent = encargosData[key]?.percent ?? 0;
-          const value = encargosData[key]?.value ?? 0;
-          const percentMasked = maskPercentBRLInput(
-            Math.round(Number(percent) * 100).toString()
-          );
-          const valueMasked = maskValueBRLInput(value);
+        {/* IMPOSTOS */}
+        <tr>
+          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "10px 0 4px" }}>Impostos</td>
+        </tr>
+        {["icms", "iss", "pisCofins", "irpjCsll", "ipi"].map(key =>
+          renderLinha(key, CHAVES.find(c => c.key === key)?.label, encargosData[key]?.percent ?? 0, encargosData[key]?.value ?? 0)
+        )}
 
-          const mainRow = (
-            <tr key={key}>
-              <td style={{ width: 56, textAlign: "center" }}>
-                <ToggleComponent
-                  checked={!!ativos[key]}
-                  onChange={() => onToggle(key)}
-                />
-              </td>
-              <td style={{ color: "#fff", fontWeight: 500 }}>{label}</td>
-              <td style={{ width: 90, textAlign: "right" }}>
-                <span
-                  style={{
-                    color: purple,
-                    fontWeight: 700,
-                    minWidth: 60
-                  }}
-                >
-                  {percentMasked} %
-                </span>
-              </td>
-              <td style={{ width: 120, textAlign: "right" }}>
-                <span
-                  style={{
-                    color: purple,
-                    fontWeight: 700,
-                    minWidth: 60
-                  }}
-                >
-                  R$ {valueMasked}
-                </span>
-              </td>
-            </tr>
-          );
-
-          // Após "credito", renderizar as parcelas logo abaixo
+        {/* TAXAS */}
+        <tr>
+          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Taxas de Meios de Pagamento</td>
+        </tr>
+        {["debito", "credito", "boleto", "pix", "gateway"].flatMap(key => {
+          const linhas = [
+            renderLinha(key, CHAVES.find(c => c.key === key)?.label, encargosData[key]?.percent ?? 0, encargosData[key]?.value ?? 0)
+          ];
           if (key === "credito" && parcelas.length > 0) {
-            const parcelasRows = parcelas.map((parcela, pIdx) => {
+            parcelas.forEach((parcela, pIdx) => {
               const parcelaKey = `creditoParcelado_${parcela.nome || pIdx}`;
-              const percentMasked = maskPercentBRLInput(
-                Math.round(Number(parcela.percent) * 100).toString()
-              );
-              const valueMasked = maskValueBRLInput(parcela.value);
-              return (
-                <tr key={parcelaKey}>
-                  <td style={{ width: 56, textAlign: "center" }}>
-                    <ToggleComponent
-                      checked={!!ativos[parcelaKey]}
-                      onChange={() => onToggle(parcelaKey)}
-                    />
-                  </td>
-                  <td style={{ color: "#fff", fontWeight: 500 }}>
-                    Crédito Parcelado {parcela.nome ? `(${parcela.nome})` : ""}
-                  </td>
-                  <td style={{ width: 90, textAlign: "right" }}>
-                    <span
-                      style={{
-                        color: purple,
-                        fontWeight: 700,
-                        minWidth: 60
-                      }}
-                    >
-                      {percentMasked} %
-                    </span>
-                  </td>
-                  <td style={{ width: 120, textAlign: "right" }}>
-                    <span
-                      style={{
-                        color: purple,
-                        fontWeight: 700,
-                        minWidth: 60
-                      }}
-                    >
-                      R$ {valueMasked}
-                    </span>
-                  </td>
-                </tr>
-              );
+              linhas.push(renderLinha(
+                parcelaKey,
+                `Crédito Parcelado ${parcela.nome ? `(${parcela.nome})` : ""}`,
+                parcela.percent,
+                parcela.value
+              ));
             });
-            // Retorna a linha principal seguida das linhas das parcelas
-            return [mainRow, ...parcelasRows];
           }
-          // Retorna só a linha principal
-          return [mainRow];
+          return linhas;
         })}
 
-        {/* Outros encargos (customizados pelo usuário) */}
-        {outrosEncargos.map(item => {
-          const key = item.id ?? item.nome;
-          const percent = item.percent ?? 0;
-          const value = item.value ?? 0;
-          const percentMasked = maskPercentBRLInput(
-            Math.round(Number(percent) * 100).toString()
-          );
-          const valueMasked = maskValueBRLInput(value);
+        {/* COMISSÕES */}
+        <tr>
+          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Comissões e Plataformas</td>
+        </tr>
+        {["marketing", "delivery", "saas", "colaboradores"].map(key =>
+          renderLinha(key, CHAVES.find(c => c.key === key)?.label, encargosData[key]?.percent ?? 0, encargosData[key]?.value ?? 0)
+        )}
 
-          return (
-            <tr key={key}>
-              <td style={{ width: 56, textAlign: "center" }}>
-                <ToggleComponent
-                  checked={!!ativos[key]}
-                  onChange={() => onToggle(key)}
-                />
-              </td>
-              <td style={{ color: "#fff", fontWeight: 500 }}>{item.nome}</td>
-              <td style={{ width: 90, textAlign: "right" }}>
-                <span
-                  style={{
-                    color: purple,
-                    fontWeight: 700,
-                    minWidth: 60
-                  }}
-                >
-                  {percentMasked} %
-                </span>
-              </td>
-              <td style={{ width: 120, textAlign: "right" }}>
-                <span
-                  style={{
-                    color: purple,
-                    fontWeight: 700,
-                    minWidth: 60
-                  }}
-                >
-                  R$ {valueMasked}
-                </span>
-              </td>
+        {/* OUTROS */}
+        {outrosEncargos.length > 0 && (
+          <>
+            <tr>
+              <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Outros Encargos</td>
             </tr>
-          );
-        })}
+            {outrosEncargos.map(item =>
+              renderLinha(item.id ?? item.nome, item.nome, item.percent, item.value)
+            )}
+          </>
+        )}
       </tbody>
     </table>
   );
