@@ -1,9 +1,49 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+// --- CONFIGURAÇÃO ---
+// Troque esse ID pelo do usuário real em produção.
+// Você pode adaptar para pegar do contexto/autenticação depois.
+const USER_ID = "4dad6b21-ffd4-40cb-bf50-0c45b80c6acb";
 const API_URL = "http://localhost:3000";
 
-// --- [ESTILOS] ---
+// --- MÁSCARAS ---
+function formatCNPJ(value) {
+  value = value.replace(/\D/g, '');
+  if (value.length > 14) value = value.slice(0, 14);
+  value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+  value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+  value = value.replace(/(\d{4})(\d)/, '$1-$2');
+  return value;
+}
+function formatCPF(value) {
+  value = value.replace(/\D/g, '');
+  if (value.length > 11) value = value.slice(0, 11);
+  value = value.replace(/(\d{3})(\d)/, '$1.$2');
+  value = value.replace(/(\d{3})(\d)/, '$1.$2');
+  value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  return value;
+}
+function formatPhone(value) {
+  value = value.replace(/\D/g, '');
+  if (value.length > 11) value = value.slice(0, 11);
+  value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+  if (value.length > 10) {
+    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+  } else {
+    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+  }
+  return value;
+}
+function formatCEP(value) {
+  value = value.replace(/\D/g, '');
+  if (value.length > 8) value = value.slice(0, 8);
+  value = value.replace(/(\d{5})(\d)/, '$1-$2');
+  return value;
+}
+
+// --- ESTILOS (iguais aos seus) ---
 const perfilCard = {
   maxWidth: 420,
   width: "100%",
@@ -17,7 +57,6 @@ const perfilCard = {
   padding: 0,
   overflow: "hidden"
 };
-
 const innerBlock = {
   background: "#18162a",
   borderRadius: 10,
@@ -25,7 +64,6 @@ const innerBlock = {
   margin: 28,
   boxSizing: "border-box"
 };
-
 const sectionTitle = {
   fontWeight: 700,
   fontSize: 16,
@@ -36,7 +74,6 @@ const sectionTitle = {
   borderBottom: "1px solid #28244a",
   paddingBottom: 4
 };
-
 const labelStyle = {
   fontWeight: 700,
   color: "#ffe060",
@@ -45,7 +82,6 @@ const labelStyle = {
   marginTop: 12,
   display: "block"
 };
-
 const inputStyle = {
   width: "100%",
   background: "#23213a",
@@ -60,14 +96,12 @@ const inputStyle = {
   marginBottom: 6,
   transition: "border-color 0.2s"
 };
-
 const disabledInput = {
   ...inputStyle,
   background: "#181824",
   color: "#aaa",
   cursor: "not-allowed"
 };
-
 const btnMain = {
   background: "#8c52ff",
   color: "#fff",
@@ -83,7 +117,6 @@ const btnMain = {
   boxShadow: "0 2px 8px #00000014",
   transition: "background 0.18s, filter 0.18s"
 };
-
 const btnSec = {
   background: "#23213a",
   color: "#ffe060",
@@ -97,14 +130,12 @@ const btnSec = {
   cursor: "pointer",
   transition: "background 0.18s, color 0.18s, filter 0.18s"
 };
-
 const blocoCep = {
   display: "flex",
   alignItems: "center",
   gap: 10,
   marginBottom: 0
 };
-
 const inputCepStyle = {
   background: "#23213a",
   color: "#fff",
@@ -121,14 +152,12 @@ const inputCepStyle = {
   display: "block",
   transition: "border-color 0.2s"
 };
-
 const inputCepDisabled = {
   ...inputCepStyle,
   background: "#181824",
   color: "#aaa",
   cursor: "not-allowed"
 };
-
 const btnCep = {
   background: "#28244a",
   color: "#fff",
@@ -146,21 +175,18 @@ const btnCep = {
   transition: "background 0.18s, filter 0.18s",
   cursor: "pointer"
 };
-
 const btnCepDisabled = {
   ...btnCep,
   background: "#23213a",
   color: "#bbb",
   cursor: "not-allowed"
 };
-
 const blocoNumero = {
   display: "flex",
   alignItems: "center",
   gap: 10,
   marginBottom: 0,
 };
-
 const inputNumeroStyle = {
   background: "#23213a",
   color: "#fff",
@@ -176,14 +202,12 @@ const inputNumeroStyle = {
   boxSizing: "border-box",
   display: "block"
 };
-
 const inputNumeroDisabled = {
   ...inputNumeroStyle,
   background: "#181824",
   color: "#aaa",
   cursor: "not-allowed"
 };
-
 const btnSemNumero = {
   background: "#28244a",
   color: "#ffe060",
@@ -203,7 +227,6 @@ const btnSemNumero = {
   gap: 7,
   userSelect: "none"
 };
-
 const btnSemNumeroDisabled = {
   ...btnSemNumero,
   background: "#23213a",
@@ -211,51 +234,14 @@ const btnSemNumeroDisabled = {
   cursor: "not-allowed"
 };
 
-// --- MÁSCARAS PARA TODOS OS CAMPOS --- //
-function formatCNPJ(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 14) value = value.slice(0, 14);
-  value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-  value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-  value = value.replace(/(\d{4})(\d)/, '$1-$2');
-  return value;
-}
-
-function formatCPF(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  return value;
-}
-
-function formatPhone(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-  if (value.length > 10) {
-    value = value.replace(/(\d{5})(\d)/, '$1-$2');
-  } else {
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-  }
-  return value;
-}
-
-function formatCEP(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 8) value = value.slice(0, 8);
-  value = value.replace(/(\d{5})(\d)/, '$1-$2');
-  return value;
-}
-
-export default function Perfil({ user = {} }) {
+// --- COMPONENTE ---
+export default function Perfil() {
   const [editando, setEditando] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    nome: user.name || "",
-    email: user.email || "",
-    telefone: user.telefone || "",
+    nome: "",
+    email: "",
+    telefone: "",
     empresaNome: "",
     cnpj: "",
     telefoneEmpresa: "",
@@ -266,21 +252,31 @@ export default function Perfil({ user = {} }) {
     bairro: "",
     cidade: "",
     estado: "",
-    cpf: user.cpf || ""
+    cpf: ""
   });
 
+  // Busca do usuário ao montar
   useEffect(() => {
-    setForm(f => ({
-      ...f,
-      nome: user.name || "",
-      email: user.email || "",
-      telefone: user.telefone || "",
-      cpf: user.cpf || ""
-    }));
-    // Carregar os dados da empresa, se precisar
-    // eslint-disable-next-line
-  }, [user]);
+    async function fetchUser() {
+      setLoading(true);
+      try {
+        const { data } = await axios.get(`${API_URL}/users/${USER_ID}`);
+        setForm(f => ({
+          ...f,
+          nome: data.name || "",
+          email: data.email || "",
+          telefone: data.telefone || "",
+          cpf: data.cpf || ""
+        }));
+      } catch {
+        alert("Erro ao buscar usuário");
+      }
+      setLoading(false);
+    }
+    fetchUser();
+  }, []);
 
+  // Busca dados do CEP
   async function buscarCep() {
     if (!form.cep || form.cep.length < 8) return;
     setForm(f => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
@@ -299,6 +295,7 @@ export default function Perfil({ user = {} }) {
     }
   }
 
+  // Input/máscara handler
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     let val = value;
@@ -323,19 +320,21 @@ export default function Perfil({ user = {} }) {
     }));
   }
 
+  // Salvar alterações
   async function handleSalvar() {
     setEditando(false);
+    setLoading(true);
     try {
-      // ATUALIZA USUÁRIO USANDO O ID!
-      await axios.put(`${API_URL}/users/${user.id}`, {
+      // Atualiza usuário
+      await axios.put(`${API_URL}/users/${USER_ID}`, {
         name: form.nome,
         email: form.email,
         cpf: form.cpf,
         telefone: form.telefone
       });
-
+      // Atualiza empresa/config
       await axios.post(`${API_URL}/company-config`, {
-        userId: user.id,
+        userId: USER_ID,
         companyName: form.empresaNome,
         cnpj: form.cnpj,
         phone: form.telefoneEmpresa,
@@ -347,11 +346,20 @@ export default function Perfil({ user = {} }) {
         estado: form.estado,
         cpf: form.cpf
       });
-
+      // Recarrega dados
+      const { data } = await axios.get(`${API_URL}/users/${USER_ID}`);
+      setForm(f => ({
+        ...f,
+        nome: data.name || "",
+        email: data.email || "",
+        telefone: data.telefone || "",
+        cpf: data.cpf || ""
+      }));
       alert("Configurações salvas!");
     } catch (err) {
       alert("Erro ao salvar configurações");
     }
+    setLoading(false);
   }
 
   function handleCancelar() {
@@ -362,6 +370,8 @@ export default function Perfil({ user = {} }) {
   const [secHover, setSecHover] = useState(false);
   const [cepHover, setCepHover] = useState(false);
   const [semNumeroHover, setSemNumeroHover] = useState(false);
+
+  if (loading) return <div style={{ color: "#fff", margin: 24 }}>Carregando...</div>;
 
   return (
     <div style={perfilCard}>
