@@ -90,8 +90,8 @@ async function buscarImagensPexels(nome, page = 1) {
 async function buscarNomePorCodigoBarras(codBarras) {
   if (!codBarras) return "";
   try {
-    // Troque a porta se seu backend rodar em outra!
-    const res = await fetch(`http://localhost:3000/api/buscar-nome-codbarras/${codBarras}`);
+    // ALTERADO: usa apenas /api, não http://localhost:3000/api
+    const res = await fetch(`/api/buscar-nome-codbarras/${codBarras}`);
     if (!res.ok) return "";
     const data = await res.json();
     console.log("Resposta backend:", data); // Só pra debug
@@ -100,7 +100,6 @@ async function buscarNomePorCodigoBarras(codBarras) {
     return "";
   }
 }
-
 
 // ====== ESTILO DO REACT SELECT (DARK MODE ROXO) ======
 const selectStyles = {
@@ -300,26 +299,26 @@ export default function ModalCadastroManual({
 
   // === Busca nome pelo código de barras se nome estiver vazio ===
   useEffect(() => {
-  if (
-    open &&
-    ingrediente.codBarras &&
-    (!ingrediente.nome || ingrediente.nome === "")
-  ) {
-    console.log("Buscando nome pelo código de barras:", ingrediente.codBarras);
-    buscarNomePorCodigoBarras(ingrediente.codBarras).then(nomeProd => {
-      if (
-        nomeProd &&
-        (!ingrediente.nome || ingrediente.nome === "") &&
-        ingrediente.nome !== nomeProd
-      ) {
-        console.log("Nome encontrado:", nomeProd);
-        onChange({ ...ingrediente, nome: nomeProd });
-      } else {
-        console.log("Nome não encontrado ou já preenchido");
-      }
-    });
-  }
-}, [open, ingrediente.codBarras]);
+    if (
+      open &&
+      ingrediente.codBarras &&
+      (!ingrediente.nome || ingrediente.nome === "")
+    ) {
+      console.log("Buscando nome pelo código de barras:", ingrediente.codBarras);
+      buscarNomePorCodigoBarras(ingrediente.codBarras).then(nomeProd => {
+        if (
+          nomeProd &&
+          (!ingrediente.nome || ingrediente.nome === "") &&
+          ingrediente.nome !== nomeProd
+        ) {
+          console.log("Nome encontrado:", nomeProd);
+          onChange({ ...ingrediente, nome: nomeProd });
+        } else {
+          console.log("Nome não encontrado ou já preenchido");
+        }
+      });
+    }
+  }, [open, ingrediente.codBarras]);
 
 
   // ======= Funções Rotulo Nutricional =======

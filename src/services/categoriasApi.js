@@ -1,8 +1,9 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 export async function listarCategorias(userId) {
   const resp = await fetch(`${API_URL}/categorias`, {
     headers: { "x-user-id": userId },
+    credentials: "include",
   });
   return resp.json();
 }
@@ -14,6 +15,7 @@ export async function adicionarCategoria(nome, userId) {
       "Content-Type": "application/json",
       "x-user-id": userId,
     },
+    credentials: "include",
     body: JSON.stringify({ nome, userId }),
   });
   return resp.json();
@@ -23,6 +25,7 @@ export async function deletarCategoria(id, userId) {
   const resp = await fetch(`${API_URL}/categorias/${id}`, {
     method: "DELETE",
     headers: { "x-user-id": userId },
+    credentials: "include",
   });
   return resp.ok;
 }
@@ -34,6 +37,7 @@ export async function editarCategoria(id, novoNome, userId) {
       "Content-Type": "application/json",
       "x-user-id": userId,
     },
+    credentials: "include",
     body: JSON.stringify({ nome: novoNome, userId }),
   });
   return resp.json();

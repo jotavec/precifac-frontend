@@ -3,7 +3,8 @@ import axios from "axios";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { FaTrashAlt, FaFilter } from "react-icons/fa";
 
-const API_URL = "http://localhost:3000";
+// ALTERADO: Use o proxy do Vite para todas as requisições ao backend
+const API_URL = "/api";
 const corLinha = "#7E4FFF";
 const corAmarelo = "#ffe156";
 
@@ -100,7 +101,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
 
   async function buscar() {
     try {
-      const res = await axios.get(`${API_URL}/sales-results/${USER_ID}`);
+      const res = await axios.get(`${API_URL}/sales-results/${USER_ID}`, { withCredentials: true });
       setLista(res.data || []);
     } catch {}
   }
@@ -116,7 +117,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
         userId: USER_ID,
         month: mesConvertido,
         value: valorNumerico
-      });
+      }, { withCredentials: true });
       setMonth("");
       setValue("");
       buscar();
@@ -126,7 +127,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
   async function apagar(id) {
     if (!window.confirm("Tem certeza que deseja apagar este lançamento?")) return;
     try {
-      await axios.delete(`${API_URL}/sales-results/${id}`);
+      await axios.delete(`${API_URL}/sales-results/${id}`, { withCredentials: true });
       buscar();
     } catch {
       alert("Erro ao apagar lançamento!");

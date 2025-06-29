@@ -125,7 +125,10 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch("http://localhost:3000/users");
+      // ALTERADO: usa proxy /api/users
+      const res = await fetch("/api/users", {
+        credentials: "include"
+      });
       const users = await res.json();
       const usuario = users.find(u => u.email === form.email);
       if (usuario) {

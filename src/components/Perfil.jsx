@@ -5,7 +5,8 @@ import axios from "axios";
 // Troque esse ID pelo do usuário real em produção.
 // Você pode adaptar para pegar do contexto/autenticação depois.
 const USER_ID = "4dad6b21-ffd4-40cb-bf50-0c45b80c6acb";
-const API_URL = "http://localhost:3000";
+// ALTERADO: use o proxy do Vite
+const API_URL = "/api";
 
 // --- MÁSCARAS ---
 function formatCNPJ(value) {
@@ -260,7 +261,9 @@ export default function Perfil() {
     async function fetchUser() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`${API_URL}/users/${USER_ID}`);
+        const { data } = await axios.get(`${API_URL}/users/${USER_ID}`, {
+          withCredentials: true
+        });
         setForm(f => ({
           ...f,
           nome: data.name || "",
@@ -331,7 +334,7 @@ export default function Perfil() {
         email: form.email,
         cpf: form.cpf,
         telefone: form.telefone
-      });
+      }, { withCredentials: true });
       // Atualiza empresa/config
       await axios.post(`${API_URL}/company-config`, {
         userId: USER_ID,
@@ -345,9 +348,11 @@ export default function Perfil() {
         cidade: form.cidade,
         estado: form.estado,
         cpf: form.cpf
-      });
+      }, { withCredentials: true });
       // Recarrega dados
-      const { data } = await axios.get(`${API_URL}/users/${USER_ID}`);
+      const { data } = await axios.get(`${API_URL}/users/${USER_ID}`, {
+        withCredentials: true
+      });
       setForm(f => ({
         ...f,
         nome: data.name || "",
