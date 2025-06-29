@@ -113,34 +113,56 @@ export default function App() {
   }
 
   async function handleRegister(e) {
-    e.preventDefault();
-    setMsg("Enviando...");
-    // Aqui você deve chamar a API de cadastro
+  e.preventDefault();
+  setMsg("Enviando...");
+  try {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.name,
+        email: form.email,
+        password: form.password
+      })
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      setMsg(errorData.error || "Erro ao cadastrar.");
+      return;
+    }
     setMsg("Cadastro realizado! Faça login.");
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
+  } catch (err) {
+    setMsg("Erro de conexão ao cadastrar.");
   }
+}
 
   async function handleLogin(e) {
-    e.preventDefault();
-    setMsg("Entrando...");
-    try {
-      // ALTERADO: usa proxy /api/users
-      const res = await fetch("/api/users", {
-        credentials: "include"
-      });
-      const users = await res.json();
-      const usuario = users.find(u => u.email === form.email);
-      if (usuario) {
-        setUser(usuario);
-        setMsg("");
-      } else {
-        setMsg("Usuário não encontrado. Cadastre-se.");
-      }
-    } catch {
-      setMsg("Erro ao buscar usuário");
+  e.preventDefault();
+  setMsg("Entrando...");
+  try {
+    const res = await fetch("/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password
+      })
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      setMsg(errorData.error || "Erro ao fazer login.");
+      return;
     }
+    const data = await res.json();
+    console.log("Login data:", data);
+    setUser(data); // Salva o usuário autenticado
+    setMsg("");
+  } catch (err) {
+    setMsg("Erro ao fazer login.");
   }
+}
 
   function handleLogout() {
     setUser(null);

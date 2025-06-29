@@ -287,6 +287,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 700,
     marginRight: 0
   };
+  // AJUSTE DO ESPAÇAMENTO ENTRE O NÚMERO E O %:
   const inputInnerPercent = {
     background: "transparent",
     border: "none",
@@ -296,7 +297,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 600,
     fontSize: 18,
     textAlign: "right",
-    padding: "0 8px 0 0"
+    padding: "0 18px 0 0" // <-- mais espaço à direita do número
   };
   const inputInnerMoney = {
     background: "transparent",
@@ -316,9 +317,10 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 600,
     fontSize: 17
   };
+  // AJUSTE DO ESPAÇAMENTO DO %:
   const suffixPercent = {
     position: "absolute",
-    right: 13,
+    right: 8, // <-- mais afastado do número
     color: "#b388ff",
     fontWeight: 600,
     fontSize: 17
@@ -393,6 +395,17 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
       marginLeft: 0,
       padding: "0"
     }}>
+      {/* TÍTULO DA PÁGINA */}
+      <div style={{
+        fontSize: 32,
+        fontWeight: 900,
+        color: "#ffe060",
+        marginBottom: 18,
+        letterSpacing: 0.3,
+        textShadow: "0 2px 10px #0005"
+      }}>
+        Encargos sobre venda
+      </div>
       {SECTIONS.map(section => (
         <section key={section.title} style={cardStyle}>
           <h3 style={sectionTitleStyle}>

@@ -2,10 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 // --- CONFIGURAÇÃO ---
-// Troque esse ID pelo do usuário real em produção.
-// Você pode adaptar para pegar do contexto/autenticação depois.
-const USER_ID = "4dad6b21-ffd4-40cb-bf50-0c45b80c6acb";
-// ALTERADO: use o proxy do Vite
 const API_URL = "/api";
 
 // --- MÁSCARAS ---
@@ -44,7 +40,7 @@ function formatCEP(value) {
   return value;
 }
 
-// --- ESTILOS (iguais aos seus) ---
+// --- ESTILOS ---
 const perfilCard = {
   maxWidth: 420,
   width: "100%",
@@ -261,7 +257,8 @@ export default function Perfil() {
     async function fetchUser() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`${API_URL}/users/${USER_ID}`, {
+        // Busca o usuário autenticado
+        const { data } = await axios.get(`${API_URL}/users/me`, {
           withCredentials: true
         });
         setForm(f => ({
@@ -271,7 +268,26 @@ export default function Perfil() {
           telefone: data.telefone || "",
           cpf: data.cpf || ""
         }));
-      } catch {
+
+        // Busca config da empresa desse usuário
+        const resConfig = await axios.get(`${API_URL}/company-config`, {
+          withCredentials: true
+        });
+        if (resConfig.data) {
+          setForm(f => ({
+            ...f,
+            empresaNome: resConfig.data.companyName || "",
+            cnpj: resConfig.data.cnpj || "",
+            telefoneEmpresa: resConfig.data.phone || "",
+            cep: resConfig.data.cep || "",
+            rua: resConfig.data.rua || "",
+            numero: resConfig.data.numero || "",
+            bairro: resConfig.data.bairro || "",
+            cidade: resConfig.data.cidade || "",
+            estado: resConfig.data.estado || ""
+          }));
+        }
+      } catch (err) {
         alert("Erro ao buscar usuário");
       }
       setLoading(false);
@@ -328,8 +344,8 @@ export default function Perfil() {
     setEditando(false);
     setLoading(true);
     try {
-      // Atualiza usuário
-      await axios.put(`${API_URL}/users/${USER_ID}`, {
+      // Atualiza usuário autenticado
+      await axios.put(`${API_URL}/users/me`, {
         name: form.nome,
         email: form.email,
         cpf: form.cpf,
@@ -337,7 +353,6 @@ export default function Perfil() {
       }, { withCredentials: true });
       // Atualiza empresa/config
       await axios.post(`${API_URL}/company-config`, {
-        userId: USER_ID,
         companyName: form.empresaNome,
         cnpj: form.cnpj,
         phone: form.telefoneEmpresa,
@@ -350,7 +365,7 @@ export default function Perfil() {
         cpf: form.cpf
       }, { withCredentials: true });
       // Recarrega dados
-      const { data } = await axios.get(`${API_URL}/users/${USER_ID}`, {
+      const { data } = await axios.get(`${API_URL}/users/me`, {
         withCredentials: true
       });
       setForm(f => ({
@@ -360,6 +375,25 @@ export default function Perfil() {
         telefone: data.telefone || "",
         cpf: data.cpf || ""
       }));
+
+      const resConfig = await axios.get(`${API_URL}/company-config`, {
+        withCredentials: true
+      });
+      if (resConfig.data) {
+        setForm(f => ({
+          ...f,
+          empresaNome: resConfig.data.companyName || "",
+          cnpj: resConfig.data.cnpj || "",
+          telefoneEmpresa: resConfig.data.phone || "",
+          cep: resConfig.data.cep || "",
+          rua: resConfig.data.rua || "",
+          numero: resConfig.data.numero || "",
+          bairro: resConfig.data.bairro || "",
+          cidade: resConfig.data.cidade || "",
+          estado: resConfig.data.estado || ""
+        }));
+      }
+
       alert("Configurações salvas!");
     } catch (err) {
       alert("Erro ao salvar configurações");
