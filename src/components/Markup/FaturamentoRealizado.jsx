@@ -3,8 +3,7 @@ import axios from "axios";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { FaTrashAlt, FaFilter } from "react-icons/fa";
 
-// ALTERADO: Use o proxy do Vite para todas as requisições ao backend
-const API_URL = "/api";
+const API_URL = "/api/sales-results";
 const corLinha = "#7E4FFF";
 const corAmarelo = "#ffe156";
 
@@ -59,14 +58,13 @@ function TooltipCustom({ active, payload, label }) {
   return null;
 }
 
-export default function FaturamentoRealizado({ user, setGastoSobreFaturamento }) {
+export default function FaturamentoRealizado({ user }) {
   const USER_ID = user?.id;
-
   const [month, setMonth] = useState("");
   const [value, setValue] = useState("");
   const [lista, setLista] = useState([]);
-
-  // Filtro de média só em state (padrão 6 meses)
+  const [totalDespesasFixas, setTotalDespesasFixas] = useState(0);
+  const [totalFolha, setTotalFolha] = useState(0);
   const [mediaTipo, setMediaTipo] = useState("6");
   const [modalOpen, setModalOpen] = useState(false);
   const modalRef = useRef();
@@ -89,9 +87,26 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [modalOpen]);
 
+  // ========= NOVO: BUSCA O FILTRO DO BACK =========
+  useEffect(() => {
+    async function fetchFiltro() {
+      try {
+        const res = await 
+        axios.get("/api/users/filtro-faturamento", { withCredentials: true });
+        setMediaTipo(res.data?.filtro || "6");
+      } catch {
+        setMediaTipo("6");
+      }
+    }
+    fetchFiltro();
+  }, [USER_ID]);
+  // ================================================
+
   function handleSelect(tipo) {
     setMediaTipo(tipo);
     setModalOpen(false);
+    // === NOVO: SALVA O FILTRO NO BACK ===
+    axios.post("/api/users/filtro-faturamento", { filtro: tipo }, { withCredentials: true }).catch(()=>{});
   }
 
   useEffect(() => {
@@ -101,10 +116,48 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
 
   async function buscar() {
     try {
-      const res = await axios.get(`${API_URL}/sales-results/${USER_ID}`, { withCredentials: true });
-      setLista(res.data || []);
-    } catch {}
+      const res = await axios.get(API_URL, { withCredentials: true });
+      setLista(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setLista([]);
+    }
   }
+
+  // === BUSCA DESPESAS FIXAS E FOLHA DE PAGAMENTO DO BACKEND ===
+  useEffect(() => {
+    async function fetchTotais() {
+      try {
+        // DESPESAS FIXAS
+        const resDespesas = await axios.get("/api/despesasfixas/subcategorias", { withCredentials: true });
+        const categorias = Array.isArray(resDespesas.data) ? resDespesas.data : [];
+        let totalFixas = 0;
+        categorias.forEach(cat => {
+          if (Array.isArray(cat.fixedCosts)) {
+            cat.fixedCosts.forEach(custo => {
+              totalFixas += Number(custo.value || 0);
+            });
+          }
+        });
+
+        // FOLHA DE PAGAMENTO
+        const resFolha = await axios.get("/api/folhapagamento/funcionarios", { withCredentials: true });
+        const funcionarios = Array.isArray(resFolha.data) ? resFolha.data : [];
+        let totalFolha = 0;
+        funcionarios.forEach(f => {
+          // Garante que só soma salário numérico
+          const val = Number((f.salario || "").toString().replace(",", "."));
+          if (!isNaN(val)) totalFolha += val;
+        });
+
+        setTotalDespesasFixas(totalFixas);
+        setTotalFolha(totalFolha);
+      } catch (err) {
+        setTotalDespesasFixas(0);
+        setTotalFolha(0);
+      }
+    }
+    fetchTotais();
+  }, []);
 
   async function salvar(e) {
     e.preventDefault();
@@ -113,43 +166,39 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
       const mesConvertido = yyyy && mm ? `${yyyy}-${mm}` : month;
       const valorNumerico = Number(value.replace(/\D/g, "")) / 100;
 
-      await axios.post(`${API_URL}/sales-results`, {
-        userId: USER_ID,
+      await axios.post(API_URL, {
         month: mesConvertido,
         value: valorNumerico
       }, { withCredentials: true });
+
       setMonth("");
       setValue("");
       buscar();
-    } catch {}
+    } catch (err) {
+      alert("Erro ao lançar faturamento!");
+    }
   }
 
   async function apagar(id) {
     if (!window.confirm("Tem certeza que deseja apagar este lançamento?")) return;
     try {
-      await axios.delete(`${API_URL}/sales-results/${id}`, { withCredentials: true });
+      await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
       buscar();
     } catch {
       alert("Erro ao apagar lançamento!");
     }
   }
 
-  // ----------- MÉDIA FILTRÁVEL
   let listaMedia;
   if (mediaTipo === "all") listaMedia = lista;
   else listaMedia = lista.slice(-Number(mediaTipo));
-  const mediaCustom = listaMedia.length > 0
+  const mediaCustom = Array.isArray(listaMedia) && listaMedia.length > 0
     ? listaMedia.reduce((acc, cur) => acc + cur.value, 0) / listaMedia.length
     : 0;
 
-  // Só últimos 6 meses para o gráfico!
-  const ultimos6 = lista.slice(-6);
+  const ultimos6 = Array.isArray(lista) ? lista.slice(-6) : [];
 
-  // ====== RESUMO DE GASTOS SOBRE FATURAMENTO (ATENÇÃO: AQUI PRECISA AJUSTAR PARA PEGAR DO BACKEND!) ======
-  // Para migrar 100% pro backend, as despesas fixas e folha devem ser buscadas via API!
-  const totalDespesasFixas = 0; // Coloque aqui a soma real, via API
-  const totalFolha = 0; // Coloque aqui a soma real, via API
-
+  // === CALCULA O PERCENTUAL CORRETO
   const percentualGastos = mediaCustom > 0
     ? ((totalDespesasFixas + totalFolha) / mediaCustom) * 100
     : 0;
@@ -269,7 +318,6 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
           alignItems: "flex-end",
           margin: "0 0 28px 0",
         }}>
-          {/* Bloco com filtro */}
           <div style={{ position: "relative", minWidth: 240 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ color: "#fff", fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
@@ -413,7 +461,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
             scrollbarColor: "#ad6fff #2c2546"
           }}
         >
-          {lista.slice().reverse().map(x => (
+          {Array.isArray(lista) && lista.slice().reverse().map(x => (
             <li
               key={x.id}
               style={{

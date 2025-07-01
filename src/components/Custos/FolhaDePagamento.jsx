@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Modal from "react-modal";
 
 // Funções utilitárias
@@ -32,60 +32,173 @@ function formatPercentForDisplay(value, editing) {
     return perc.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,00$/, "");
   }
 }
-function valorHoraFuncionario(f, calcularTotalFuncionarioObj) {
+
+const CAMPOS_PERCENTUAIS = [
+  { key: "fgts", label: "FGTS (%)" },
+  { key: "inss", label: "INSS (%)" },
+  { key: "rat", label: "RAT (%)" },
+  { key: "ferias13", label: "Férias + 13º (%)" },
+  { key: "valeTransporte", label: "Vale Transporte (%)" },
+  { key: "valeAlimentacao", label: "Vale Alimentação (%)" },
+  { key: "valeRefeicao", label: "Vale Refeição (%)" },
+  { key: "planoSaude", label: "Plano de Saúde (%)" },
+  { key: "outros", label: "Outros (%)" }
+];
+
+function calcularTotalFuncionarioObj(f) {
+  const salarioNum = parseBR(f.salario);
+  let total = salarioNum;
+  CAMPOS_PERCENTUAIS.forEach(item => {
+    const percNum = parsePercentBR(f[item.key] || "0");
+    total += salarioNum * (percNum / 100);
+  });
+  return Number(total) || 0;
+}
+function valorHoraFuncionario(f) {
   const horas = Number(f.totalHorasMes || 220);
   if (!horas) return 0;
-  const custo = calcularTotalFuncionarioObj ? calcularTotalFuncionarioObj(f) : f.custoTotal;
+  const custo = calcularTotalFuncionarioObj(f);
   return custo / horas;
 }
-function valorHoraMedio(funcionarios, calcularTotalFuncionarioObj) {
+function valorHoraMedio(funcionarios) {
   if (!funcionarios.length) return 0;
   let totalCusto = 0, totalHoras = 0;
   funcionarios.forEach(f => {
     const h = Number(f.totalHorasMes || 220);
-    totalCusto += calcularTotalFuncionarioObj ? calcularTotalFuncionarioObj(f) : (f.custoTotal || 0);
+    totalCusto += calcularTotalFuncionarioObj(f);
     totalHoras += h;
   });
   return totalHoras ? (totalCusto / totalHoras) : 0;
 }
 
-export default function FolhaDePagamento({
-  categorias,
-  handleAddFuncionario,
-  handleEditarFuncionario,
-  handleExcluirFuncionario,
-  totalFolha,
-  calcularTotalFuncionarioObj,
-  funcionarioTemp,
-  setFuncionarioTemp,
-  editandoFuncionarioIdx,
-  modalFuncionarioAberto,
-  setModalFuncionarioAberto,
-  handleSalvarFuncionario,
-  inputRefs,
-  handleTab,
-  CAMPOS_PERCENTUAIS
-}) {
+function getFuncionarioVazio() {
+  let vazio = {
+    nome: "",
+    cargo: "",
+    tipoMaoDeObra: "Direta",
+    salario: "",
+    totalHorasMes: "220"
+  };
+  CAMPOS_PERCENTUAIS.forEach(item => {
+    vazio[item.key] = "";
+    vazio[item.key + "Valor"] = "";
+  });
+  return vazio;
+}
+
+export default function FolhaDePagamento() {
+  const [funcionarios, setFuncionarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [funcionarioTemp, setFuncionarioTemp] = useState(getFuncionarioVazio());
   const [editingPercent, setEditingPercent] = useState({});
-  const horasDefault = funcionarioTemp.totalHorasMes || "220";
-  const [totalHorasMes, setTotalHorasMes] = useState(horasDefault);
+  const [totalHorasMes, setTotalHorasMes] = useState("220");
+  const inputRefs = useRef([]);
 
+  // Carregar funcionários do backend ao iniciar
   useEffect(() => {
-    if (!funcionarioTemp.salario) return;
-    setFuncionarioTemp(ft => {
-      let salarioNum = parseBR(ft.salario);
-      let novo = { ...ft };
-      CAMPOS_PERCENTUAIS.forEach(item => {
-        let percStr = ft[item.key] || "0";
-        let percNum = parsePercentBR(percStr);
-        let valorNum = salarioNum * (percNum / 100);
-        novo[`${item.key}Valor`] = maskMoneyBR(String(Math.round(valorNum * 100)));
-      });
-      return novo;
-    });
-    // eslint-disable-next-line
-  }, [funcionarioTemp.salario]);
+    async function fetchFuncionarios() {
+      setLoading(true);
+      try {
+        const res = await fetch("http://localhost:3000/api/folhapagamento/funcionarios", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setFuncionarios(Array.isArray(data) ? data : []);
+        } else {
+          setFuncionarios([]);
+        }
+      } catch {
+        setFuncionarios([]);
+      }
+      setLoading(false);
+    }
+    fetchFuncionarios();
+  }, []);
 
+  // Atualiza os valores dos campos percentuais ao digitar salário
+  function calcularCamposPercentuais(ft) {
+    let salarioNum = parseBR(ft.salario);
+    let novo = { ...ft };
+    CAMPOS_PERCENTUAIS.forEach(item => {
+      let percStr = ft[item.key] || "0";
+      let percNum = parsePercentBR(percStr);
+      let valorNum = salarioNum * (percNum / 100);
+      novo[`${item.key}Valor`] = maskMoneyBR(String(Math.round(valorNum * 100)));
+    });
+    return novo;
+  }
+
+  function handleSalarioChange(e) {
+    let value = e.target.value;
+    let onlyNumbers = value.replace(/[^\d]/g, "");
+    if (!onlyNumbers) {
+      setFuncionarioTemp(calcularCamposPercentuais({ ...funcionarioTemp, salario: "" }));
+      return;
+    }
+    if (onlyNumbers.length > 9) onlyNumbers = onlyNumbers.slice(0, 9);
+    let number = parseFloat(onlyNumbers) / 100;
+    let formatted = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    setFuncionarioTemp(ft => calcularCamposPercentuais({ ...ft, salario: formatted }));
+  }
+
+  function abrirModal(novo = true, idx = null) {
+    if (novo) {
+      setFuncionarioTemp(getFuncionarioVazio());
+      setTotalHorasMes("220");
+      setEditando(null);
+    } else {
+      setFuncionarioTemp(funcionarios[idx]);
+      setTotalHorasMes(funcionarios[idx].totalHorasMes || "220");
+      setEditando(idx);
+    }
+    setModalAberto(true);
+    setTimeout(() => inputRefs.current[1]?.focus(), 100);
+  }
+
+  async function salvarFuncionario() {
+    if (editando === null) {
+      // Novo funcionário
+      const res = await fetch("http://localhost:3000/api/folhapagamento/funcionarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(funcionarioTemp)
+      });
+      if (res.ok) {
+        const novo = await res.json();
+        setFuncionarios(funcs => [...funcs, novo]);
+        setModalAberto(false);
+      }
+    } else {
+      // Editar
+      const id = funcionarios[editando].id;
+      const res = await fetch(`http://localhost:3000/api/folhapagamento/funcionarios/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(funcionarioTemp)
+      });
+      if (res.ok) {
+        const atualizado = await res.json();
+        setFuncionarios(funcs => funcs.map(f => f.id === id ? atualizado : f));
+        setModalAberto(false);
+      }
+    }
+  }
+
+  async function excluirFuncionario(idx) {
+    const id = funcionarios[idx].id;
+    const res = await fetch(`http://localhost:3000/api/folhapagamento/funcionarios/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (res.ok) {
+      setFuncionarios(funcs => funcs.filter(f => f.id !== id));
+    }
+  }
+
+  // Atualiza totalHorasMes no temp ao digitar (mantém compatibilidade com seu visual)
   useEffect(() => {
     setFuncionarioTemp(ft => ({
       ...ft,
@@ -94,15 +207,25 @@ export default function FolhaDePagamento({
     // eslint-disable-next-line
   }, [totalHorasMes]);
 
-  const calcularTotalFuncionario = () => calcularTotalFuncionarioObj(funcionarioTemp);
-  const custoTotalFuncionario = calcularTotalFuncionario();
-  const horasMesNumber = Number(totalHorasMes.replace(/\D/g, "")) || 220;
-  const valorHora = custoTotalFuncionario / horasMesNumber;
+  // Atualiza os campos percentuais a cada alteração no salário
+  useEffect(() => {
+    if (!funcionarioTemp.salario) return;
+    setFuncionarioTemp(ft => calcularCamposPercentuais(ft));
+    // eslint-disable-next-line
+  }, [funcionarioTemp.salario]);
 
-  // ---------------------------------------------
-  // HEADER BONITO COM MÉDIA DA HORA (só se > 1 funcionário)
-  // ---------------------------------------------
-  const valorMedioHora = valorHoraMedio(categorias[1].funcionarios, calcularTotalFuncionarioObj);
+  // Calculo total folha e média hora
+  const totalFolha = funcionarios.reduce((acc, f) => acc + calcularTotalFuncionarioObj(f), 0);
+  const valorMedioHora = valorHoraMedio(funcionarios);
+
+  // Modal helpers
+  function handleTab(e, idx) {
+    if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      const nextIdx = idx + 1;
+      if (inputRefs.current[nextIdx]) inputRefs.current[nextIdx].focus();
+    }
+  }
 
   return (
     <>
@@ -164,7 +287,7 @@ export default function FolhaDePagamento({
             <div style={{ fontSize: 26, color: "#b088ff", fontWeight: 900, textAlign: "right" }}>
               {totalFolha.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </div>
-            {categorias[1].funcionarios.length > 1 && (
+            {funcionarios.length > 1 && (
               <div style={{
                 fontSize: 16,
                 color: "#ffe060",
@@ -208,135 +331,141 @@ export default function FolhaDePagamento({
             </tr>
           </thead>
           <tbody>
-            {categorias[1].funcionarios.length === 0 && (
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ color: "#aaa", textAlign: "center", padding: 24 }}>
+                  Carregando funcionários...
+                </td>
+              </tr>
+            ) : funcionarios.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ color: "#aaa", textAlign: "center", padding: 24 }}>
                   Nenhum funcionário cadastrado.<br />
                   Clique em <b>Adicionar Funcionário</b> para começar.
                 </td>
               </tr>
+            ) : (
+              funcionarios.map((f, idx) => {
+                const valorHoraF = valorHoraFuncionario(f);
+                return (
+                  <tr key={f.id || idx}
+                    style={{
+                      background: "#201d41",
+                      borderRadius: 12,
+                      marginBottom: 10,
+                      boxShadow: "none",
+                      verticalAlign: "middle",
+                      height: "auto"
+                    }}
+                  >
+                    <td style={{
+                      padding: "14px 10px",
+                      maxWidth: 220,
+                      verticalAlign: "top",
+                      fontWeight: 500,
+                      whiteSpace: "pre-line"
+                    }}>
+                      {f.nome}
+                    </td>
+                    <td style={{
+                      padding: "14px 10px",
+                      maxWidth: 130,
+                      verticalAlign: "top",
+                      fontWeight: 500,
+                      whiteSpace: "pre-line"
+                    }}>
+                      {f.cargo}
+                    </td>
+                    <td style={{
+                      padding: "14px 10px",
+                      textAlign: "center",
+                      minWidth: 80,
+                      fontWeight: 500,
+                      color: "#fff"
+                    }}>
+                      {f.tipoMaoDeObra || "Direta"}
+                    </td>
+                    <td style={{
+                      padding: "14px 10px",
+                      textAlign: "right",
+                      whiteSpace: "nowrap",
+                      minWidth: 120,
+                      fontWeight: 700,
+                      color: "#b088ff",
+                      fontSize: 16,
+                    }}>
+                      {calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </td>
+                    <td style={{
+                      padding: "14px 10px",
+                      textAlign: "right",
+                      fontWeight: 800,
+                      color: "#ffe060",
+                      fontSize: 16,
+                      whiteSpace: "nowrap",
+                      background: "#2c2054",
+                      borderRadius: 8,
+                      letterSpacing: 0.2
+                    }}>
+                      {valorHoraF.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </td>
+                    <td style={{
+                      padding: "12px 10px",
+                      textAlign: "center",
+                      minWidth: 140,
+                      display: "flex",
+                      gap: 12,
+                      justifyContent: "center"
+                    }}>
+                      <button
+                        onClick={() => abrirModal(false, idx)}
+                        style={{
+                          color: "#222",
+                          background: "#ffe060",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "7px 20px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          fontSize: 15,
+                          marginRight: 0,
+                          outline: "none",
+                          transition: "background .2s"
+                        }}
+                        onMouseOver={e => (e.currentTarget.style.background = "#ffe7a0")}
+                        onMouseOut={e => (e.currentTarget.style.background = "#ffe060")}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => excluirFuncionario(idx)}
+                        style={{
+                          color: "#fff",
+                          background: "#6e5aac",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "7px 20px",
+                          fontWeight: 700,
+                          fontSize: 15,
+                          cursor: "pointer",
+                          outline: "none",
+                          transition: "background .2s"
+                        }}
+                        onMouseOver={e => (e.currentTarget.style.background = "#a780ff")}
+                        onMouseOut={e => (e.currentTarget.style.background = "#6e5aac")}
+                      >
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
-            {categorias[1].funcionarios.map((f, idx) => {
-              const valorHoraF = valorHoraFuncionario(f, calcularTotalFuncionarioObj);
-              return (
-                <tr
-                  key={idx}
-                  style={{
-                    background: "#201d41",
-                    borderRadius: 12,
-                    marginBottom: 10,
-                    boxShadow: "none",
-                    verticalAlign: "middle",
-                    height: "auto"
-                  }}
-                >
-                  <td style={{
-                    padding: "14px 10px",
-                    maxWidth: 220,
-                    verticalAlign: "top",
-                    fontWeight: 500,
-                    whiteSpace: "pre-line"
-                  }}>
-                    {f.nome}
-                  </td>
-                  <td style={{
-                    padding: "14px 10px",
-                    maxWidth: 130,
-                    verticalAlign: "top",
-                    fontWeight: 500,
-                    whiteSpace: "pre-line"
-                  }}>
-                    {f.cargo}
-                  </td>
-                  <td style={{
-                    padding: "14px 10px",
-                    textAlign: "center",
-                    minWidth: 80,
-                    fontWeight: 500,
-                    color: "#fff"
-                  }}>
-                    {f.tipoMaoDeObra || "Direta"}
-                  </td>
-                  <td style={{
-                    padding: "14px 10px",
-                    textAlign: "right",
-                    whiteSpace: "nowrap",
-                    minWidth: 120,
-                    fontWeight: 700,
-                    color: "#b088ff",
-                    fontSize: 16,
-                  }}>
-                    {calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </td>
-                  <td style={{
-                    padding: "14px 10px",
-                    textAlign: "right",
-                    fontWeight: 800,
-                    color: "#ffe060",
-                    fontSize: 16,
-                    whiteSpace: "nowrap",
-                    background: "#2c2054",
-                    borderRadius: 8,
-                    letterSpacing: 0.2
-                  }}>
-                    {valorHoraF.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </td>
-                  <td style={{
-                    padding: "12px 10px",
-                    textAlign: "center",
-                    minWidth: 140,
-                    display: "flex",
-                    gap: 12,
-                    justifyContent: "center"
-                  }}>
-                    <button
-                      onClick={() => handleEditarFuncionario(idx)}
-                      style={{
-                        color: "#222",
-                        background: "#ffe060",
-                        border: "none",
-                        borderRadius: 6,
-                        padding: "7px 20px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontSize: 15,
-                        marginRight: 0,
-                        outline: "none",
-                        transition: "background .2s"
-                      }}
-                      onMouseOver={e => (e.currentTarget.style.background = "#ffe7a0")}
-                      onMouseOut={e => (e.currentTarget.style.background = "#ffe060")}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleExcluirFuncionario(idx)}
-                      style={{
-                        color: "#fff",
-                        background: "#6e5aac",
-                        border: "none",
-                        borderRadius: 6,
-                        padding: "7px 20px",
-                        fontWeight: 700,
-                        fontSize: 15,
-                        cursor: "pointer",
-                        outline: "none",
-                        transition: "background .2s"
-                      }}
-                      onMouseOver={e => (e.currentTarget.style.background = "#a780ff")}
-                      onMouseOut={e => (e.currentTarget.style.background = "#6e5aac")}
-                    >
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
           </tbody>
         </table>
         <div style={{ marginTop: 34, textAlign: "left" }}>
           <button
-            onClick={handleAddFuncionario}
+            onClick={() => abrirModal(true)}
             style={{
               background: "#b088ff",
               color: "#fff",
@@ -356,11 +485,10 @@ export default function FolhaDePagamento({
           </button>
         </div>
       </div>
-
       {/* MODAL */}
       <Modal
-        isOpen={modalFuncionarioAberto}
-        onRequestClose={() => setModalFuncionarioAberto(false)}
+        isOpen={modalAberto}
+        onRequestClose={() => setModalAberto(false)}
         contentLabel="Adicionar/Editar Funcionário"
         style={{
           overlay: { backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000 },
@@ -383,7 +511,7 @@ export default function FolhaDePagamento({
           fontSize: 28,
           textAlign: "left"
         }}>
-          {editandoFuncionarioIdx === "novo" ? "Adicionar Funcionário" : "Editar Funcionário"}
+          {editando === null ? "Adicionar Funcionário" : "Editar Funcionário"}
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <label
@@ -480,15 +608,7 @@ export default function FolhaDePagamento({
               ref={el => inputRefs.current[3] = el}
               value={funcionarioTemp.salario}
               type="text"
-              onChange={e => setFuncionarioTemp(ft => {
-                let value = e.target.value;
-                let onlyNumbers = value.replace(/[^\d]/g, "");
-                if (!onlyNumbers) return { ...ft, salario: "" };
-                if (onlyNumbers.length > 9) onlyNumbers = onlyNumbers.slice(0, 9);
-                let number = parseFloat(onlyNumbers) / 100;
-                let formatted = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                return { ...ft, salario: formatted };
-              })}
+              onChange={handleSalarioChange}
               placeholder="Salário Bruto"
               style={{
                 display: "block",
@@ -525,134 +645,148 @@ export default function FolhaDePagamento({
               letterSpacing: "0.5px"
             }}>R$</span>
           </div>
-          {CAMPOS_PERCENTUAIS.map((item, idx) => {
-            const perc = funcionarioTemp[item.key] || "";
-            const valorStr = funcionarioTemp[`${item.key}Valor`] || "";
-            const valorExibido = valorStr === "" ? "0,00" : valorStr;
-            const inputPercIdx = 4 + idx * 2;
-            const inputValorIdx = 4 + idx * 2 + 1;
-            return (
-              <div key={item.key} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 0
-              }}>
-                <span style={{
-                  minWidth: 120,
-                  fontWeight: 700,
-                  color: "#ffe060",
-                  fontSize: 15
-                }}>
-                  {item.label}
-                </span>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#28244a",
-                  borderRadius: 8,
-                  boxShadow: "0 1px 3px #00000018",
-                  padding: "3px 10px",
-                  gap: 6,
-                  border: "1.5px solid #4b3ca0",
-                  minWidth: 105,
-                  maxWidth: 130
-                }}>
-                  <input
-                    ref={el => inputRefs.current[inputPercIdx] = el}
-                    type="text"
-                    value={formatPercentForDisplay(perc, editingPercent[item.key])}
-                    onFocus={() => setEditingPercent(ep => ({ ...ep, [item.key]: true }))}
-                    onBlur={() => setEditingPercent(ep => ({ ...ep, [item.key]: false }))}
-                    onChange={e => {
-                      let raw = e.target.value.replace(/\D/g, "");
-                      while (raw.length < 3) raw = "0" + raw;
-                      let percStr = raw.slice(0, raw.length - 2) + "," + raw.slice(-2);
-                      setFuncionarioTemp(ft => {
-                        const salarioNum = parseBR(ft.salario);
-                        const percNum = parsePercentBR(percStr);
-                        const valorNum = salarioNum * (percNum / 100);
-                        let valorStr = maskMoneyBR(String(Math.round(valorNum * 100)));
-                        return {
-                          ...ft,
-                          [item.key]: percStr,
-                          [`${item.key}Valor`]: valorStr
-                        };
-                      });
-                    }}
-                    onKeyDown={e => handleTab(e, inputPercIdx)}
-                    style={{
-                      width: 90,
-                      fontSize: 15,
-                      background: "transparent",
-                      color: "#fff",
-                      border: "none",
-                      outline: "none",
-                      textAlign: "right"
-                    }}
-                    placeholder="0"
-                  />
+          {/* --------- INÍCIO CAMPOS PERCENTUAIS ALINHADOS --------- */}
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 7,
+            marginTop: 6,
+            marginBottom: 0,
+          }}>
+            {CAMPOS_PERCENTUAIS.map((item, idx) => {
+              const perc = funcionarioTemp[item.key] || "";
+              const valorStr = funcionarioTemp[`${item.key}Valor`] || "";
+              const valorExibido = valorStr === "" ? "0,00" : valorStr;
+              const inputPercIdx = 4 + idx * 2;
+              const inputValorIdx = 4 + idx * 2 + 1;
+              return (
+                <div
+                  key={item.key}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "160px 110px 120px",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 0,
+                    width: "100%",
+                  }}
+                >
                   <span style={{
-                    color: "#b189ff",
                     fontWeight: 700,
-                    fontSize: 14
-                  }}>%</span>
-                </div>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#23213a",
-                  borderRadius: 8,
-                  padding: "3px 10px",
-                  gap: 4,
-                  border: "1.5px solid #4b3ca0",
-                  minWidth: 110
-                }}>
-                  <span style={{
-                    color: "#bbb",
-                    marginRight: 2,
-                    fontWeight: 600,
+                    color: "#ffe060",
                     fontSize: 15
-                  }}>R$</span>
-                  <input
-                    ref={el => inputRefs.current[inputValorIdx] = el}
-                    type="text"
-                    value={valorExibido}
-                    onChange={e => {
-                      let onlyNumbers = e.target.value.replace(/[^\d]/g, "");
-                      if (!onlyNumbers) onlyNumbers = "0";
-                      if (onlyNumbers.length > 9) onlyNumbers = onlyNumbers.slice(0, 9);
-                      let number = parseFloat(onlyNumbers) / 100;
-                      let formatted = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      setFuncionarioTemp(ft => {
-                        const salarioNum = parseBR(ft.salario);
-                        const valorNum = parseBR(formatted);
-                        const perc = salarioNum ? ((valorNum / salarioNum) * 100) : 0;
-                        let percStr = perc
-                          .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        return {
-                          ...ft,
-                          [item.key]: percStr,
-                          [`${item.key}Valor`]: formatted
-                        };
-                      });
-                    }}
-                    style={{
-                      width: 80,
-                      fontSize: 15,
-                      background: "transparent",
-                      color: "#fff",
-                      border: "none",
-                      outline: "none",
-                      textAlign: "right"
-                    }}
-                    placeholder="0,00"
-                    onKeyDown={e => handleTab(e, inputValorIdx)}
-                  />
+                  }}>
+                    {item.label}
+                  </span>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    background: "#28244a",
+                    borderRadius: 8,
+                    padding: "3px 10px",
+                    gap: 6,
+                    border: "1.5px solid #4b3ca0",
+                    minWidth: 85,
+                    maxWidth: 110,
+                  }}>
+                    <input
+                      ref={el => inputRefs.current[inputPercIdx] = el}
+                      type="text"
+                      value={formatPercentForDisplay(perc, editingPercent[item.key])}
+                      onFocus={() => setEditingPercent(ep => ({ ...ep, [item.key]: true }))}
+                      onBlur={() => setEditingPercent(ep => ({ ...ep, [item.key]: false }))}
+                      onChange={e => {
+                        let raw = e.target.value.replace(/\D/g, "");
+                        while (raw.length < 3) raw = "0" + raw;
+                        let percStr = raw.slice(0, raw.length - 2) + "," + raw.slice(-2);
+                        setFuncionarioTemp(ft => {
+                          const salarioNum = parseBR(ft.salario);
+                          const percNum = parsePercentBR(percStr);
+                          const valorNum = salarioNum * (percNum / 100);
+                          let valorStr = maskMoneyBR(String(Math.round(valorNum * 100)));
+                          return {
+                            ...ft,
+                            [item.key]: percStr,
+                            [`${item.key}Valor`]: valorStr
+                          };
+                        });
+                      }}
+                      onKeyDown={e => handleTab(e, inputPercIdx)}
+                      style={{
+                        width: 60,
+                        fontSize: 15,
+                        background: "transparent",
+                        color: "#fff",
+                        border: "none",
+                        outline: "none",
+                        textAlign: "right"
+                      }}
+                      placeholder="0"
+                    />
+                    <span style={{
+                      color: "#b189ff",
+                      fontWeight: 700,
+                      fontSize: 14
+                    }}>%</span>
+                  </div>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    background: "#23213a",
+                    borderRadius: 8,
+                    padding: "3px 10px",
+                    gap: 4,
+                    border: "1.5px solid #4b3ca0",
+                    minWidth: 90,
+                    maxWidth: 120,
+                  }}>
+                    <span style={{
+                      color: "#bbb",
+                      marginRight: 2,
+                      fontWeight: 600,
+                      fontSize: 15
+                    }}>R$</span>
+                    <input
+                      ref={el => inputRefs.current[inputValorIdx] = el}
+                      type="text"
+                      value={valorExibido}
+                      onChange={e => {
+                        let onlyNumbers = e.target.value.replace(/[^\d]/g, "");
+                        if (!onlyNumbers) onlyNumbers = "0";
+                        if (onlyNumbers.length > 9) onlyNumbers = onlyNumbers.slice(0, 9);
+                        let number = parseFloat(onlyNumbers) / 100;
+                        let formatted = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        setFuncionarioTemp(ft => {
+                          const salarioNum = parseBR(ft.salario);
+                          const valorNum = parseBR(formatted);
+                          const perc = salarioNum ? ((valorNum / salarioNum) * 100) : 0;
+                          let percStr = perc
+                            .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          return {
+                            ...ft,
+                            [item.key]: percStr,
+                            [`${item.key}Valor`]: formatted
+                          };
+                        });
+                      }}
+                      style={{
+                        width: 62,
+                        fontSize: 15,
+                        background: "transparent",
+                        color: "#fff",
+                        border: "none",
+                        outline: "none",
+                        textAlign: "right"
+                      }}
+                      placeholder="0,00"
+                      onKeyDown={e => handleTab(e, inputValorIdx)}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          {/* --------- FIM CAMPOS PERCENTUAIS ALINHADOS --------- */}
           <div style={{
             fontWeight: 700,
             color: "#ffe060",
@@ -661,7 +795,7 @@ export default function FolhaDePagamento({
             fontSize: 18
           }}>
             Custo Total deste Funcionário:&nbsp;
-            {calcularTotalFuncionario().toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            {calcularTotalFuncionarioObj(funcionarioTemp).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </div>
 
           <div
@@ -719,8 +853,8 @@ export default function FolhaDePagamento({
             }}>
               Valor da hora (custo total):&nbsp;
               <span style={{ color: "#b088ff" }}>
-                {isFinite(valorHora) && valorHora > 0
-                  ? valorHora.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                {isFinite(valorHoraFuncionario(funcionarioTemp)) && valorHoraFuncionario(funcionarioTemp) > 0
+                  ? valorHoraFuncionario(funcionarioTemp).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
                   : "R$ 0,00"}
               </span>
             </div>
@@ -734,14 +868,7 @@ export default function FolhaDePagamento({
           }}>
             <button
               ref={el => inputRefs.current[46] = el}
-              onClick={() => {
-                if (editandoFuncionarioIdx === "novo") {
-                  handleSalvarFuncionario();
-                } else {
-                  handleSalvarFuncionario(editandoFuncionarioIdx);
-                }
-                setModalFuncionarioAberto(false);
-              }}
+              onClick={salvarFuncionario}
               style={{
                 background: "#a780ff",
                 color: "#fff",
@@ -757,7 +884,7 @@ export default function FolhaDePagamento({
             >Salvar</button>
             <button
               ref={el => inputRefs.current[47] = el}
-              onClick={() => setModalFuncionarioAberto(false)}
+              onClick={() => setModalAberto(false)}
               style={{
                 background: "#bbb",
                 color: "#222",

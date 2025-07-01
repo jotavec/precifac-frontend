@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -11,6 +11,7 @@ import Cadastro from "./components/Estoque/Cadastro";
 import QuadroReceitas from "./components/QuadroReceitas";
 import PlanejamentoVendas from "./components/PlanejamentoVendas";
 import SidebarMenu from "./SidebarMenu";
+import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import "./App.css";
 import "./AppContainer.css";
 import TesteIcones from "./TesteIcones";
@@ -91,91 +92,211 @@ const initialCategoriasCustos = [
   { nome: "Folha de Pagamento", funcionarios: [] }
 ];
 
+// Função utilitária para pegar o estado inicial da navegação
+function getNavState() {
+  if (typeof window !== "undefined") {
+    const navState = localStorage.getItem("navState");
+    if (navState) {
+      const { aba, catIdx, subCatMarkup } = JSON.parse(navState);
+      return {
+        aba: aba ?? 0,
+        catIdx: catIdx ?? 0,
+        subCatMarkup: subCatMarkup ?? 0,
+      };
+    }
+  }
+  return { aba: 0, catIdx: 0, subCatMarkup: 0 };
+}
+
 export default function App() {
-  // Removido userId do localStorage, só existe user no state
+  const navInit = getNavState();
   const [screen, setScreen] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [user, setUser] = useState(null);
   const [msg, setMsg] = useState("");
-  const [aba, setAba] = useState(0);
-  const [catIdx, setCatIdx] = useState(0);
-  const [subCatMarkup, setSubCatMarkup] = useState(0);
+  const [aba, setAba] = useState(navInit.aba);
+  const [catIdx, setCatIdx] = useState(navInit.catIdx);
+  const [subCatMarkup, setSubCatMarkup] = useState(navInit.subCatMarkup);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
-  // Tudo só em state, nada de localStorage!
   const [encargosData, setEncargosData] = useState(initialEncargosState);
   const [outrosEncargos, setOutrosEncargos] = useState([]);
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
+
+  // Folha de pagamento - integração CRUD
+  useEffect(() => {
+    if (!user) return;
+    async function fetchFuncionarios() {
+      try {
+        const res = await fetch("/api/folhapagamento/funcionarios", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setCategoriasCustos(cats => {
+            const novas = [...cats];
+            novas[1].funcionarios = Array.isArray(data) ? data : [];
+            return novas;
+          });
+        }
+      } catch {
+        setCategoriasCustos(cats => {
+          const novas = [...cats];
+          novas[1].funcionarios = [];
+          return novas;
+        });
+      }
+    }
+    fetchFuncionarios();
+  }, [user]);
+
+  async function handleAddFuncionario(novoFuncionario) {
+    const res = await fetch("/api/folhapagamento/funcionarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(novoFuncionario)
+    });
+    if (res.ok) {
+      const novo = await res.json();
+      setCategoriasCustos(cats => {
+        const novas = [...cats];
+        novas[1].funcionarios = [...novas[1].funcionarios, novo];
+        return novas;
+      });
+      return true;
+    }
+    return false;
+  }
+
+  async function handleEditarFuncionario(idx, funcionarioEditado) {
+    const id = categoriasCustos[1].funcionarios[idx].id;
+    const res = await fetch(`/api/folhapagamento/funcionarios/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(funcionarioEditado)
+    });
+    if (res.ok) {
+      const atualizado = await res.json();
+      setCategoriasCustos(cats => {
+        const novas = [...cats];
+        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => i === idx ? atualizado : f);
+        return novas;
+      });
+      return true;
+    }
+    return false;
+  }
+
+  async function handleExcluirFuncionario(idx) {
+    const id = categoriasCustos[1].funcionarios[idx].id;
+    const res = await fetch(`/api/folhapagamento/funcionarios/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (res.ok) {
+      setCategoriasCustos(cats => {
+        const novas = [...cats];
+        novas[1].funcionarios = novas[1].funcionarios.filter((_, i) => i !== idx);
+        return novas;
+      });
+      return true;
+    }
+    return false;
+  }
+
+  useEffect(() => {
+    const navState = { aba, catIdx, subCatMarkup };
+    localStorage.setItem("navState", JSON.stringify(navState));
+  }, [aba, catIdx, subCatMarkup]);
+  
+  // Busca o usuário autenticado ao iniciar o app (reload)
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/users/me", {
+          method: "GET",
+          credentials: "include"
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (err) {}
+    }
+    fetchUser();
+  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function handleRegister(e) {
-  e.preventDefault();
-  setMsg("Enviando...");
-  try {
-    const res = await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        password: form.password
-      })
-    });
-    if (!res.ok) {
-      const errorData = await res.json();
-      setMsg(errorData.error || "Erro ao cadastrar.");
-      return;
+    e.preventDefault();
+    setMsg("Enviando...");
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password
+        })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        setMsg(errorData.error || "Erro ao cadastrar.");
+        return;
+      }
+      const data = await res.json();
+      setUser(data.user);
+      setMsg("");
+    } catch (err) {
+      setMsg("Erro de conexão ao cadastrar.");
     }
-    setMsg("Cadastro realizado! Faça login.");
-    setScreen("login");
-    setForm({ name: "", email: "", password: "" });
-  } catch (err) {
-    setMsg("Erro de conexão ao cadastrar.");
   }
-}
 
   async function handleLogin(e) {
-  e.preventDefault();
-  setMsg("Entrando...");
-  try {
-    const res = await fetch("/api/users/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: form.email,
-        password: form.password
-      })
-    });
-    if (!res.ok) {
-      const errorData = await res.json();
-      setMsg(errorData.error || "Erro ao fazer login.");
-      return;
+    e.preventDefault();
+    setMsg("Entrando...");
+    try {
+      const res = await fetch("/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password
+        })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        setMsg(errorData.error || "Erro ao fazer login.");
+        return;
+      }
+      const data = await res.json();
+      setUser(data.user);
+      setMsg("");
+    } catch (err) {
+      setMsg("Erro ao fazer login.");
     }
-    const data = await res.json();
-    console.log("Login data:", data);
-    setUser(data); // Salva o usuário autenticado
-    setMsg("");
-  } catch (err) {
-    setMsg("Erro ao fazer login.");
   }
+
+  async function handleLogout() {
+  await fetch("/api/users/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+  setUser(null);
+  setScreen("login");
+  setForm({ name: "", email: "", password: "" });
+  setAba(0);
+  setCatIdx(0);
+  setSubCatMarkup(0);
 }
 
-  function handleLogout() {
-    setUser(null);
-    setScreen("login");
-    setForm({ name: "", email: "", password: "" });
-    setAba(0);
-    setCatIdx(0);
-    setSubCatMarkup(0);
-    // Se quiser limpar as infos ao deslogar, descomente:
-    // setEncargosData(initialEncargosState);
-    // setOutrosEncargos([]);
-    // setCategoriasCustos(initialCategoriasCustos);
-  }
 
   function getSelectedLabel(aba, catIdx, subCatMarkup) {
     if (aba === 2) {
@@ -211,6 +332,7 @@ export default function App() {
     }
   }
 
+  // ---- RENDER ----
   if (user) {
     const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
     return (
@@ -233,6 +355,21 @@ export default function App() {
                 outros={outrosEncargos}
                 setOutros={setOutrosEncargos}
                 user={user}
+              />
+            ) : catIdx === 1 ? (
+              <FolhaDePagamento
+                funcionarios={categoriasCustos[1].funcionarios}
+                setFuncionarios={funcs => setCategoriasCustos(cats => {
+                  const novas = [...cats];
+                  novas[1].funcionarios = funcs;
+                  return novas;
+                })}
+                handleAddFuncionario={handleAddFuncionario}
+                handleEditarFuncionario={handleEditarFuncionario}
+                handleExcluirFuncionario={handleExcluirFuncionario}
+                totalFolha={categoriasCustos[1].funcionarios.reduce((acc, f) => acc + calcularTotalFuncionarioObj(f), 0)}
+                calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+                CAMPOS_PERCENTUAIS={CAMPOS_PERCENTUAIS}
               />
             ) : (
               <Custos

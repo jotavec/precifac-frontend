@@ -5,10 +5,8 @@ import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 
 Modal.setAppElement("#root");
 
-export default function DespesasFixas({
-  subcategorias = [],
-  setSubcategorias
-}) {
+export default function DespesasFixas() {
+  const [subcategorias, setSubcategorias] = useState([]);
   const [subcatIdx, setSubcatIdx] = useState(0);
   const [editandoSubcatIdx, setEditandoSubcatIdx] = useState(null);
   const [nomeSubcatTemp, setNomeSubcatTemp] = useState("");
@@ -20,32 +18,68 @@ export default function DespesasFixas({
   // Modal de confirmação de exclusão
   const [modalDelete, setModalDelete] = useState({ open: false, idx: null });
 
+  // Fetch inicial das subcategorias e custos
+  useEffect(() => {
+    fetch('http://localhost:3000/api/despesasfixas/subcategorias', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setSubcategorias(Array.isArray(data) ? data : []))
+      .catch(() => setSubcategorias([]));
+  }, []);
+
   // CRUD Subcategoria
-  function handleAddSubcat() {
-    const novas = [...subcategorias, { nome: "Nova Subcategoria", despesas: [] }];
-    setSubcategorias(novas);
-    setSubcatIdx(novas.length - 1);
-    setEditandoSubcatIdx(novas.length - 1);
-    setNomeSubcatTemp("");
+  async function handleAddSubcat() {
+    try {
+      const res = await fetch('http://localhost:3000/api/despesasfixas/subcategorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: "Nova Subcategoria" })
+      });
+      if (res.ok) {
+        const novaSubcat = await res.json();
+        setSubcategorias(subcats => [...subcats, { ...novaSubcat, fixedCosts: [] }]);
+        setSubcatIdx(subcategorias.length);
+        setEditandoSubcatIdx(subcategorias.length);
+        setNomeSubcatTemp("");
+      }
+    } catch (e) { }
   }
-  function handleSalvarSubcat(idx) {
+
+  async function handleSalvarSubcat(idx) {
     if (!nomeSubcatTemp.trim()) return;
-    const novas = [...subcategorias];
-    novas[idx].nome = nomeSubcatTemp.trim();
-    setSubcategorias(novas);
-    setEditandoSubcatIdx(null);
-    setNomeSubcatTemp("");
+    const subcat = subcategorias[idx];
+    try {
+      const res = await fetch(`http://localhost:3000/api/despesasfixas/subcategorias/${subcat.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: nomeSubcatTemp.trim() })
+      });
+      if (res.ok) {
+        const atualizada = await res.json();
+        setSubcategorias(subcats => subcats.map((sc, i) => i === idx ? { ...sc, name: atualizada.name } : sc));
+        setEditandoSubcatIdx(null);
+        setNomeSubcatTemp("");
+      }
+    } catch (e) { }
   }
+
   function handleEditarSubcat(idx) {
     setEditandoSubcatIdx(idx);
-    setNomeSubcatTemp(subcategorias[idx].nome);
+    setNomeSubcatTemp(subcategorias[idx].name);
   }
-  function handleApagarSubcat(idx) {
-    const novas = [...subcategorias];
-    novas.splice(idx, 1);
-    setSubcategorias(novas);
-    setSubcatIdx(0);
-    setEditandoSubcatIdx(null);
+
+  async function handleApagarSubcat(idx) {
+    const subcat = subcategorias[idx];
+    try {
+      await fetch(`http://localhost:3000/api/despesasfixas/subcategorias/${subcat.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      setSubcategorias(subcats => subcats.filter((_, i) => i !== idx));
+      setSubcatIdx(0);
+      setEditandoSubcatIdx(null);
+    } catch (e) { }
   }
 
   // CRUD Despesa
@@ -53,45 +87,79 @@ export default function DespesasFixas({
     setEditandoDespesaIdx("novo");
     setDespesaTemp({ nome: "", valor: "" });
   }
-  function handleSalvarDespesa(idx) {
+
+  async function handleSalvarDespesa(idx) {
     if (!despesaTemp.nome.trim() || despesaTemp.valor === "") return;
-    const novas = [...subcategorias];
-    if (editandoDespesaIdx === "novo") {
-      novas[subcatIdx].despesas.push({
-        nome: despesaTemp.nome.trim(),
-        valor: despesaTemp.valor
-      });
-    } else {
-      novas[subcatIdx].despesas[idx] = {
-        nome: despesaTemp.nome.trim(),
-        valor: despesaTemp.valor
-      };
-    }
-    setSubcategorias(novas);
+    const subcat = subcategorias[subcatIdx];
+    const valorNumber = Number(String(despesaTemp.valor).replace(/\./g, "").replace(",", "."));
+    try {
+      if (editandoDespesaIdx === "novo") {
+        const res = await fetch(`http://localhost:3000/api/despesasfixas/subcategorias/${subcat.id}/custos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: despesaTemp.nome.trim(), value: valorNumber })
+        });
+        if (res.ok) {
+          const novoCusto = await res.json();
+          setSubcategorias(subcats => subcats.map((sc, i) =>
+            i === subcatIdx ? { ...sc, fixedCosts: [...sc.fixedCosts, novoCusto] } : sc
+          ));
+        }
+      } else {
+        const custo = subcategorias[subcatIdx].fixedCosts[idx];
+        const res = await fetch(`http://localhost:3000/api/despesasfixas/custos/${custo.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: despesaTemp.nome.trim(), value: valorNumber })
+        });
+        if (res.ok) {
+          const atualizado = await res.json();
+          setSubcategorias(subcats => subcats.map((sc, i) =>
+            i === subcatIdx
+              ? { ...sc, fixedCosts: sc.fixedCosts.map((c, j) => j === idx ? atualizado : c) }
+              : sc
+          ));
+        }
+      }
+    } catch (e) { }
     setEditandoDespesaIdx(null);
     setDespesaTemp({ nome: "", valor: "" });
   }
+
   function handleEditarDespesa(idx) {
     setEditandoDespesaIdx(idx);
+    const custo = subcategorias[subcatIdx].fixedCosts[idx];
     setDespesaTemp({
-      nome: subcategorias[subcatIdx].despesas[idx].nome,
-      valor: subcategorias[subcatIdx].despesas[idx].valor
+      nome: custo.name,
+      valor: custo.value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     });
   }
-  function handleExcluirDespesa(idx) {
-    const novas = [...subcategorias];
-    novas[subcatIdx].despesas.splice(idx, 1);
-    setSubcategorias(novas);
+
+  async function handleExcluirDespesa(idx) {
+    const custo = subcategorias[subcatIdx].fixedCosts[idx];
+    try {
+      await fetch(`http://localhost:3000/api/despesasfixas/custos/${custo.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      setSubcategorias(subcats => subcats.map((sc, i) =>
+        i === subcatIdx
+          ? { ...sc, fixedCosts: sc.fixedCosts.filter((_, j) => j !== idx) }
+          : sc
+      ));
+    } catch (e) { }
     setEditandoDespesaIdx(null);
     setDespesaTemp({ nome: "", valor: "" });
   }
 
   const somaSubcat = subcat =>
-    subcat?.despesas?.reduce((acc, d) => acc + (Number(String(d.valor).replace(/\./g, "").replace(",", ".")) || 0), 0) || 0;
+    subcat?.fixedCosts?.reduce((acc, d) => acc + (Number(d.value) || 0), 0) || 0;
 
   const formatarValor = (valor) => {
     if (!valor) return "R$ 0,00";
-    return Number(String(valor).replace(/\./g, "").replace(",", ".")).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
   useEffect(() => {
@@ -166,7 +234,7 @@ export default function DespesasFixas({
       <div style={{ display: "flex", alignItems: "center", marginBottom: 18 }}>
         {subcategorias.map((sc, i) => (
           <div
-            key={i}
+            key={sc.id}
             style={{
               display: "flex",
               alignItems: "center",
@@ -184,7 +252,6 @@ export default function DespesasFixas({
               minWidth: 120,
               userSelect: "none"
             }}
-            // Torna a aba inteira clicável para trocar de aba (exceto quando está editando o nome)
             onClick={() => {
               if (editandoSubcatIdx !== i) {
                 setSubcatIdx(i);
@@ -268,7 +335,7 @@ export default function DespesasFixas({
                     marginRight: 8
                   }}
                 >
-                  {sc.nome}
+                  {sc.name}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <button
@@ -349,7 +416,7 @@ export default function DespesasFixas({
           letterSpacing: 0.7,
           textShadow: "0 2px 12px #000a"
         }}>
-          {subcat?.nome}
+          {subcat?.name}
         </div>
         <table style={{
           width: "100%",
@@ -366,7 +433,7 @@ export default function DespesasFixas({
             </tr>
           </thead>
           <tbody>
-            {subcat?.despesas?.length === 0 && (
+            {subcat?.fixedCosts?.length === 0 && (
               <tr>
                 <td colSpan={3} style={{ color: "#aaa", textAlign: "center", padding: 32, fontSize: 17 }}>
                   Nenhum custo cadastrado.<br />
@@ -374,9 +441,9 @@ export default function DespesasFixas({
                 </td>
               </tr>
             )}
-            {subcat?.despesas?.map((custo, idx) => (
+            {subcat?.fixedCosts?.map((custo, idx) => (
               <tr
-                key={idx}
+                key={custo.id}
                 style={{
                   borderBottom: "1px solid #34296a50",
                   background: idx % 2 === 0 ? "#251e4a60" : "transparent",
@@ -390,10 +457,10 @@ export default function DespesasFixas({
                   textOverflow: "ellipsis",
                   wordBreak: "break-word"
                 }}>
-                  {custo.nome}
+                  {custo.name}
                 </td>
                 <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: 700, color: "#b388ff" }}>
-                  {formatarValor(custo.valor)}
+                  {formatarValor(custo.value)}
                 </td>
                 <td style={{ padding: "12px 10px", textAlign: "center" }}>
                   <button

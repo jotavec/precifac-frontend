@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // SECTIONS dos blocos tradicionais:
 const SECTIONS = [
@@ -60,7 +61,6 @@ function maskPercentBRLInput(v) {
   return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + decimal;
 }
 
-// Exibição final, tira zeros desnecessários das casas decimais
 function formatPercentDisplay(v) {
   if (v === "" || v === undefined || v === null) return "0";
   let num = Number(typeof v === "string" ? v.replace(",", ".") : v);
@@ -74,43 +74,97 @@ function formatPercentDisplay(v) {
   return str;
 }
 
-export default function EncargosSobreVenda({ data, setData, outros, setOutros }) {
-  // ----------- INÍCIO DA CORREÇÃO: Persistência do crédito parcelado -----------  
-  // Estado para array de parcelas (persistente)
-  const [parcelasArr, setParcelasArr] = useState(() => {
-    // tenta pegar do data.creditoParcelado, que deve ser um array
-    if (Array.isArray(data.creditoParcelado)) {
-      return data.creditoParcelado;
-    }
-    return [];
-  });
+// Dados iniciais zerados (ajuste se precisar)
+const INITIAL_DATA = {
+  icms: { percent: 0, value: "" },
+  iss: { percent: 0, value: "" },
+  pisCofins: { percent: 0, value: "" },
+  irpjCsll: { percent: 0, value: "" },
+  ipi: { percent: 0, value: "" },
+  debito: { percent: 0, value: "" },
+  credito: { percent: 0, value: "" },
+  creditoParcelado: [],
+  boleto: { percent: 0, value: "" },
+  pix: { percent: 0, value: "" },
+  gateway: { percent: 0, value: "" },
+  marketing: { percent: 0, value: "" },
+  delivery: { percent: 0, value: "" },
+  saas: { percent: 0, value: "" },
+  colaboradores: { percent: 0, value: "" }
+};
 
-  // Sempre que mudar data.creditoParcelado fora, sincroniza
+export default function EncargosSobreVenda() {
+  // Estados principais
+  const [data, setData] = useState(INITIAL_DATA);
+  const [outros, setOutros] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // === 1. BUSCA DO BANCO AO ABRIR ===
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const res = await axios.get("http://localhost:3000/api/encargos-sobre-venda", { withCredentials: true });
+        if (res.data && res.data.data) {
+          setData(res.data.data || INITIAL_DATA);
+          setOutros(res.data.outros || []);
+        } else {
+          setData(INITIAL_DATA);
+          setOutros([]);
+        }
+      } catch {
+        setData(INITIAL_DATA);
+        setOutros([]);
+      }
+      setLoading(false);
+    }
+    fetchData();
+    // eslint-disable-next-line
+  }, []);
+
+  // === 2. SALVA NO BANCO AO ALTERAR ===
+  useEffect(() => {
+    if (loading) return;
+    async function saveData() {
+      try {
+        await axios.post("http://localhost:3000/api/encargos-sobre-venda", { data, outros }, { withCredentials: true });
+      } catch (err) {
+        // Exibir erro? Só se quiser
+      }
+    }
+    saveData();
+    // eslint-disable-next-line
+  }, [data, outros]);
+
+  // ---------- CAMPOS PARCELAS (Cartão Parcelado) ----------
+  const [parcelasArr, setParcelasArr] = useState([]);
+
+  // Só seta parcelasArr quando carrega o data
   useEffect(() => {
     if (Array.isArray(data.creditoParcelado)) {
       setParcelasArr(data.creditoParcelado);
     }
-  }, [data.creditoParcelado]);
+    // eslint-disable-next-line
+  }, [data]);
 
-  // Sempre que mudar parcelasArr, salva no objeto data.creditoParcelado
+  // Só atualiza o data se mudou de verdade (evita loop infinito)
   useEffect(() => {
-    setData(prev => ({
-      ...prev,
-      creditoParcelado: parcelasArr
-    }));
+    if (JSON.stringify(data.creditoParcelado) !== JSON.stringify(parcelasArr)) {
+      setData(prev => ({
+        ...prev,
+        creditoParcelado: parcelasArr
+      }));
+    }
     // eslint-disable-next-line
   }, [parcelasArr]);
-  // ----------- FIM DA CORREÇÃO -----------
 
   // Estados para edição dos percentuais
   const [editingPercent, setEditingPercent] = useState({});
   const [percentInput, setPercentInput] = useState({});
-
   const [editingPercentOutros, setEditingPercentOutros] = useState({});
   const [percentInputOutros, setPercentInputOutros] = useState({});
 
-  // ----------- HANDLERS PARA PERCENTUAIS PADRÃO -----------
-
+  // ----------- HANDLERS PADRÃO ---------
   function handleChangePercent(e, key) {
     setPercentInput(prev => ({
       ...prev,
@@ -143,7 +197,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     setEditingPercent(prev => ({ ...prev, [key]: false }));
     setPercentInput(prev => ({ ...prev, [key]: undefined }));
   }
-
   function handleChangeValue(e, key) {
     const value = (e.target.value ?? "").toString().replace(/\D/g, "");
     setData(prev => ({
@@ -152,8 +205,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     }));
   }
 
-  // ----------- HANDLERS PARA PARCELAS (agora persistente!) -----------
-
+  // ----------- HANDLERS PARA PARCELAS -----------
   function handleChangeParcelaPercent(e, idx) {
     setParcelasArr(prev => {
       const clone = [...prev];
@@ -195,7 +247,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
       return clone;
     });
   }
-
   function handleChangeParcelaNome(e, idx) {
     setParcelasArr(prev => {
       const clone = [...prev];
@@ -203,7 +254,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
       return clone;
     });
   }
-
   function handleAddParcela() {
     setParcelasArr(prev => [
       ...prev,
@@ -215,7 +265,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
   }
 
   // ----------- HANDLERS PARA PERCENTUAIS OUTROS -----------
-
   function handleChangeOutroPercent(e, idx) {
     setPercentInputOutros(prev => ({
       ...prev,
@@ -287,7 +336,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 700,
     marginRight: 0
   };
-  // AJUSTE DO ESPAÇAMENTO ENTRE O NÚMERO E O %:
   const inputInnerPercent = {
     background: "transparent",
     border: "none",
@@ -297,7 +345,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 600,
     fontSize: 18,
     textAlign: "right",
-    padding: "0 18px 0 0" // <-- mais espaço à direita do número
+    padding: "0 18px 0 0"
   };
   const inputInnerMoney = {
     background: "transparent",
@@ -317,10 +365,9 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     fontWeight: 600,
     fontSize: 17
   };
-  // AJUSTE DO ESPAÇAMENTO DO %:
   const suffixPercent = {
     position: "absolute",
-    right: 8, // <-- mais afastado do número
+    right: 8,
     color: "#b388ff",
     fontWeight: 600,
     fontSize: 17
@@ -387,6 +434,14 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
     outline: "none"
   };
 
+  // LOADING
+  if (loading) return (
+    <div style={{ color: "#fff", margin: 60, fontSize: 22, fontWeight: 700 }}>
+      Carregando encargos sobre venda...
+    </div>
+  );
+
+  // JSX
   return (
     <div style={{
       color: "#fff",
@@ -395,7 +450,6 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
       marginLeft: 0,
       padding: "0"
     }}>
-      {/* TÍTULO DA PÁGINA */}
       <div style={{
         fontSize: 32,
         fontWeight: 900,
@@ -408,9 +462,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
       </div>
       {SECTIONS.map(section => (
         <section key={section.title} style={cardStyle}>
-          <h3 style={sectionTitleStyle}>
-            {section.title}
-          </h3>
+          <h3 style={sectionTitleStyle}>{section.title}</h3>
           <div>
             {section.title === "4. Outros" ? (
               <>
@@ -655,7 +707,7 @@ export default function EncargosSobreVenda({ data, setData, outros, setOutros })
                             style={inputInnerMoney}
                             type="text"
                             placeholder="0,00"
-                            value={maskValueBRLInput(data[field.key].value)}
+                            value={maskValueBRLInput(data[field.key]?.value)}
                             onChange={e => handleChangeValue(e, field.key)}
                             maxLength={12}
                             inputMode="numeric"

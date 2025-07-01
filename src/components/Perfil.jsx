@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import ModalToast from "./modals/ModalToast"; // Caminho certo!
 
-// --- CONFIGURAÇÃO ---
 const API_URL = "/api";
 
 // --- MÁSCARAS ---
@@ -41,197 +41,26 @@ function formatCEP(value) {
 }
 
 // --- ESTILOS ---
-const perfilCard = {
-  maxWidth: 420,
-  width: "100%",
-  marginTop: 32,
-  marginLeft: 0,
-  background: "#19172c",
-  border: "1.5px solid #28244a",
-  borderRadius: 12,
-  boxShadow: "0 6px 30px #00000022",
-  color: "#fff",
-  padding: 0,
-  overflow: "hidden"
-};
-const innerBlock = {
-  background: "#18162a",
-  borderRadius: 10,
-  padding: 28,
-  margin: 28,
-  boxSizing: "border-box"
-};
-const sectionTitle = {
-  fontWeight: 700,
-  fontSize: 16,
-  color: "#fff",
-  marginTop: 20,
-  marginBottom: 10,
-  letterSpacing: 0.10,
-  borderBottom: "1px solid #28244a",
-  paddingBottom: 4
-};
-const labelStyle = {
-  fontWeight: 700,
-  color: "#ffe060",
-  fontSize: 13.5,
-  marginBottom: 2,
-  marginTop: 12,
-  display: "block"
-};
-const inputStyle = {
-  width: "100%",
-  background: "#23213a",
-  color: "#fff",
-  border: "1px solid #2d2643",
-  borderRadius: 7,
-  fontSize: 14,
-  padding: "7px 12px",
-  fontWeight: 500,
-  outline: "none",
-  margin: 0,
-  marginBottom: 6,
-  transition: "border-color 0.2s"
-};
-const disabledInput = {
-  ...inputStyle,
-  background: "#181824",
-  color: "#aaa",
-  cursor: "not-allowed"
-};
-const btnMain = {
-  background: "#8c52ff",
-  color: "#fff",
-  border: "none",
-  borderRadius: 7,
-  padding: "10px 0",
-  width: 110,
-  fontWeight: 700,
-  fontSize: 15,
-  cursor: "pointer",
-  marginRight: 8,
-  marginTop: 18,
-  boxShadow: "0 2px 8px #00000014",
-  transition: "background 0.18s, filter 0.18s"
-};
-const btnSec = {
-  background: "#23213a",
-  color: "#ffe060",
-  border: "none",
-  borderRadius: 7,
-  padding: "10px 0",
-  width: 110,
-  fontWeight: 600,
-  fontSize: 15,
-  marginTop: 18,
-  cursor: "pointer",
-  transition: "background 0.18s, color 0.18s, filter 0.18s"
-};
-const blocoCep = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  marginBottom: 0
-};
-const inputCepStyle = {
-  background: "#23213a",
-  color: "#fff",
-  border: "1px solid #2d2643",
-  borderRadius: "7px",
-  fontSize: 14,
-  padding: "0 12px",
-  fontWeight: 500,
-  outline: "none",
-  height: 40,
-  width: "100%",
-  margin: 0,
-  boxSizing: "border-box",
-  display: "block",
-  transition: "border-color 0.2s"
-};
-const inputCepDisabled = {
-  ...inputCepStyle,
-  background: "#181824",
-  color: "#aaa",
-  cursor: "not-allowed"
-};
-const btnCep = {
-  background: "#28244a",
-  color: "#fff",
-  border: "none",
-  borderRadius: "7px",
-  fontWeight: 800,
-  fontSize: 14,
-  height: 40,
-  minWidth: 100,
-  padding: "0 18px",
-  boxShadow: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  transition: "background 0.18s, filter 0.18s",
-  cursor: "pointer"
-};
-const btnCepDisabled = {
-  ...btnCep,
-  background: "#23213a",
-  color: "#bbb",
-  cursor: "not-allowed"
-};
-const blocoNumero = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  marginBottom: 0,
-};
-const inputNumeroStyle = {
-  background: "#23213a",
-  color: "#fff",
-  border: "1px solid #2d2643",
-  borderRadius: "7px",
-  fontSize: 14,
-  padding: "0 12px",
-  fontWeight: 500,
-  outline: "none",
-  height: 40,
-  width: "100%",
-  margin: 0,
-  boxSizing: "border-box",
-  display: "block"
-};
-const inputNumeroDisabled = {
-  ...inputNumeroStyle,
-  background: "#181824",
-  color: "#aaa",
-  cursor: "not-allowed"
-};
-const btnSemNumero = {
-  background: "#28244a",
-  color: "#ffe060",
-  border: "none",
-  borderRadius: "7px",
-  fontWeight: 600,
-  fontSize: 14,
-  height: 40,
-  minWidth: 110,
-  padding: "0 18px",
-  boxShadow: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  transition: "background 0.18s, color 0.18s, filter 0.18s",
-  gap: 7,
-  userSelect: "none"
-};
-const btnSemNumeroDisabled = {
-  ...btnSemNumero,
-  background: "#23213a",
-  color: "#aaa",
-  cursor: "not-allowed"
-};
+// (mantém igual do seu arquivo, para não bagunçar visual)
+const perfilCard = { maxWidth: 420, width: "100%", marginTop: 32, marginLeft: 0, background: "#19172c", border: "1.5px solid #28244a", borderRadius: 12, boxShadow: "0 6px 30px #00000022", color: "#fff", padding: 0, overflow: "hidden" };
+const innerBlock = { background: "#18162a", borderRadius: 10, padding: 28, margin: 28, boxSizing: "border-box" };
+const sectionTitle = { fontWeight: 700, fontSize: 16, color: "#fff", marginTop: 20, marginBottom: 10, letterSpacing: 0.10, borderBottom: "1px solid #28244a", paddingBottom: 4 };
+const labelStyle = { fontWeight: 700, color: "#ffe060", fontSize: 13.5, marginBottom: 2, marginTop: 12, display: "block" };
+const inputStyle = { width: "100%", background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: 7, fontSize: 14, padding: "7px 12px", fontWeight: 500, outline: "none", margin: 0, marginBottom: 6, transition: "border-color 0.2s" };
+const disabledInput = { ...inputStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
+const btnMain = { background: "#8c52ff", color: "#fff", border: "none", borderRadius: 7, padding: "10px 0", width: 110, fontWeight: 700, fontSize: 15, cursor: "pointer", marginRight: 8, marginTop: 18, boxShadow: "0 2px 8px #00000014", transition: "background 0.18s, filter 0.18s" };
+const btnSec = { background: "#23213a", color: "#ffe060", border: "none", borderRadius: 7, padding: "10px 0", width: 110, fontWeight: 600, fontSize: 15, marginTop: 18, cursor: "pointer", transition: "background 0.18s, color 0.18s, filter 0.18s" };
+const blocoCep = { display: "flex", alignItems: "center", gap: 10, marginBottom: 0 };
+const inputCepStyle = { background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: "7px", fontSize: 14, padding: "0 12px", fontWeight: 500, outline: "none", height: 40, width: "100%", margin: 0, boxSizing: "border-box", display: "block", transition: "border-color 0.2s" };
+const inputCepDisabled = { ...inputCepStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
+const btnCep = { background: "#28244a", color: "#fff", border: "none", borderRadius: "7px", fontWeight: 800, fontSize: 14, height: 40, minWidth: 100, padding: "0 18px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.18s, filter 0.18s", cursor: "pointer" };
+const btnCepDisabled = { ...btnCep, background: "#23213a", color: "#bbb", cursor: "not-allowed" };
+const blocoNumero = { display: "flex", alignItems: "center", gap: 10, marginBottom: 0 };
+const inputNumeroStyle = { background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: "7px", fontSize: 14, padding: "0 12px", fontWeight: 500, outline: "none", height: 40, width: "100%", margin: 0, boxSizing: "border-box", display: "block" };
+const inputNumeroDisabled = { ...inputNumeroStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
+const btnSemNumero = { background: "#28244a", color: "#ffe060", border: "none", borderRadius: "7px", fontWeight: 600, fontSize: 14, height: 40, minWidth: 110, padding: "0 18px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.18s, color 0.18s, filter 0.18s", gap: 7, userSelect: "none" };
+const btnSemNumeroDisabled = { ...btnSemNumero, background: "#23213a", color: "#aaa", cursor: "not-allowed" };
 
-// --- COMPONENTE ---
 export default function Perfil() {
   const [editando, setEditando] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -252,12 +81,16 @@ export default function Perfil() {
     cpf: ""
   });
 
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastType, setToastType] = useState("success");
+
   // Busca do usuário ao montar
   useEffect(() => {
     async function fetchUser() {
       setLoading(true);
       try {
-        // Busca o usuário autenticado
         const { data } = await axios.get(`${API_URL}/users/me`, {
           withCredentials: true
         });
@@ -269,7 +102,6 @@ export default function Perfil() {
           cpf: data.cpf || ""
         }));
 
-        // Busca config da empresa desse usuário
         const resConfig = await axios.get(`${API_URL}/company-config`, {
           withCredentials: true
         });
@@ -288,14 +120,15 @@ export default function Perfil() {
           }));
         }
       } catch (err) {
-        alert("Erro ao buscar usuário");
+        setToastMsg("Erro ao buscar usuário");
+        setToastType("error");
+        setShowToast(true);
       }
       setLoading(false);
     }
     fetchUser();
   }, []);
 
-  // Busca dados do CEP
   async function buscarCep() {
     if (!form.cep || form.cep.length < 8) return;
     setForm(f => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
@@ -310,11 +143,12 @@ export default function Perfil() {
       }));
     } catch {
       setForm(f => ({ ...f, rua: "", bairro: "", cidade: "", estado: "" }));
-      alert("CEP não encontrado!");
+      setToastMsg("CEP não encontrado!");
+      setToastType("warn");
+      setShowToast(true);
     }
   }
 
-  // Input/máscara handler
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     let val = value;
@@ -339,19 +173,17 @@ export default function Perfil() {
     }));
   }
 
-  // Salvar alterações
   async function handleSalvar() {
     setEditando(false);
     setLoading(true);
     try {
-      // Atualiza usuário autenticado
       await axios.put(`${API_URL}/users/me`, {
         name: form.nome,
         email: form.email,
         cpf: form.cpf,
         telefone: form.telefone
       }, { withCredentials: true });
-      // Atualiza empresa/config
+
       await axios.post(`${API_URL}/company-config`, {
         companyName: form.empresaNome,
         cnpj: form.cnpj,
@@ -364,10 +196,8 @@ export default function Perfil() {
         estado: form.estado,
         cpf: form.cpf
       }, { withCredentials: true });
-      // Recarrega dados
-      const { data } = await axios.get(`${API_URL}/users/me`, {
-        withCredentials: true
-      });
+
+      const { data } = await axios.get(`${API_URL}/users/me`, { withCredentials: true });
       setForm(f => ({
         ...f,
         nome: data.name || "",
@@ -376,9 +206,7 @@ export default function Perfil() {
         cpf: data.cpf || ""
       }));
 
-      const resConfig = await axios.get(`${API_URL}/company-config`, {
-        withCredentials: true
-      });
+      const resConfig = await axios.get(`${API_URL}/company-config`, { withCredentials: true });
       if (resConfig.data) {
         setForm(f => ({
           ...f,
@@ -394,9 +222,13 @@ export default function Perfil() {
         }));
       }
 
-      alert("Configurações salvas!");
+      setToastMsg("Configurações salvas!");
+      setToastType("success");
+      setShowToast(true);
     } catch (err) {
-      alert("Erro ao salvar configurações");
+      setToastMsg("Erro ao salvar configurações");
+      setToastType("error");
+      setShowToast(true);
     }
     setLoading(false);
   }
@@ -414,6 +246,12 @@ export default function Perfil() {
 
   return (
     <div style={perfilCard}>
+      <ModalToast
+        show={showToast}
+        message={toastMsg}
+        type={toastType}
+        onClose={() => setShowToast(false)}
+      />
       <div style={innerBlock}>
         <h2 style={{
           color: "#ffe060",
