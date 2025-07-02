@@ -124,6 +124,8 @@ export default function App() {
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
 
+  // Removido: faturamentoMedia, setFaturamentoMedia, receberMediaExportada
+
   // Folha de pagamento - integração CRUD
   useEffect(() => {
     if (!user) return;
@@ -209,7 +211,7 @@ export default function App() {
     const navState = { aba, catIdx, subCatMarkup };
     localStorage.setItem("navState", JSON.stringify(navState));
   }, [aba, catIdx, subCatMarkup]);
-  
+
   // Busca o usuário autenticado ao iniciar o app (reload)
   useEffect(() => {
     async function fetchUser() {
@@ -285,18 +287,17 @@ export default function App() {
   }
 
   async function handleLogout() {
-  await fetch("/api/users/logout", {
-    method: "POST",
-    credentials: "include"
-  });
-  setUser(null);
-  setScreen("login");
-  setForm({ name: "", email: "", password: "" });
-  setAba(0);
-  setCatIdx(0);
-  setSubCatMarkup(0);
-}
-
+    await fetch("/api/users/logout", {
+      method: "POST",
+      credentials: "include"
+    });
+    setUser(null);
+    setScreen("login");
+    setForm({ name: "", email: "", password: "" });
+    setAba(0);
+    setCatIdx(0);
+    setSubCatMarkup(0);
+  }
 
   function getSelectedLabel(aba, catIdx, subCatMarkup) {
     if (aba === 2) {
@@ -332,6 +333,11 @@ export default function App() {
     }
   }
 
+  // Flags para dependências do MarkupIdeal
+  const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
+  const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
+  // Removido: const faturamentoCarregado e dadosProntosMarkupIdeal
+
   // ---- RENDER ----
   if (user) {
     const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
@@ -359,15 +365,20 @@ export default function App() {
             ) : catIdx === 1 ? (
               <FolhaDePagamento
                 funcionarios={categoriasCustos[1].funcionarios}
-                setFuncionarios={funcs => setCategoriasCustos(cats => {
-                  const novas = [...cats];
-                  novas[1].funcionarios = funcs;
-                  return novas;
-                })}
+                setFuncionarios={funcs =>
+                  setCategoriasCustos(cats => {
+                    const novas = [...cats];
+                    novas[1].funcionarios = funcs;
+                    return novas;
+                  })
+                }
                 handleAddFuncionario={handleAddFuncionario}
                 handleEditarFuncionario={handleEditarFuncionario}
                 handleExcluirFuncionario={handleExcluirFuncionario}
-                totalFolha={categoriasCustos[1].funcionarios.reduce((acc, f) => acc + calcularTotalFuncionarioObj(f), 0)}
+                totalFolha={categoriasCustos[1].funcionarios.reduce(
+                  (acc, f) => acc + calcularTotalFuncionarioObj(f),
+                  0
+                )}
                 calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
                 CAMPOS_PERCENTUAIS={CAMPOS_PERCENTUAIS}
               />
@@ -384,6 +395,8 @@ export default function App() {
               <FaturamentoRealizado
                 user={user}
                 setGastoSobreFaturamento={setGastoSobreFaturamento}
+                // Removido: onChangeMedia, faturamentoMedia
+                // Removido: mediaTipo e setMediaTipo, se não precisar mais
               />
             ) : subCatMarkup === 1 ? (
               <MarkupIdeal
@@ -394,6 +407,7 @@ export default function App() {
                 despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
                 funcionarios={categoriasCustos[1]?.funcionarios || []}
                 calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+                // Removido: faturamentoMedia, mediaTipo
               />
             ) : null
           ) : aba === "cadastros" ? (
@@ -408,13 +422,15 @@ export default function App() {
 
   // LOGIN/CADASTRO
   return (
-    <div style={{
-      maxWidth: 360,
-      margin: "2rem auto",
-      padding: 32,
-      border: "1px solid #ccc",
-      borderRadius: 16
-    }}>
+    <div
+      style={{
+        maxWidth: 360,
+        margin: "2rem auto",
+        padding: 32,
+        border: "1px solid #ccc",
+        borderRadius: 16
+      }}
+    >
       <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
       <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
         {screen === "register" && (
