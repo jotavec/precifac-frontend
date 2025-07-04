@@ -8,7 +8,28 @@ export default function ModalEscolhaCadastro({ open, onClose, onManual, onAuto }
   return (
     <div className="modal-escolha-cadastro-bg">
       <div className="modal-escolha-cadastro">
-        <button className="modal-fechar-btn" onClick={onClose}>×</button>
+        <button
+          className="modal-fechar-btn"
+          onClick={onClose}
+          aria-label="Fechar modal"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              fontSize: "1.9rem",
+              fontWeight: 700,
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            ×
+          </span>
+        </button>
         <div className="modal-cadastro-cols">
           {/* COLUNA AUTOMÁTICO */}
           <div className="modal-cadastro-col">

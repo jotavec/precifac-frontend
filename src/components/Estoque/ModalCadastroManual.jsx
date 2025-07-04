@@ -90,11 +90,9 @@ async function buscarImagensPexels(nome, page = 1) {
 async function buscarNomePorCodigoBarras(codBarras) {
   if (!codBarras) return "";
   try {
-    // ALTERADO: usa apenas /api, não http://localhost:3000/api
     const res = await fetch(`/api/buscar-nome-codbarras/${codBarras}`);
     if (!res.ok) return "";
     const data = await res.json();
-    console.log("Resposta backend:", data); // Só pra debug
     return data.nome || "";
   } catch {
     return "";
@@ -170,7 +168,9 @@ const unidadeMedidaOptions = [
 ];
 
 export default function ModalCadastroManual({
-  open, onClose, ingrediente, onSave, onDelete, onChange
+  open, onClose, ingrediente, onSave, onDelete, onChange,
+  refreshCategorias,
+  refreshMarcas
 }) {
   // --- Abas DENTRO do bloco ---
   const [abaBloco, setAbaBloco] = useState("estoque");
@@ -182,7 +182,6 @@ export default function ModalCadastroManual({
   const [unidadesNutricionais, setUnidadesNutricionais] = useState([
     "kcal", "g", "mg", "mcg"
   ]);
-  const [rotuloLinhas, setRotuloLinhas] = useState([]);
   const [editIdx, setEditIdx] = useState(null);
   const [formRotulo, setFormRotulo] = useState({
     descricao: "", quantidade: "", unidade: "", vd: ""
@@ -273,7 +272,7 @@ export default function ModalCadastroManual({
       const imgs = await buscarImagensPexels(ingrediente.nome, paginaImagens);
       if (!cancelado) {
         setSugestoesImg(imgs);
-        setTemMaisImagens(imgs.length === 4); // Se vieram 4, pode ter mais!
+        setTemMaisImagens(imgs.length === 4);
       }
       setLoadingImagens(false);
     }
@@ -304,41 +303,48 @@ export default function ModalCadastroManual({
       ingrediente.codBarras &&
       (!ingrediente.nome || ingrediente.nome === "")
     ) {
-      console.log("Buscando nome pelo código de barras:", ingrediente.codBarras);
       buscarNomePorCodigoBarras(ingrediente.codBarras).then(nomeProd => {
         if (
           nomeProd &&
           (!ingrediente.nome || ingrediente.nome === "") &&
           ingrediente.nome !== nomeProd
         ) {
-          console.log("Nome encontrado:", nomeProd);
           onChange({ ...ingrediente, nome: nomeProd });
-        } else {
-          console.log("Nome não encontrado ou já preenchido");
         }
       });
     }
   }, [open, ingrediente.codBarras]);
 
-
   // ======= Funções Rotulo Nutricional =======
   function handleAddRotulo() {
     if (!formRotulo.descricao || !formRotulo.unidade) return;
-    setRotuloLinhas(linhas => [...linhas, formRotulo]);
+    onChange({
+      ...ingrediente,
+      rotuloNutricional: [
+        ...(ingrediente.rotuloNutricional || []),
+        formRotulo
+      ]
+    });
     setFormRotulo({ descricao: "", quantidade: "", unidade: "", vd: "" });
     setEditIdx(null);
   }
   function handleDeleteRotulo(idx) {
-    setRotuloLinhas(linhas => linhas.filter((_, i) => i !== idx));
+    onChange({
+      ...ingrediente,
+      rotuloNutricional: (ingrediente.rotuloNutricional || []).filter((_, i) => i !== idx)
+    });
   }
   function handleEditRotulo(idx) {
     setEditIdx(idx);
-    setFormRotulo(rotuloLinhas[idx]);
+    setFormRotulo((ingrediente.rotuloNutricional || [])[idx]);
   }
   function handleSaveEditRotulo(idx) {
-    setRotuloLinhas(linhas =>
-      linhas.map((l, i) => (i === idx ? formRotulo : l))
-    );
+    onChange({
+      ...ingrediente,
+      rotuloNutricional: (ingrediente.rotuloNutricional || []).map((l, i) =>
+        i === idx ? formRotulo : l
+      )
+    });
     setEditIdx(null);
     setFormRotulo({ descricao: "", quantidade: "", unidade: "", vd: "" });
   }
@@ -876,14 +882,14 @@ export default function ModalCadastroManual({
                       </td>
                     </tr>
                   )}
-                  {rotuloLinhas.length === 0 && (
+                  {(ingrediente.rotuloNutricional || []).length === 0 && (
                     <tr>
                       <td colSpan={5} className="rotulo-nenhuma-linha">
                         Nenhuma linha adicionada.
                       </td>
                     </tr>
                   )}
-                  {rotuloLinhas.map((linha, idx) =>
+                  {(ingrediente.rotuloNutricional || []).map((linha, idx) =>
                     editIdx === idx ? (
                       <tr key={idx} style={{ background: "#1b1531" }}>
                         <td>
@@ -1095,8 +1101,17 @@ export default function ModalCadastroManual({
         )}
 
         {/* MODAIS AUXILIARES */}
-        <ModalCategorias open={modalCategoriasOpen} onClose={() => setModalCategoriasOpen(false)} />
-        <ModalMarcas open={modalMarcasOpen} onClose={() => setModalMarcasOpen(false)} />
+        <ModalCategorias
+  open={modalCategoriasOpen}
+  onClose={() => setModalCategoriasOpen(false)}
+  refresh={refreshCategorias}
+/>
+<ModalMarcas
+  open={modalMarcasOpen}
+  onClose={() => setModalMarcasOpen(false)}
+  refresh={refreshMarcas}
+/>
+
         <ModalRotuloNutricional
           open={rotuloConfigOpen}
           onClose={() => setRotuloConfigOpen(false)}

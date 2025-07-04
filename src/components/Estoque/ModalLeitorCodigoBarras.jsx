@@ -45,20 +45,27 @@ export default function ModalLeitorCodigoBarras({ open, onClose, onEncontrado })
         }}
       >
         <button
-          className="modal-close-btn"
+          className="modal-fechar-btn"
           onClick={onClose}
-          style={{
-            right: 18,
-            top: 16,
-            position: "absolute",
-            background: "none",
-            border: "none",
-            color: "#ffe066",
-            fontSize: 28,
-            cursor: "pointer",
-            fontWeight: 700
-          }}
-        >×</button>
+          aria-label="Fechar modal"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              fontSize: "1.9rem",
+              fontWeight: 700,
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            ×
+          </span>
+        </button>
         <div style={{
           fontSize: 23,
           color: "#ffe066",

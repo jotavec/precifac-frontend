@@ -6,7 +6,7 @@ import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import "./MarkupIdeal.css";
 
-// ---------------------- HELPERS ----------------------
+// Helpers
 function maskPercentInput(valorDigitado) {
   let v = valorDigitado.replace(/\D/g, "");
   if (v.length === 0) v = "0";
@@ -157,7 +157,49 @@ function getPercentualGastosFaturamento(idx, funcionarios, despesasFixasSubcats,
   });
 }
 
-// -------------------- COMPONENTES AUXILIARES --------------------
+// FUNÇÃO CERTA — só soma os R$ dos ativos!
+function somarEncargosReais(ativos, data, outrosEncargos) {
+  let total = 0;
+  // Impostos
+  ["icms", "iss", "pisCofins", "irpjCsll", "ipi"].forEach(key => {
+    if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
+      total += Number(data[key].value) / 100;
+    }
+  });
+  // Taxas de pagamento
+  ["debito", "credito", "boleto", "pix", "gateway"].forEach(key => {
+    if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
+      total += Number(data[key].value) / 100;
+    }
+  });
+  // Parcelado
+  if (Array.isArray(data.creditoParcelado)) {
+    data.creditoParcelado.forEach((parcela, idx) => {
+      const key = `creditoParcelado_${parcela.nome || idx}`;
+      if (ativos[key] && parcela.value != null && parcela.value !== "") {
+        total += Number(parcela.value) / 100;
+      }
+    });
+  }
+  // Comissões
+  ["marketing", "delivery", "saas", "colaboradores"].forEach(key => {
+    if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
+      total += Number(data[key].value) / 100;
+    }
+  });
+  // Outros Encargos
+  if (Array.isArray(outrosEncargos)) {
+    outrosEncargos.forEach(item => {
+      const key = item.id ?? item.nome;
+      if (ativos[key] && item.value != null && item.value !== "") {
+        total += Number(item.value) / 100;
+      }
+    });
+  }
+  return total;
+}
+
+// Componentes auxiliares
 function ToggleSwitchRoxo({ checked, onChange, disabled }) {
   return (
     <label className="markupideal-switch">
@@ -171,7 +213,6 @@ function ToggleSwitchRoxo({ checked, onChange, disabled }) {
     </label>
   );
 }
-
 function LinhaVisual(props) {
   const {
     label,
@@ -182,9 +223,39 @@ function LinhaVisual(props) {
     onLucroFocus,
     onLucroBlur,
     lucroEdit,
-    lucro
+    lucro,
+    mediaFaturamento,
   } = props;
 
+  if (label === "Gasto sobre faturamento") {
+    return (
+      <tr>
+        <td className="markup-ideal-row-label" style={{ fontWeight: 900 }}>
+          {label}
+          {mediaFaturamento && (
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                marginTop: 2,
+                marginBottom: -2,
+                color: "#fff",
+                display: "block"
+              }}
+            >
+              <span>
+                <span style={{ color: "#9cfa90" }}>Média de faturamento:</span>{" "}
+                <span style={{ color: "#ffe156", fontWeight: 700 }}>{mediaFaturamento}</span>
+              </span>
+            </div>
+          )}
+        </td>
+        <td className="markup-ideal-row-value-set">
+          <span className="markup-ideal-box">{formatPercentBRMask(percentual)}</span>
+        </td>
+      </tr>
+    );
+  }
   if (markup !== undefined) {
     return (
       <tr>
@@ -228,7 +299,6 @@ function LinhaVisual(props) {
     </tr>
   );
 }
-
 function BlocoSubReceita() {
   const [nome, setNome] = useState("SubReceita");
   const [editando, setEditando] = useState(false);
@@ -290,8 +360,9 @@ function BlocoSubReceita() {
   );
 }
 
+// BlocoCard — já com a soma dos encargos reais
 function BlocoCard({
-  nome, campos, onChangeNome, onDelete, obs, onConfig
+  nome, campos, onChangeNome, onDelete, obs, onConfig, mediaFaturamento, totalEncargosReais
 }) {
   const [editando, setEditando] = useState(false);
   const [inputNome, setInputNome] = useState(nome);
@@ -362,58 +433,32 @@ function BlocoCard({
               <LinhaVisual
                 key={linha.label}
                 {...linha}
+                mediaFaturamento={linha.label === "Gasto sobre faturamento" ? mediaFaturamento : undefined}
               />
             ))}
           </tbody>
         </table>
-        {obs}
-      </div>
-    </div>
-  );
-}
-
-function FolhaPagamentoModalAba({
-  funcionarios = [],
-  ativos = {},
-  onToggle,
-  calcularTotalFuncionarioObj
-}) {
-  const indiretos = Array.isArray(funcionarios)
-    ? funcionarios.filter(f => (f.tipoMaoDeObra || '').toLowerCase() === "indireta")
-    : [];
-
-  return (
-    <div style={{ marginTop: 10 }}>
-      {indiretos.length === 0 && (
-        <div style={{ color: "#ffe060", fontWeight: 700 }}>
-          Nenhuma mão de obra indireta cadastrada.
-        </div>
-      )}
-      {indiretos.map((f, idx) => {
-        const id = f.id ?? f._id ?? f.nome;
-        const ativo = !!ativos[id];
-        return (
-          <div key={id} className="markupideal-listitem">
-            <label className="markupideal-switch">
-              <input
-                type="checkbox"
-                checked={ativo}
-                onChange={() => onToggle(id)}
-              />
-              <span className="markupideal-slider" />
-            </label>
-            <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
-              {f.nome}
-            </span>
-            <span className="markupideal-listitem-valor">
-              {calcularTotalFuncionarioObj
-                ? calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                : (f.custoTotal ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-              }
+        {/* Mostra o total de encargos em reais, alinhado à direita logo abaixo do botão amarelo */}
+        <div
+          style={{
+            color: "#19ff8a",
+            fontSize: 13,
+            fontWeight: 700,
+            marginTop: 10,
+            marginBottom: 8,
+            background: "none",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <div>
+            Total em <span style={{ color: "#ffe156", fontWeight: 900 }}>
+              R$ {totalEncargosReais.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-        );
-      })}
+        </div>
+        {obs}
+      </div>
     </div>
   );
 }
@@ -421,20 +466,10 @@ function FolhaPagamentoModalAba({
 // ==========================
 // MARKUP IDEAL PRINCIPAL
 // ==========================
-export default function MarkupIdeal({
-  calcularTotalFuncionarioObj
-}) {
+export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   const [mediaTipo, setMediaTipo] = useState("6");
   const [faturamentoLista, setFaturamentoLista] = useState([]);
   const [faturamentoMedia, setFaturamentoMedia] = useState(0);
-  const filtroOpcoes = [
-    { label: "Último mês", value: "1" },
-    { label: "Últimos 3 meses", value: "3" },
-    { label: "Últimos 6 meses", value: "6" },
-    { label: "Últimos 12 meses", value: "12" },
-    { label: "Todos", value: "all" }
-  ];
-  const [showFiltro, setShowFiltro] = useState(false);
 
   const [blocos, setBlocos] = useState([]);
   const [custosAtivosPorBloco, setCustosAtivosPorBloco] = useState({});
@@ -449,7 +484,26 @@ export default function MarkupIdeal({
   const [encargos, setEncargos] = useState({});
   const [outrosEncargos, setOutrosEncargos] = useState([]);
 
-  // ---- FETCH DE FATURAMENTO E CÁLCULO DE MÉDIA ----
+  // --- Estado do modal para edição "desacoplada" ---
+  const [custosAtivosEdicao, setCustosAtivosEdicao] = useState({});
+  const [mudouAlgumaCoisa, setMudouAlgumaCoisa] = useState(false);
+
+  // useEffects para buscar dados
+  useEffect(() => {
+    async function fetchFiltro() {
+      try {
+        const res = await axios.get("/api/filtro-faturamento", { withCredentials: true });
+        if (res.data?.filtro) {
+          setMediaTipo(res.data.filtro);
+        } else {
+          setMediaTipo("6");
+        }
+      } catch {
+        setMediaTipo("6");
+      }
+    }
+    fetchFiltro();
+  }, []);
   useEffect(() => {
     async function fetchFaturamentos() {
       try {
@@ -470,11 +524,10 @@ export default function MarkupIdeal({
     }
     fetchFaturamentos();
   }, [mediaTipo]);
-
   useEffect(() => {
     async function fetchBlocos() {
       try {
-        const response = await axios.get("/markup-ideal", { withCredentials: true });
+        const response = await axios.get("/api/markup-ideal", { withCredentials: true });
         setBlocos(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setBlocos([]);
@@ -514,7 +567,22 @@ export default function MarkupIdeal({
     fetchDespesasFixas();
     fetchFuncionarios();
   }, []);
-
+  useEffect(() => {
+    async function fetchEncargos() {
+      try {
+        const res = await axios.get("/api/encargos-sobre-venda", { withCredentials: true });
+        if (res.data) {
+          setEncargos(res.data);
+          if (Array.isArray(res.data.outros)) setOutrosEncargos(res.data.outros);
+          else setOutrosEncargos([]);
+        }
+      } catch (err) {
+        setEncargos({});
+        setOutrosEncargos([]);
+      }
+    }
+    fetchEncargos();
+  }, []);
   useEffect(() => {
     async function fetchEncargos() {
       try {
@@ -533,7 +601,6 @@ export default function MarkupIdeal({
       fetchEncargos();
     }
   }, [modalConfigIdx]);
-
   useEffect(() => {
     if (!Array.isArray(blocos) || !blocos.length) return;
     async function fetchAllAtivos() {
@@ -550,7 +617,6 @@ export default function MarkupIdeal({
     }
     fetchAllAtivos();
   }, [blocos]);
-
   useEffect(() => {
     async function fetchBlocoAtivos() {
       if (modalConfigIdx === null || !blocos[modalConfigIdx]) return;
@@ -570,12 +636,19 @@ export default function MarkupIdeal({
     }
     fetchBlocoAtivos();
   }, [modalConfigIdx, blocos]);
+  useEffect(() => {
+    if (modalConfigIdx !== null) {
+      setCustosAtivosEdicao({ ...(custosAtivosPorBloco[modalConfigIdx] || {}) });
+      setMudouAlgumaCoisa(false);
+    }
+  }, [modalConfigIdx, custosAtivosPorBloco]);
 
+  // handlers
   const handleAddBloco = async () => {
     if (inputNovo.trim() === "") return;
     try {
       const response = await axios.post(
-        "/markup-ideal",
+        "/api/markup-ideal",
         { nome: inputNovo.trim(), lucro: "0,00" },
         { withCredentials: true }
       );
@@ -585,13 +658,12 @@ export default function MarkupIdeal({
       alert("Erro ao adicionar bloco: " + err.message);
     }
   };
-
   function montarCamposBloco(idx, lucro, lucroEdit) {
     const ativos = custosAtivosPorBloco[idx] || {};
-    const impostosTotais = somaImpostos(encargos || {}, ativos);
-    const taxasTotais = somaTaxas(encargos || {}, ativos);
-    const comissoesTotais = somaComissoes(encargos || {}, ativos);
-    const outrosTotais = somaOutros(encargos || {}, outrosEncargos || [], ativos);
+    const impostosTotais = somaImpostos(encargos.data || {}, ativos);
+    const taxasTotais = somaTaxas(encargos.data || {}, ativos);
+    const comissoesTotais = somaComissoes(encargos.data || {}, ativos);
+    const outrosTotais = somaOutros(encargos.data || {}, outrosEncargos || [], ativos);
     const gastoSobreFaturamento = getPercentualGastosFaturamento(
       idx,
       funcionarios,
@@ -599,12 +671,16 @@ export default function MarkupIdeal({
       custosAtivosPorBloco,
       faturamentoMedia
     );
+    const mediaFormatada = faturamentoMedia
+      ? "R$ " + faturamentoMedia.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : "";
     return [
       {
         label: "Gasto sobre faturamento",
         percentual: formatNumberBRNoZeros((gastoSobreFaturamento ?? "").toString()),
         valor: "",
-        centralizado: true
+        centralizado: true,
+        mediaFaturamento: mediaFormatada
       },
       { label: "Impostos", percentual: formatNumberBRNoZeros(impostosTotais?.percent) },
       { label: "Taxas de meios de pagamento", percentual: formatNumberBRNoZeros(taxasTotais?.percent) },
@@ -634,7 +710,6 @@ export default function MarkupIdeal({
       }
     ];
   }
-
   const handleLucroBlocoChange = (idx, valorFormatado) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
@@ -642,7 +717,6 @@ export default function MarkupIdeal({
       )
     );
   };
-
   const handleLucroBlocoFocus = (idx) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
@@ -650,7 +724,6 @@ export default function MarkupIdeal({
       )
     );
   };
-
   const handleLucroBlocoBlur = (idx) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
@@ -658,11 +731,9 @@ export default function MarkupIdeal({
       )
     );
   };
-
   const handleChangeNome = (idx, novoNome) => {
     setBlocos(blocos => blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
   };
-
   function pedirConfirmacaoDelete(idx) {
     setIdxParaDeletar(idx);
     setShowConfirmModal(true);
@@ -675,7 +746,7 @@ export default function MarkupIdeal({
     const bloco = blocos[idx];
     try {
       await axios.delete(
-        `/markup-ideal/${bloco.id}`,
+        `/api/markup-ideal/${bloco.id}`,
         { withCredentials: true }
       );
       setBlocos(blocos => blocos.filter((_, i) => i !== idx));
@@ -688,30 +759,33 @@ export default function MarkupIdeal({
       alert("Erro ao deletar bloco: " + err.message);
     }
   };
-
-  async function handleToggleCusto(custoId) {
-    if (modalConfigIdx === null) return;
-    setCustosAtivosPorBloco(prev => {
-      const atual = prev[modalConfigIdx] || {};
-      const novosAtivos = {
-        ...atual,
-        [custoId]: !atual[custoId]
-      };
-      const blocoId = blocos[modalConfigIdx]?.id;
-      if (blocoId) {
-        axios.post(`/api/bloco-ativos/${blocoId}`,
-          { ativos: novosAtivos },
-          { withCredentials: true }
-        ).catch(() => {});
-      }
-      return {
-        ...prev,
-        [modalConfigIdx]: novosAtivos
-      };
+  function handleToggleCustoEdicao(custoId) {
+    setCustosAtivosEdicao(prev => {
+      const atual = prev || {};
+      const novos = { ...atual, [custoId]: !atual[custoId] };
+      setMudouAlgumaCoisa(true);
+      return novos;
     });
   }
-
-  const custosAtivos = modalConfigIdx !== null ? (custosAtivosPorBloco[modalConfigIdx] || {}) : {};
+  async function salvarEdicaoModal() {
+    if (modalConfigIdx === null) return;
+    const blocoId = blocos[modalConfigIdx]?.id;
+    if (!blocoId) return;
+    try {
+      await axios.post(`/api/bloco-ativos/${blocoId}`,
+        { ativos: custosAtivosEdicao },
+        { withCredentials: true }
+      );
+      setCustosAtivosPorBloco(prev => ({
+        ...prev,
+        [modalConfigIdx]: custosAtivosEdicao
+      }));
+      setMudouAlgumaCoisa(false);
+    } catch {
+      alert("Erro ao salvar alterações! Tente novamente.");
+    }
+  }
+  const custosAtivos = modalConfigIdx !== null ? (custosAtivosEdicao || {}) : {};
 
   return (
     <>
@@ -757,84 +831,36 @@ export default function MarkupIdeal({
           </button>
         </div>
 
-        {/* Filtro de média de faturamento */}
-        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ color: "#fff", fontWeight: 600, fontSize: 17 }}>
-            Média de faturamento usada:
-          </div>
-          <div style={{ color: "#ffe156", fontWeight: 800, fontSize: 28 }}>
-            R$ {faturamentoMedia ? faturamentoMedia.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}
-          </div>
-          <button
-            style={{
-              background: "#392f5f",
-              color: "#ffe156",
-              border: "none",
-              borderRadius: 7,
-              padding: "6px 16px",
-              marginLeft: 8,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: 16
-            }}
-            onClick={() => setShowFiltro(!showFiltro)}
-          >
-            Filtro
-          </button>
-          {showFiltro && (
-            <div style={{
-              position: "absolute",
-              left: 0,
-              top: 60,
-              background: "#2c2546",
-              color: "#fff",
-              borderRadius: 10,
-              boxShadow: "0 6px 28px #19131f80",
-              padding: "14px 18px 10px",
-              minWidth: 180,
-              zIndex: 10,
-              border: "1px solid #7E4FFF",
-              animation: "fadein .18s"
-            }}>
-              <div style={{ fontWeight: 700, color: "#ffe156", marginBottom: 10, fontSize: 14, letterSpacing: ".2px" }}>
-                Considerar quantos meses?
-              </div>
-              {filtroOpcoes.map(opt => (
-                <div
-                  key={opt.value}
-                  onClick={() => { setMediaTipo(opt.value); setShowFiltro(false); }}
-                  style={{
-                    padding: "7px 0 7px 3px",
-                    borderRadius: 6,
-                    color: opt.value === mediaTipo ? "#ffe156" : "#fff",
-                    background: opt.value === mediaTipo ? "#392f5f" : "transparent",
-                    fontWeight: opt.value === mediaTipo ? 700 : 500,
-                    cursor: "pointer",
-                    transition: "background .2s, color .2s"
-                  }}
-                  tabIndex={0}
-                >
-                  {opt.label}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <BlocoSubReceita />
 
-        {Array.isArray(blocos) && blocos.map((bloco, idx) => (
-          <BlocoCard
-            key={bloco.id || idx}
-            nome={bloco.nome}
-            campos={montarCamposBloco(idx, bloco.lucro, bloco.lucroEdit)}
-            onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
-            onDelete={() => pedirConfirmacaoDelete(idx)}
-            onConfig={() => setModalConfigIdx(idx)}
-          />
-        ))}
+        {Array.isArray(blocos) && blocos.map((bloco, idx) => {
+          // Só calcula dentro do map, só depois que tudo existe!
+          let totalEncargosReais = 0;
+          if (encargos && encargos.data) {
+            totalEncargosReais = somarEncargosReais(
+              custosAtivosPorBloco[idx] || {},
+              encargos.data,
+              outrosEncargos || []
+            );
+          }
+          return (
+            <BlocoCard
+              key={bloco.id || idx}
+              nome={bloco.nome}
+              campos={montarCamposBloco(idx, bloco.lucro, bloco.lucroEdit)}
+              onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
+              onDelete={() => pedirConfirmacaoDelete(idx)}
+              onConfig={() => setModalConfigIdx(idx)}
+              mediaFaturamento={
+                faturamentoMedia
+                  ? "R$ " + faturamentoMedia.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : ""
+              }
+              totalEncargosReais={totalEncargosReais}
+            />
+          );
+        })}
       </div>
-      {/* MODAL DE CONFIG */}
       {modalConfigIdx !== null && (
         <div
           className="markup-ideal-modal-bg"
@@ -861,7 +887,7 @@ export default function MarkupIdeal({
                 <DespesasFixasModal
                   subcategorias={despesasFixasSubcats}
                   custosAtivos={custosAtivos}
-                  onToggleCusto={handleToggleCusto}
+                  onToggleCusto={handleToggleCustoEdicao}
                   ToggleComponent={ToggleSwitchRoxo}
                 />
               )}
@@ -869,7 +895,7 @@ export default function MarkupIdeal({
                 <FolhaPagamentoModalAba
                   funcionarios={funcionarios}
                   ativos={custosAtivos}
-                  onToggle={handleToggleCusto}
+                  onToggle={handleToggleCustoEdicao}
                   calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
                 />
               )}
@@ -878,11 +904,32 @@ export default function MarkupIdeal({
                   encargosData={encargos.data || {}}
                   outrosEncargos={outrosEncargos}
                   ativos={custosAtivos}
-                  onToggle={handleToggleCusto}
+                  onToggle={handleToggleCustoEdicao}
                   ToggleComponent={ToggleSwitchRoxo}
                 />
               )}
-
+            </div>
+            {/* BOTÃO DE SALVAR */}
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "18px 24px 0 0" }}>
+              <button
+                className="markupideal-btn-salvar"
+                style={{
+                  background: mudouAlgumaCoisa ? "#ffe156" : "#333",
+                  color: mudouAlgumaCoisa ? "#231d3c" : "#bbb",
+                  border: "none",
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  fontSize: 18,
+                  padding: "13px 38px",
+                  boxShadow: mudouAlgumaCoisa ? "0 0 0 2px #fff2" : "none",
+                  cursor: mudouAlgumaCoisa ? "pointer" : "not-allowed",
+                  transition: "all .15s"
+                }}
+                disabled={!mudouAlgumaCoisa}
+                onClick={salvarEdicaoModal}
+              >
+                Salvar Alterações
+              </button>
             </div>
           </div>
         </div>
@@ -897,5 +944,52 @@ export default function MarkupIdeal({
         itemLabel="bloco"
       />
     </>
+  );
+}
+
+// ============ COMPONENTE FOLHA DE PAGAMENTO (aba folha) ============
+function FolhaPagamentoModalAba({
+  funcionarios = [],
+  ativos = {},
+  onToggle,
+  calcularTotalFuncionarioObj
+}) {
+  const indiretos = Array.isArray(funcionarios)
+    ? funcionarios.filter(f => (f.tipoMaoDeObra || '').toLowerCase() === "indireta")
+    : [];
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      {indiretos.length === 0 && (
+        <div style={{ color: "#ffe060", fontWeight: 700 }}>
+          Nenhuma mão de obra indireta cadastrada.
+        </div>
+      )}
+      {indiretos.map((f, idx) => {
+        const id = f.id ?? f._id ?? f.nome;
+        const ativo = !!ativos[id];
+        return (
+          <div key={id} className="markupideal-listitem">
+            <label className="markupideal-switch">
+              <input
+                type="checkbox"
+                checked={ativo}
+                onChange={() => onToggle(id)}
+              />
+              <span className="markupideal-slider" />
+            </label>
+            <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
+              {f.nome}
+            </span>
+            <span className="markupideal-listitem-valor">
+              {calcularTotalFuncionarioObj
+                ? calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : (f.custoTotal ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+              }
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

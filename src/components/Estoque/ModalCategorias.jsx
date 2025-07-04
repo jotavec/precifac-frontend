@@ -5,10 +5,10 @@ import {
   deletarCategoria,
   editarCategoria,
 } from "../../services/categoriasApi";
-
 import { FaTrash, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 
-export default function ModalCategorias({ open, onClose }) {
+// Agora recebe refresh como prop!
+export default function ModalCategorias({ open, onClose, refresh }) {
   const [categorias, setCategorias] = useState([]);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function ModalCategorias({ open, onClose }) {
   const [editIdx, setEditIdx] = useState(null);
   const [editNome, setEditNome] = useState("");
 
-  // Carrega categorias ao abrir o modal
+  // Agora ouve também refresh:
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -25,7 +25,7 @@ export default function ModalCategorias({ open, onClose }) {
       setCategorias(cats);
       setLoading(false);
     });
-  }, [open]);
+  }, [open, refresh]);
 
   async function handleAdicionarCategoria() {
     const nome = novaCategoria.trim();
@@ -171,7 +171,7 @@ export default function ModalCategorias({ open, onClose }) {
                       alignItems: "center",
                       gap: 5,
                       marginLeft: "auto",
-                      marginRight: 6 // cola os botões na direita
+                      marginRight: 6
                     }}>
                       <button
                         onClick={() => saveEdit(cat)}
@@ -221,7 +221,7 @@ export default function ModalCategorias({ open, onClose }) {
                       alignItems: "center",
                       gap: 5,
                       marginLeft: "auto",
-                      marginRight: 6 // cola os botões na direita
+                      marginRight: 6
                     }}>
                       <button
                         onClick={() => startEdit(idx, cat.nome)}

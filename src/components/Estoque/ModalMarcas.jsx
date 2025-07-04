@@ -7,7 +7,8 @@ import {
 } from "../../services/marcasApi";
 import { FaTrash, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 
-export default function ModalMarcas({ open, onClose }) {
+// Agora recebe refresh como prop!
+export default function ModalMarcas({ open, onClose, refresh }) {
   const [marcas, setMarcas] = useState([]);
   const [novaMarca, setNovaMarca] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,7 @@ export default function ModalMarcas({ open, onClose }) {
   const [editIdx, setEditIdx] = useState(null);
   const [editNome, setEditNome] = useState("");
 
+  // Agora ouve também refresh:
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -23,7 +25,7 @@ export default function ModalMarcas({ open, onClose }) {
       setMarcas(marcas);
       setLoading(false);
     });
-  }, [open]);
+  }, [open, refresh]);
 
   async function handleAdicionarMarca() {
     const nome = novaMarca.trim();
@@ -166,9 +168,9 @@ export default function ModalMarcas({ open, onClose }) {
                     <div style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 5,
                       marginLeft: "auto",
-                      marginRight: "10px"
+                      marginRight: 6 // igual categorias
                     }}>
                       <button
                         onClick={() => saveEdit(marca)}
@@ -179,7 +181,12 @@ export default function ModalMarcas({ open, onClose }) {
                           fontSize: 17,
                           borderRadius: 6,
                           cursor: "pointer",
-                          padding: "7px 10px"
+                          height: 28,
+                          width: 28,
+                          padding: "0 6px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                         title="Salvar"
                         disabled={loading}
@@ -193,7 +200,12 @@ export default function ModalMarcas({ open, onClose }) {
                           fontSize: 17,
                           borderRadius: 6,
                           cursor: "pointer",
-                          padding: "7px 10px"
+                          height: 28,
+                          width: 28,
+                          padding: "0 6px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                         title="Cancelar"
                         disabled={loading}
@@ -206,8 +218,9 @@ export default function ModalMarcas({ open, onClose }) {
                     <div style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
-                      marginLeft: "auto"
+                      gap: 5,
+                      marginLeft: "auto",
+                      marginRight: 6 // igual categorias!
                     }}>
                       <button
                         onClick={() => startEdit(idx, marca.nome)}
@@ -217,12 +230,12 @@ export default function ModalMarcas({ open, onClose }) {
                           color: "#22d3ee",
                           fontSize: 18,
                           cursor: "pointer",
-                          width: 28,
                           height: 28,
+                          width: 28,
+                          padding: "0 6px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          padding: 0
                         }}
                         title="Editar"
                         disabled={loading}
@@ -237,12 +250,12 @@ export default function ModalMarcas({ open, onClose }) {
                           color: "#fc8181",
                           fontSize: 20,
                           cursor: "pointer",
-                          width: 28,
                           height: 28,
+                          width: 28,
+                          padding: "0 6px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          padding: 0
                         }}
                         title={`Remover "${marca.nome}"`}
                         disabled={loading}
