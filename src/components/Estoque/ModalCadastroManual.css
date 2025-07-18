@@ -211,7 +211,6 @@ select.input-form-brabo.select-simples option {
   gap: 14px;
   margin-top: 2px;
 }
-/* ========== AJUSTE EXTRA PARA BLOCOS NOME/CATEGORIA/MARCA ========== */
 .cadastro-row.bloco-nome .input-form-brabo,
 .cadastro-row.bloco-categoria .select-btn-grid,
 .cadastro-row.bloco-marca .select-btn-grid {
@@ -230,8 +229,6 @@ select.input-form-brabo.select-simples option {
   height: 100%;
   justify-content: center;
 }
-
-/* ---- AJUSTE NOVO AQUI ---- */
 .coluna-direita-fixa {
   position: relative;
   display: flex;
@@ -241,7 +238,6 @@ select.input-form-brabo.select-simples option {
   width: 100%;
   padding-bottom: 15px;
 }
-/* O painel de sugestão ocupa o espaço de cima */
 .sugestao-imagem-painel {
   width: 100%;
   text-align: center;
@@ -250,7 +246,6 @@ select.input-form-brabo.select-simples option {
   flex-direction: column;
   justify-content: flex-start;
 }
-/* O switch vai SEMPRE ficar na base da coluna */
 .switch-ativo-col {
   position: absolute;
   left: 0;
@@ -263,7 +258,6 @@ select.input-form-brabo.select-simples option {
   width: 100%;
   margin: 0;
 }
-
 .form-image.grid-marcar {
   width: 180px;
   min-width: 180px;
@@ -320,7 +314,6 @@ select.input-form-brabo.select-simples option {
   overflow: hidden;
   position: relative;
 }
-/* Cropper Buttons */
 .cropper-btns-stack {
   display: flex;
   gap: 10px;
@@ -356,7 +349,6 @@ select.input-form-brabo.select-simples option {
   background: #251a3a;
   color: #ffe066;
 }
-/* Sugestão de Imagem */
 .sugestao-titulo-independente {
   font-size: 18px;
   font-weight: 700;
@@ -368,6 +360,19 @@ select.input-form-brabo.select-simples option {
   white-space: nowrap;
   line-height: 1.1;
 }
+/* --------- Loader bolinha na sugestão --------- */
+.loader-bolinha {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #a78bfa;
+  border-top: 3px solid #ffe066;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: auto;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 .sugestoes-img-row {
   display: flex;
   flex-direction: row;
@@ -375,16 +380,37 @@ select.input-form-brabo.select-simples option {
   justify-content: center;
   width: 100%;
   margin-bottom: 7px;
+  align-items: center;
+  min-height: 54px;
+}
+.sugestoes-img-row > div {
+  display: inline-block;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  margin-right: 7px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #1d1532;
+}
+.sugestoes-img-row > div:last-child {
+  margin-right: 0;
+}
+.sugestoes-img-row .loader-bolinha {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
 }
 .sugestao-thumb {
-  width: 44px;
-  height: 44px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   border-radius: 10px;
   border: 2px solid #7d52ff;
   background: #18122a;
   cursor: pointer;
-  transition: border 0.2s;
+  transition: border 0.2s, filter 0.3s;
 }
 .sugestao-thumb:hover,
 .sugestao-thumb:focus {
@@ -542,6 +568,7 @@ select.input-form-brabo.select-simples option {
   flex-direction: column;
   gap: 6px;
 }
+
 /* Responsividade */
 @media (max-width: 900px) {
   .modal-cadastro-manual {
@@ -562,7 +589,6 @@ select.input-form-brabo.select-simples option {
     gap: 9px 0;
   }
 }
-/* Acessibilidade e foco */
 input:focus,
 select:focus,
 button:focus {
@@ -577,7 +603,6 @@ button:focus {
   width: 100%;
   margin-top: 16px;
 }
-
 .btn-salvar {
   background: linear-gradient(90deg, #4600eb, #b884fd);
   color: #fff;
@@ -593,7 +618,6 @@ button:focus {
   background: linear-gradient(90deg,#ffe066 60%,#bb9aff 100%);
   color: #4e3197;
 }
-
 .btn-cancelar {
   background: #251a3a;
   color: #ffe066;
@@ -609,7 +633,6 @@ button:focus {
   background: #ffe066;
   color: #251a3a;
 }
-
 .btn-excluir {
   background: #ef4444;
   color: #fff;
@@ -636,7 +659,6 @@ button:focus {
   margin-bottom: 6px;
   padding-right: 6px;
 }
-
 .btn-salvar,
 .btn-excluir,
 .btn-cancelar {
@@ -675,7 +697,6 @@ button:focus {
   height: 100%;
   padding: 6px 0 0 0;
 }
-
 .cropper-btns-stack-fix {
   display: flex;
   flex-direction: row;
@@ -752,14 +773,12 @@ button:focus {
 .rotulo-btn-acao:hover {
   background: #5434c6;
 }
-
 .rotulo-nutri-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   background: transparent;
 }
-
 .rotulo-nutri-table th, .rotulo-nutri-table td {
   padding: 10px 12px;
   font-size: 1rem;
@@ -852,7 +871,6 @@ button:focus {
   background: #231844;
   color: #eee;
 }
-/* SELECT NATIVO 100% CUSTOM */
 select.input-form-brabo,
 select.input-form-brabo.select-simples {
   border: 2px solid #b894ff !important;
@@ -872,7 +890,6 @@ select.input-form-brabo.select-simples {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  /* Remove setinha padrão */
   background-image: url("data:image/svg+xml;utf8,<svg fill='none' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5' stroke='%23ffe066' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 1.1em center;
@@ -890,7 +907,6 @@ select.input-form-brabo.select-simples option {
   background: #231844;
   color: #eee;
 }
-/* Setinha custom amarela pro select */
 select.input-form-brabo.select-simples {
   background-image: url("data:image/svg+xml;utf8,<svg fill='none' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5' stroke='%23ffe066' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
@@ -898,7 +914,6 @@ select.input-form-brabo.select-simples {
   background-size: 1.5em 1.5em;
   padding-right: 2.6em;
 }
-
 /* === Botões de ação da tabela nutricional (Check, Edit, Delete, Cancel) === */
 .rotulo-table-btn-save,
 .rotulo-table-btn-edit,
@@ -949,7 +964,72 @@ select.input-form-brabo.select-simples {
   width: 1.4em !important;
   height: 1.4em !important;
 }
-
 .rotulo-table-btn-delete svg {
-  font-size: 1.13rem !important; /* diminui só a lixeira */
+  font-size: 1.13rem !important;
+}
+
+.sugestao-vazia {
+  color: #bcb3cc;
+  font-size: 1.08rem;
+  margin-top: -40px;   /* <---- altura do espaço em cima */
+  margin-bottom: 8px; /* <---- altura do espaço em baixo */
+  text-align: center;
+  line-height: 1.18;
+  width: 100%;
+}
+.historico-entradas-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+}
+
+.historico-entradas-table th, .historico-entradas-table td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 10px 12px;
+  font-size: 1.04rem;
+  color: #fff;
+  border: none;
+}
+
+.historico-entradas-table th {
+  color: #ffe066;
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.historico-entradas-table tbody tr {
+  background: #16102a;
+  border-radius: 10px;
+  transition: background 0.12s;
+}
+
+.historico-entradas-table tbody tr:hover {
+  background: #2c2153;
+}
+.bloco-historico-entradas {
+  background: #16102a !important;   /* Roxo escuro */
+  border-radius: 16px;
+  padding: 30px 32px 22px 32px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 12px #1a124930;
+}
+.historico-entradas-wrapper {
+  max-height: 230px; /* altura para aprox. 4 linhas */
+  overflow-y: auto;
+  /* Opcional: scrollbar custom roxão */
+  scrollbar-width: thin;
+  scrollbar-color: #a78bfa #241b3e;
+}
+.historico-entradas-wrapper::-webkit-scrollbar {
+  width: 8px;
+  background: #241b3e;
+  border-radius: 6px;
+}
+.historico-entradas-wrapper::-webkit-scrollbar-thumb {
+  background: #a78bfa;
+  border-radius: 6px;
 }

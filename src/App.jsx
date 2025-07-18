@@ -8,15 +8,20 @@ import MarkupIdeal from "./components/Markup/MarkupIdeal";
 import EncargosSobreVenda from "./components/Custos/EncargosSobreVenda";
 import Estoque from "./components/Estoque/Estoque";
 import Cadastro from "./components/Estoque/Cadastro";
+import EntradaEstoque from "./components/Estoque/EntradaEstoque";
+import SaidaEstoque from "./components/Estoque/SaidaEstoque";
+import Movimentacoes from "./components/Estoque/Movimentacoes";
+import Fornecedores from "./components/Estoque/Fornecedores";
 import QuadroReceitas from "./components/QuadroReceitas";
 import PlanejamentoVendas from "./components/PlanejamentoVendas";
 import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
+import TesteIcones from "./TesteIcones";
+import CadastroReceita from "./components/QuadroDeReceitas/Cadastro";
+import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas"; // <-- NOVO
 import "./App.css";
 import "./AppContainer.css";
-import TesteIcones from "./TesteIcones";
 
-// Array de campos percentuais conforme seu modal
 const CAMPOS_PERCENTUAIS = [
   { key: "fgts", label: "FGTS (%)" },
   { key: "inss", label: "INSS (%)" },
@@ -92,7 +97,6 @@ const initialCategoriasCustos = [
   { nome: "Folha de Pagamento", funcionarios: [] }
 ];
 
-// Função utilitária para pegar o estado inicial da navegação
 function getNavState() {
   if (typeof window !== "undefined") {
     const navState = localStorage.getItem("navState");
@@ -124,9 +128,6 @@ export default function App() {
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
 
-  // Removido: faturamentoMedia, setFaturamentoMedia, receberMediaExportada
-
-  // Folha de pagamento - integração CRUD
   useEffect(() => {
     if (!user) return;
     async function fetchFuncionarios() {
@@ -212,7 +213,6 @@ export default function App() {
     localStorage.setItem("navState", JSON.stringify(navState));
   }, [aba, catIdx, subCatMarkup]);
 
-  // Busca o usuário autenticado ao iniciar o app (reload)
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -309,6 +309,24 @@ export default function App() {
     if (aba === "cadastros") {
       return "Estoque:Cadastros";
     }
+    if (aba === "entrada") {
+      return "Estoque:Entrada";
+    }
+    if (aba === "fornecedores") {
+      return "Estoque:Fornecedores";
+    }
+    if (aba === "saida") {
+      return "Estoque:Saída";
+    }
+    if (aba === "movimentacoes") {
+      return "Estoque:Movimentações";
+    }
+    if (aba === "cadastro_receita") {
+      return "Quadro de Receitas:Cadastro";
+    }
+    if (aba === "central_receitas") { // <-- NOVO
+      return "Quadro de Receitas:Central de Receitas";
+    }
     return abasPrincipais[aba]?.label || "";
   }
 
@@ -325,6 +343,18 @@ export default function App() {
       setSubCatMarkup(idx >= 0 ? idx : 0);
     } else if (label === "Estoque:Cadastros") {
       setAba("cadastros");
+    } else if (label === "Estoque:Entrada") {
+      setAba("entrada");
+    } else if (label === "Estoque:Fornecedores") {
+      setAba("fornecedores");
+    } else if (label === "Estoque:Saída") {
+      setAba("saida");
+    } else if (label === "Estoque:Movimentações") {
+      setAba("movimentacoes");
+    } else if (label === "Quadro de Receitas:Cadastro") {
+      setAba("cadastro_receita");
+    } else if (label === "Quadro de Receitas:Central de Receitas") { // <-- NOVO
+      setAba("central_receitas");
     } else {
       const idx = abasPrincipais.findIndex(x => x.label === label);
       setAba(idx >= 0 ? idx : 0);
@@ -333,12 +363,9 @@ export default function App() {
     }
   }
 
-  // Flags para dependências do MarkupIdeal
   const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
   const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
-  // Removido: const faturamentoCarregado e dadosProntosMarkupIdeal
 
-  // ---- RENDER ----
   if (user) {
     const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
     return (
@@ -395,8 +422,6 @@ export default function App() {
               <FaturamentoRealizado
                 user={user}
                 setGastoSobreFaturamento={setGastoSobreFaturamento}
-                // Removido: onChangeMedia, faturamentoMedia
-                // Removido: mediaTipo e setMediaTipo, se não precisar mais
               />
             ) : subCatMarkup === 1 ? (
               <MarkupIdeal
@@ -407,11 +432,22 @@ export default function App() {
                 despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
                 funcionarios={categoriasCustos[1]?.funcionarios || []}
                 calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
-                // Removido: faturamentoMedia, mediaTipo
               />
             ) : null
           ) : aba === "cadastros" ? (
             <Cadastro />
+          ) : aba === "entrada" ? (
+            <EntradaEstoque />
+          ) : aba === "fornecedores" ? (
+            <Fornecedores />
+          ) : aba === "saida" ? (
+            <SaidaEstoque />
+          ) : aba === "movimentacoes" ? (
+            <Movimentacoes />
+          ) : aba === "cadastro_receita" ? (
+            <CadastroReceita />
+          ) : aba === "central_receitas" ? ( // <-- NOVO
+            <CentralReceitas />
           ) : AbaComponent ? (
             <AbaComponent user={user} />
           ) : null}
@@ -420,7 +456,6 @@ export default function App() {
     );
   }
 
-  // LOGIN/CADASTRO
   return (
     <div
       style={{

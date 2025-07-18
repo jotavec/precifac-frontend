@@ -10,6 +10,29 @@ import { FaCog, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa
 import "./ModalCadastroManual.css";
 import { BsInfoCircle } from "react-icons/bs";
 
+function formatarDataBR(dataStr) {
+  if (!dataStr) return "";
+  // Se for formato ISO (tipo "2025-07-07T00:00:00.000Z")
+  if (dataStr.includes("T")) {
+    const d = new Date(dataStr);
+    return d.toLocaleDateString("pt-BR");
+  }
+  // Se for tipo "2025-07-07"
+  if (dataStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [ano, mes, dia] = dataStr.split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
+  return dataStr;
+}
+
+function gerarCodigoUnico(produtos = []) {
+  let novoCodigo;
+  do {
+    novoCodigo = Date.now().toString().slice(-6) + Math.floor(Math.random() * 900 + 100);
+  } while (produtos.some(item => item.codigo === novoCodigo));
+  return novoCodigo;
+}
+
 // ===== Máscara manual BRL centavos =====
 function formatCentavosBRL(v) {
   v = (v ?? "").toString().replace(/[^\d]/g, "");
@@ -170,7 +193,8 @@ const unidadeMedidaOptions = [
 export default function ModalCadastroManual({
   open, onClose, ingrediente, onSave, onDelete, onChange,
   refreshCategorias,
-  refreshMarcas
+  refreshMarcas,
+  produtos
 }) {
   // --- Abas DENTRO do bloco ---
   const [abaBloco, setAbaBloco] = useState("estoque");
@@ -202,6 +226,7 @@ export default function ModalCadastroManual({
   const [paginaImagens, setPaginaImagens] = useState(1);
   const [loadingImagens, setLoadingImagens] = useState(false);
   const [temMaisImagens, setTemMaisImagens] = useState(true);
+  const [loadingImgsIndex, setLoadingImgsIndex] = useState([]);
 
   // ============ Lógica da máscara centavos ============
   const [custoTotalRaw, setCustoTotalRaw] = useState("");
@@ -212,7 +237,6 @@ export default function ModalCadastroManual({
     if (open && !ingrediente.custoTotal) {
       setCustoTotalRaw("");
     }
-    // eslint-disable-next-line
   }, [open]);
 
   function handleCustoTotalChange(e) {
@@ -247,7 +271,6 @@ export default function ModalCadastroManual({
       const valRaw = Math.round(Number(ingrediente.custoTotal) * 100).toString();
       if (valRaw !== custoTotalRaw) setCustoTotalRaw(valRaw);
     }
-    // eslint-disable-next-line
   }, [ingrediente.custoTotal]);
 
   // ======== CATEGORIAS E MARCAS ==========
@@ -272,6 +295,7 @@ export default function ModalCadastroManual({
       const imgs = await buscarImagensPexels(ingrediente.nome, paginaImagens);
       if (!cancelado) {
         setSugestoesImg(imgs);
+        setLoadingImgsIndex(imgs.map((_, idx) => idx));
         setTemMaisImagens(imgs.length === 4);
       }
       setLoadingImagens(false);
@@ -280,7 +304,6 @@ export default function ModalCadastroManual({
     return () => { cancelado = true };
   }, [ingrediente.nome, paginaImagens]);
 
-  // Reset página quando trocar nome
   useEffect(() => {
     setPaginaImagens(1);
     setTemMaisImagens(true);
@@ -296,7 +319,6 @@ export default function ModalCadastroManual({
     onChange({ ...ingrediente, categoria: catNome });
   }
 
-  // === Busca nome pelo código de barras se nome estiver vazio ===
   useEffect(() => {
     if (
       open &&
@@ -365,7 +387,6 @@ export default function ModalCadastroManual({
     ? unidadeMedidaOptions.find(opt => opt.value === ingrediente.unidade)
     : null;
 
-  // ** Opções para os selects do rótulo **
   const descricoesNutricionaisOptions = descricoesNutricionais.map(desc => ({
     value: desc,
     label: desc
@@ -375,8 +396,33 @@ export default function ModalCadastroManual({
     label: unid
   }));
 
-  // ===== Tooltip Info SUGESTÃO DE IMAGEM =====
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+
+  // ------------------ HISTÓRICO DE ENTRADAS ------------------
+  const [entradas, setEntradas] = useState([]);
+  const [loadingEntradas, setLoadingEntradas] = useState(false);
+
+  useEffect(() => {
+    // Só busca se a aba 'historico' estiver aberta e tiver um produto selecionado
+    if (abaBloco === "historico" && ingrediente?.id) {
+      setLoadingEntradas(true);
+      fetch(`/api/produtos/${ingrediente.id}/entradas`, { credentials: "include" })
+        .then(res => res.json())
+        .then(data => setEntradas(Array.isArray(data) ? data : []))
+        .catch(() => setEntradas([]))
+        .finally(() => setLoadingEntradas(false));
+    }
+  }, [abaBloco, ingrediente?.id]);
+
+  // PREENCHIMENTO AUTOMÁTICO DO CÓDIGO INTERNO QUANDO ABRIR MODAL DE NOVO PRODUTO
+useEffect(() => {
+  if (open && (!ingrediente.codigo || ingrediente.codigo === "")) {
+    onChange({
+      ...ingrediente,
+      codigo: gerarCodigoUnico(produtos),
+    });
+  }
+}, [open, produtos]);
 
   if (!open) return null;
 
@@ -555,7 +601,13 @@ export default function ModalCadastroManual({
                 <div className="sugestao-imagem-painel">
                   <div
                     className="sugestao-titulo-independente"
-                    style={{ display: "flex", alignItems: "center", gap: 5, position: "relative" }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      position: "relative",
+                      justifyContent: "center",
+                    }}
                   >
                     SUGESTÃO DE IMAGEM
                     <span
@@ -610,22 +662,48 @@ export default function ModalCadastroManual({
                     </span>
                   </div>
                   <div className="sugestoes-img-row">
-                    {loadingImagens && (
-                      <div style={{ marginTop: 7, color: "#ccc", fontSize: 13 }}>Carregando...</div>
-                    )}
-                    {!loadingImagens && sugestoesImg.length === 0 && (
-                      <span style={{ color: "#888", fontSize: 13 }}>Sem sugestões para o termo buscado.</span>
-                    )}
                     {sugestoesImg.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt={`Sugestão ${idx + 1}`}
-                        className="sugestao-thumb"
-                        title="Clique para usar essa imagem"
-                        style={{ border: ingrediente.imagem === img ? "2px solid #ffe066" : undefined }}
-                        onClick={() => onChange({ ...ingrediente, imagem: img })}
-                      />
+                      <div key={idx} style={{
+                        display: "inline-block",
+                        position: "relative",
+                        width: 54,
+                        height: 54,
+                        marginRight: 7,
+                        borderRadius: 9,
+                        overflow: "hidden",
+                        background: "#1d1532",
+                        border: ingrediente.imagem === img ? "2px solid #ffe066" : "2px solid #333",
+                      }}>
+                        {loadingImgsIndex.includes(idx) && (
+                          <div style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(30,18,54,0.55)",
+                            zIndex: 2,
+                          }}>
+                            <div className="loader-bolinha"></div>
+                          </div>
+                        )}
+                        <img
+                          src={img}
+                          alt={`Sugestão ${idx + 1}`}
+                          className="sugestao-thumb"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            filter: loadingImgsIndex.includes(idx) ? "blur(2px) grayscale(60%)" : "",
+                            transition: "filter 0.3s",
+                          }}
+                          onLoad={() =>
+                            setLoadingImgsIndex(prev => prev.filter(x => x !== idx))
+                          }
+                          onClick={() => onChange({ ...ingrediente, imagem: img })}
+                        />
+                      </div>
                     ))}
                   </div>
                   {/* Botão "Mostrar mais..." */}
@@ -643,6 +721,10 @@ export default function ModalCadastroManual({
                     >
                       Mostrar mais...
                     </div>
+                  )}
+                  {/* Nenhuma imagem */}
+                  {!loadingImagens && sugestoesImg.length === 0 && (
+                    <div className="sugestao-vazia">Sem sugestões para o termo buscado.</div>
                   )}
                 </div>
               </div>
@@ -669,10 +751,15 @@ export default function ModalCadastroManual({
               >
                 Rótulo Nutricional
               </button>
+              <button
+                className={abaBloco === "historico" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("historico")}
+                type="button"
+              >
+                Histórico de Entradas
+              </button>
             </div>
           </div>
-
-          {/* --- Conteúdo das ABAS --- */}
           {abaBloco === "estoque" && (
             <div className="estoque-custos-grid bloco-escuro-custom">
               <div>
@@ -767,10 +854,9 @@ export default function ModalCadastroManual({
               </div>
             </div>
           )}
-
           {abaBloco === "rotulo" && (
             <div className="bloco-rotulo-nutricional">
-              <div className="rotulo-header" style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: 18 }}>
+              <div className="rotulo-header" style={{ display: 'flex', justifyContent: 'flex-Cend', gap: 12, marginBottom: 18 }}>
                 <button
                   type="button"
                   className="rotulo-btn-cog"
@@ -988,6 +1074,60 @@ export default function ModalCadastroManual({
               </table>
             </div>
           )}
+          {abaBloco === "historico" && (
+            <div className="bloco-historico-entradas bloco-escuro-custom">
+              {loadingEntradas ? (
+                <div>Carregando...</div>
+              ) : entradas.length === 0 ? (
+                <div>Nenhuma entrada registrada ainda.</div>
+              ) : (
+                <div className="historico-entradas-wrapper">
+                  <table className="historico-entradas-table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Quantidade</th>
+                        <th>Lote</th>
+                        <th>Valor</th>
+                        <th>Usuário</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entradas.map((entrada, idx) => (
+                        <tr key={entrada.id || idx}>
+                          <td>
+  {(() => {
+    const dt = entrada.data || entrada.createdAt;
+    if (!dt) return "";
+    // Se vier no formato YYYY-MM-DD, converte manualmente para dd/MM/yyyy
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+      const [ano, mes, dia] = dt.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+    // Se vier dd/MM/yyyy já, só exibe
+    const match = dt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+    // Tenta usar Date para ISO completo
+    if (dt.includes("T")) {
+      const d = new Date(dt);
+      if (!isNaN(d)) return d.toLocaleDateString("pt-BR");
+    }
+    // fallback: mostra do jeito que veio
+    return dt;
+  })()}
+</td>
+                          <td>{entrada.quantidade}</td>
+                          <td>{entrada.lote || "-"}</td>
+                          <td>{entrada.valor ? `R$ ${Number(entrada.valor).toFixed(2)}` : "-"}</td>
+                          <td>{entrada.user?.name || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* BOTÕES NO RODAPÉ */}
@@ -1102,15 +1242,15 @@ export default function ModalCadastroManual({
 
         {/* MODAIS AUXILIARES */}
         <ModalCategorias
-  open={modalCategoriasOpen}
-  onClose={() => setModalCategoriasOpen(false)}
-  refresh={refreshCategorias}
-/>
-<ModalMarcas
-  open={modalMarcasOpen}
-  onClose={() => setModalMarcasOpen(false)}
-  refresh={refreshMarcas}
-/>
+          open={modalCategoriasOpen}
+          onClose={() => setModalCategoriasOpen(false)}
+          refresh={refreshCategorias}
+        />
+        <ModalMarcas
+          open={modalMarcasOpen}
+          onClose={() => setModalMarcasOpen(false)}
+          refresh={refreshMarcas}
+        />
 
         <ModalRotuloNutricional
           open={rotuloConfigOpen}

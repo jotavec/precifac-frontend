@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "axios": "^1.10.0",
+    "file-saver": "^2.0.5",
     "jsonwebtoken": "^9.0.2",
     "react": "^19.1.0",
     "react-currency-input-field": "^3.10.0",

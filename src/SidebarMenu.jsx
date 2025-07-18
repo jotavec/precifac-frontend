@@ -23,6 +23,7 @@ export default function SidebarMenu({
   const [custosOpen, setCustosOpen] = useState(false);
   const [markupOpen, setMarkupOpen] = useState(false);
   const [estoqueOpen, setEstoqueOpen] = useState(false);
+  const [receitasOpen, setReceitasOpen] = useState(false); // <-- NOVO
 
   const menuItems = [
     { label: "Perfil", icon: <FaUser /> },
@@ -45,15 +46,24 @@ export default function SidebarMenu({
       label: "Estoque",
       icon: <FaBoxes />,
       subItems: [
+        { label: "Fornecedores" },
         { label: "Cadastros" },
-        // Aqui você pode adicionar mais submenus futuramente!
+        { label: "Entrada" },
+        { label: "Saída" },
+        { label: "Movimentações" },
       ],
     },
-    { label: "Quadro de Receitas", icon: <GiChefToque size={22} /> },
+    {
+      label: "Quadro de Receitas",
+      icon: <GiChefToque size={22} />,
+      subItems: [
+        { label: "Cadastro" },
+        { label: "Central de Receitas" }, // <-- Adicionamos aqui
+      ],
+    },
     {
       label: "Planejamento de Vendas",
       icon: <FaChartLine />,
-      // sem subItems
     },
   ];
 
@@ -62,19 +72,28 @@ export default function SidebarMenu({
       setCustosOpen((open) => !open);
       setMarkupOpen(false);
       setEstoqueOpen(false);
+      setReceitasOpen(false);
     } else if (item.label === "Markup") {
       setMarkupOpen((open) => !open);
       setCustosOpen(false);
       setEstoqueOpen(false);
+      setReceitasOpen(false);
     } else if (item.label === "Estoque") {
       setEstoqueOpen((open) => !open);
       setCustosOpen(false);
       setMarkupOpen(false);
+      setReceitasOpen(false);
+    } else if (item.label === "Quadro de Receitas") {
+      setReceitasOpen((open) => !open);
+      setCustosOpen(false);
+      setMarkupOpen(false);
+      setEstoqueOpen(false);
     } else {
       onSelect(item.label);
       setCustosOpen(false);
       setMarkupOpen(false);
       setEstoqueOpen(false);
+      setReceitasOpen(false);
     }
   }
 
@@ -91,6 +110,7 @@ export default function SidebarMenu({
         setCustosOpen(false);
         setMarkupOpen(false);
         setEstoqueOpen(false);
+        setReceitasOpen(false);
       }}
     >
       <div className="sidebar-logo" />
@@ -110,6 +130,7 @@ export default function SidebarMenu({
               <span className="icon">{item.icon}</span>
               <span className="label">
                 <span className="label-text">{item.label}</span>
+                {/* SETAS DOS MENUS */}
                 {item.label === "Custos" && item.subItems && (
                   <span
                     className="submenu-arrow"
@@ -149,6 +170,22 @@ export default function SidebarMenu({
                       transition: "transform 0.2s",
                       display: "inline-block",
                       transform: estoqueOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      marginLeft: 22,
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                      <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    </svg>
+                  </span>
+                )}
+                {item.label === "Quadro de Receitas" && item.subItems && (
+                  <span
+                    className="submenu-arrow"
+                    style={{
+                      transition: "transform 0.2s",
+                      display: "inline-block",
+                      transform: receitasOpen ? "rotate(180deg)" : "rotate(0deg)",
                       marginLeft: 22,
                       verticalAlign: "middle",
                     }}
@@ -214,6 +251,26 @@ export default function SidebarMenu({
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSubItemClick("Estoque", sub);
+                    }}
+                    tabIndex={0}
+                  >
+                    <span className="label-text">{sub.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {item.label === "Quadro de Receitas" && item.subItems && receitasOpen && (
+              <ul className="sidebar-submenu">
+                {item.subItems.map((sub) => (
+                  <li
+                    key={sub.label}
+                    className={
+                      "sidebar-subitem"
+                      + (selected === `Quadro de Receitas:${sub.label}` ? " selected" : "")
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSubItemClick("Quadro de Receitas", sub);
                     }}
                     tabIndex={0}
                   >

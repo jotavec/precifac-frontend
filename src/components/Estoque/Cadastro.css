@@ -79,16 +79,23 @@
   border-collapse: collapse;
   min-width: 920px;
 }
+
+/* CENTRALIZAÇÃO GERAL: tudo no meio! */
 .cadastro-tabela th,
 .cadastro-tabela td {
+  vertical-align: middle !important;
+  text-align: center !important;
+  padding-top: 10px;
+  padding-bottom: 10px;
   border-right: 1px solid #31224b;
   box-sizing: border-box;
-  vertical-align: middle;
 }
+
 .cadastro-tabela th:last-child,
 .cadastro-tabela td:last-child {
   border-right: none;
 }
+
 .cadastro-tabela th {
   font-weight: 700;
   letter-spacing: 1px;
@@ -106,22 +113,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-/* Centraliza horizontalmente as colunas desejadas */
-.cadastro-tabela th:nth-child(1),
-.cadastro-tabela td:nth-child(1), /* Foto */
-.cadastro-tabela th:nth-child(7),
-.cadastro-tabela td:nth-child(7), /* Unidade */
-.cadastro-tabela th:nth-child(8),
-.cadastro-tabela td:nth-child(8), /* Estoque */
-.cadastro-tabela th:nth-child(9),
-.cadastro-tabela td:nth-child(9), /* Custo */
-.cadastro-tabela th:nth-child(10),
-.cadastro-tabela td:nth-child(10), /* Ativo */
-.cadastro-tabela th:nth-child(11),
-.cadastro-tabela td:nth-child(11)  /* Ações */
-{
-  text-align: center;
 }
 
 /* Linhas divisórias suaves na horizontal */
@@ -157,7 +148,7 @@
 /* ===== SWITCH ATIVO MODERNO E BONITO ===== */
 .switch-ativo {
   display: inline-block;
-  width: 60px;
+  width: 77px;
   height: 28px;
   border-radius: 14px;
   background: #39305d;
@@ -167,7 +158,6 @@
   vertical-align: middle;
   cursor: pointer;
 }
-
 .switch-ativo input {
   opacity: 0;
   width: 100%;
@@ -178,33 +168,27 @@
   cursor: pointer;
   z-index: 2;
 }
-
 .switch-slider {
   position: absolute;
-  left: 9px;
+  left: 40px;
   top: 3px;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: 100%;
   background: #fff;
   box-shadow: 0 2px 8px #22d3ee33;
   transition: left 0.22s, background 0.22s, box-shadow 0.16s;
   z-index: 1;
 }
-
-/* Switch ATIVADO */
 .switch-ativo input:checked + .switch-slider {
-  left: 35px !important;
+  left: 40px !important;
   background: #fff;
   box-shadow: 0 2px 16px #38bdf855;
 }
-
 .switch-ativo:has(input:checked) {
   background: linear-gradient(90deg, #17e6fd 0%, #1fffa1 100%);
   box-shadow: 0 0 12px #38bdf877;
 }
-
-/* Compatibilidade para quem não tem :has */
 @supports not (selector(:has(input:checked))) {
   .switch-ativo input:checked + .switch-slider,
   .switch-ativo input:checked ~ .switch-slider {
@@ -212,6 +196,39 @@
     background: #fff;
     box-shadow: 0 2px 16px #38bdf855;
   }
+}
+
+/* Foto sempre centralizada e ajustada */
+.cadastro-tabela td:nth-child(1) {
+  height: 52px;
+  vertical-align: middle;
+  padding: 0;
+}
+.cadastro-tabela td:nth-child(1) > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  margin: 0 auto;
+}
+.cadastro-tabela td:nth-child(1) svg {
+  display: block;
+  margin: 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.cadastro-tabela .td-ativo,
+.cadastro-tabela .td-acoes {
+  text-align: center !important;
+  vertical-align: middle !important;
+  height: 52px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.cadastro-tabela .td-acoes {
+  min-width: 90px;
 }
 
 /* =========== MODAL GERAL (FUNDO) =========== */
@@ -254,7 +271,6 @@
   transition: box-shadow 0.18s;
 }
 
-/* ===== BOTÃO X DO MODAL AJUSTADO ===== */
 .modal-fechar-btn {
   position: absolute;
   top: 18px;
@@ -503,7 +519,6 @@
   vertical-align: middle;
   padding: 0;
 }
-
 .cadastro-tabela td:nth-child(1) > div {
   display: flex;
   align-items: center;
@@ -512,7 +527,6 @@
   width: 36px;
   margin: 0 auto;
 }
-
 .cadastro-tabela td:nth-child(1) svg {
   display: block;
   margin: 0 auto;

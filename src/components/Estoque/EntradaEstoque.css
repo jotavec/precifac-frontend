@@ -1,0 +1,333 @@
+.estoque-limpo-main {
+  min-height: 100vh;
+  background: #18122b;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.estoque-limpo-titulo {
+  color: #ffe066;
+  font-size: 2.1rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+  margin-left: 34px;
+  margin-top: 32px;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 13px #2714466a;
+  text-align: left;
+}
+
+.estoque-limpo-section {
+  background: #25184b;
+  border-radius: 22px;
+  box-shadow: 0 6px 40px #2d0e3f33, 0 1.5px 0.5px #230e40;
+  padding: 36px 28px 23px 28px;
+  margin-left: 32px;
+  margin-bottom: 44px;
+  max-width: 750px;
+  width: 100%;
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid #30234e;
+  transition: box-shadow 0.2s;
+}
+
+.estoque-limpo-section + .estoque-limpo-section {
+  margin-top: 12px;
+}
+
+.estoque-limpo-section h3 {
+  color: #ffe066;
+  font-size: 1.23rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+/* Fornecedor: inputs em coluna */
+.fornecedor-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.fornecedor-btn-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fornecedor-btn {
+  margin-top: 0;
+  padding: 11px 16px;
+  width: auto;
+  min-width: 150px;
+  max-width: 220px;
+  font-size: 1.03rem;
+  box-sizing: border-box;
+  min-height: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center !important;
+}
+
+/* Produto: grids diferentes por linha */
+.produto-grid {
+  width: 100%;
+  gap: 24px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+.produto-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.produto-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.produto-grid-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.produto-grid > div {
+  min-width: 120px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 70px;
+}
+
+.estoque-limpo-section label {
+  color: #d2caff;
+  font-size: 1.01rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: left;
+  height: 22px;
+  display: block;
+}
+
+/* ===== INPUTS, SELECT NATIVO E REACT-SELECT ===== */
+.estoque-limpo-section input,
+.estoque-limpo-section select,
+.input-form-brabo__control {
+  background: #1b1332;
+  color: #fff;
+  border: 2px solid #b884fd;
+  border-radius: 10px;
+  font-size: 1.03rem;
+  padding: 11px 16px;
+  outline: none;
+  margin-bottom: 2px;
+  transition: border 0.19s;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+}
+
+.input-form-brabo__control {
+  min-height: 48px !important;
+  height: 48px !important;
+  border-radius: 10px !important;
+  border-width: 2px !important;
+  border-color: #b884fd !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  background: #1b1332 !important;
+}
+
+.input-form-brabo__control--is-focused,
+[class*="__control--is-focused"] {
+  border-color: #ffe066 !important;
+}
+
+.input-form-brabo__value-container {
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 16px !important;
+  display: flex;
+  align-items: center;
+}
+
+.input-form-brabo__single-value, 
+.input-form-brabo__input {
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+}
+
+.input-form-brabo__indicators,
+.input-form-brabo__indicator {
+  height: 48px !important;
+  display: flex;
+  align-items: center;
+}
+
+.input-form-brabo__dropdown-indicator {
+  color: #cfc6ff !important;
+  padding: 0 8px !important;
+}
+
+.input-form-brabo__indicator-separator {
+  background-color: #b884fd !important;
+  width: 2px !important;
+}
+
+.input-form-brabo__clear-indicator {
+  color: #cfc6ff !important;
+  padding: 0 8px !important;
+}
+
+.input-form-brabo__menu {
+  background-color: #231844 !important;
+  color: #eee !important;
+  border-radius: 10px !important;
+  margin-top: 2px !important;
+  z-index: 9999;
+  font-size: 1.03rem;
+}
+
+.input-form-brabo__option {
+  background-color: #231844 !important;
+  color: #eee !important;
+  cursor: pointer;
+  padding: 10px 16px !important;
+}
+
+.input-form-brabo__option--is-focused {
+  background-color: #381aa7 !important;
+  color: #eee !important;
+}
+
+.input-form-brabo__placeholder {
+  color: #cfc6ff !important;
+  opacity: 1;
+}
+
+/* ======= */
+
+/* Só inputs normais e selects recebem borda amarela, nunca os do react-select */
+.estoque-limpo-section input:focus:not([aria-autocomplete="list"]),
+.estoque-limpo-section select:focus {
+  border: 2px solid #ffe066 !important;
+}
+
+/* Mantém o foco amarelo para o container do react-select */
+.input-form-brabo__control--is-focused,
+[class*="__control--is-focused"] {
+  border-color: #ffe066 !important;
+}
+
+/* Remove borda do input interno do react-select ao focar */
+.input-form-brabo__control input:focus,
+[class*="__control"] input:focus {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.estoque-limpo-btn {
+  background: linear-gradient(90deg, #7c3aed 60%, #c394fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  padding: 12px 0;
+  font-weight: 700;
+  font-size: 1.13rem;
+  margin-top: 22px;
+  width: 220px;
+  cursor: pointer;
+  transition: filter 0.17s, background 0.19s;
+  box-shadow: 0 2px 14px #32006b12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.estoque-limpo-btn:disabled {
+  opacity: 0.66;
+  filter: grayscale(0.4);
+  cursor: not-allowed;
+}
+
+.estoque-limpo-msg {
+  margin-top: 16px;
+  color: #ffe066;
+  font-size: 1.01rem;
+  font-weight: 600;
+  text-shadow: 0 1.5px 0.5px #271446a0;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .estoque-limpo-section {
+    padding: 18px 5vw 17px 5vw;
+    max-width: 97vw;
+    margin-left: 0;
+    width: 100vw;
+  }
+  .estoque-limpo-titulo {
+    margin-left: 10px;
+    font-size: 1.4rem;
+    margin-top: 20px;
+  }
+  .estoque-limpo-btn,
+  .fornecedor-btn {
+    width: 100%;
+  }
+  .produto-grid-3,
+  .produto-grid-2,
+  .produto-grid-1 {
+    grid-template-columns: 1fr !important;
+  }
+  .produto-grid > div {
+    min-width: 100px !important;
+    max-width: 100% !important;
+    height: auto;
+  }
+  .fornecedor-btn {
+    height: 44px;
+  }
+  .estoque-limpo-section input,
+  .estoque-limpo-section select,
+  .input-form-brabo__control {
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+  .estoque-limpo-section label {
+    height: 18px;
+  }
+}
+
+.estoque-limpo-section:not(:last-child) {
+  margin-bottom: 56px;
+}
+
+.botoes-produto-finalizar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.botoes-produto-finalizar .estoque-limpo-btn {
+  width: 220px;
+  font-weight: 700;
+}

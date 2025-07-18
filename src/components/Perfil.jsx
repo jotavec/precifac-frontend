@@ -1,65 +1,24 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import ModalToast from "./modals/ModalToast"; // Caminho certo!
+import ModalToast from "./modals/ModalToast";
+import './Perfil.css';
 
 const API_URL = "/api";
 
-// --- MÁSCARAS ---
-function formatCNPJ(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 14) value = value.slice(0, 14);
-  value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-  value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-  value = value.replace(/(\d{4})(\d)/, '$1-$2');
-  return value;
-}
-function formatCPF(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  return value;
-}
-function formatPhone(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-  if (value.length > 10) {
-    value = value.replace(/(\d{5})(\d)/, '$1-$2');
-  } else {
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-  }
-  return value;
-}
-function formatCEP(value) {
-  value = value.replace(/\D/g, '');
-  if (value.length > 8) value = value.slice(0, 8);
-  value = value.replace(/(\d{5})(\d)/, '$1-$2');
-  return value;
-}
+// Máscaras
+function formatCNPJ(value) { value = value.replace(/\D/g, ''); if (value.length > 14) value = value.slice(0, 14); value = value.replace(/^(\d{2})(\d)/, '$1.$2'); value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3'); value = value.replace(/\.(\d{3})(\d)/, '.$1/$2'); value = value.replace(/(\d{4})(\d)/, '$1-$2'); return value; }
+function formatCPF(value) { value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/(\d{3})(\d)/, '$1.$2'); value = value.replace(/(\d{3})(\d)/, '$1.$2'); value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2'); return value; }
+function formatPhone(value) { value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/^(\d{2})(\d)/g, '($1) $2'); if (value.length > 10) { value = value.replace(/(\d{5})(\d)/, '$1-$2'); } else { value = value.replace(/(\d{4})(\d)/, '$1-$2'); } return value; }
+function formatCEP(value) { value = value.replace(/\D/g, ''); if (value.length > 8) value = value.slice(0, 8); value = value.replace(/(\d{5})(\d)/, '$1-$2'); return value; }
 
-// --- ESTILOS ---
-// (mantém igual do seu arquivo, para não bagunçar visual)
-const perfilCard = { maxWidth: 420, width: "100%", marginTop: 32, marginLeft: 0, background: "#19172c", border: "1.5px solid #28244a", borderRadius: 12, boxShadow: "0 6px 30px #00000022", color: "#fff", padding: 0, overflow: "hidden" };
-const innerBlock = { background: "#18162a", borderRadius: 10, padding: 28, margin: 28, boxSizing: "border-box" };
-const sectionTitle = { fontWeight: 700, fontSize: 16, color: "#fff", marginTop: 20, marginBottom: 10, letterSpacing: 0.10, borderBottom: "1px solid #28244a", paddingBottom: 4 };
-const labelStyle = { fontWeight: 700, color: "#ffe060", fontSize: 13.5, marginBottom: 2, marginTop: 12, display: "block" };
-const inputStyle = { width: "100%", background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: 7, fontSize: 14, padding: "7px 12px", fontWeight: 500, outline: "none", margin: 0, marginBottom: 6, transition: "border-color 0.2s" };
-const disabledInput = { ...inputStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
-const btnMain = { background: "#8c52ff", color: "#fff", border: "none", borderRadius: 7, padding: "10px 0", width: 110, fontWeight: 700, fontSize: 15, cursor: "pointer", marginRight: 8, marginTop: 18, boxShadow: "0 2px 8px #00000014", transition: "background 0.18s, filter 0.18s" };
-const btnSec = { background: "#23213a", color: "#ffe060", border: "none", borderRadius: 7, padding: "10px 0", width: 110, fontWeight: 600, fontSize: 15, marginTop: 18, cursor: "pointer", transition: "background 0.18s, color 0.18s, filter 0.18s" };
-const blocoCep = { display: "flex", alignItems: "center", gap: 10, marginBottom: 0 };
-const inputCepStyle = { background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: "7px", fontSize: 14, padding: "0 12px", fontWeight: 500, outline: "none", height: 40, width: "100%", margin: 0, boxSizing: "border-box", display: "block", transition: "border-color 0.2s" };
-const inputCepDisabled = { ...inputCepStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
-const btnCep = { background: "#28244a", color: "#fff", border: "none", borderRadius: "7px", fontWeight: 800, fontSize: 14, height: 40, minWidth: 100, padding: "0 18px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.18s, filter 0.18s", cursor: "pointer" };
-const btnCepDisabled = { ...btnCep, background: "#23213a", color: "#bbb", cursor: "not-allowed" };
-const blocoNumero = { display: "flex", alignItems: "center", gap: 10, marginBottom: 0 };
-const inputNumeroStyle = { background: "#23213a", color: "#fff", border: "1px solid #2d2643", borderRadius: "7px", fontSize: 14, padding: "0 12px", fontWeight: 500, outline: "none", height: 40, width: "100%", margin: 0, boxSizing: "border-box", display: "block" };
-const inputNumeroDisabled = { ...inputNumeroStyle, background: "#181824", color: "#aaa", cursor: "not-allowed" };
-const btnSemNumero = { background: "#28244a", color: "#ffe060", border: "none", borderRadius: "7px", fontWeight: 600, fontSize: 14, height: 40, minWidth: 110, padding: "0 18px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.18s, color 0.18s, filter 0.18s", gap: 7, userSelect: "none" };
-const btnSemNumeroDisabled = { ...btnSemNumero, background: "#23213a", color: "#aaa", cursor: "not-allowed" };
+const Avatar = () => (
+  <div className="perfil-avatar-branco">
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="60" fill="#ececec" />
+      <text x="50%" y="58%" textAnchor="middle" fontSize="52" fill="#bbb" dy=".3em" fontWeight="bold">👤</text>
+    </svg>
+  </div>
+);
 
 export default function Perfil() {
   const [editando, setEditando] = useState(false);
@@ -80,34 +39,30 @@ export default function Perfil() {
     estado: "",
     cpf: ""
   });
+  const [backup, setBackup] = useState(form);
 
   // Toast State
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
 
-  // Busca do usuário ao montar
   useEffect(() => {
     async function fetchUser() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`${API_URL}/users/me`, {
-          withCredentials: true
-        });
-        setForm(f => ({
-          ...f,
+        const { data } = await axios.get(`${API_URL}/users/me`, { withCredentials: true });
+        let novoForm = {
+          ...form,
           nome: data.name || "",
           email: data.email || "",
           telefone: data.telefone || "",
           cpf: data.cpf || ""
-        }));
+        };
 
-        const resConfig = await axios.get(`${API_URL}/company-config`, {
-          withCredentials: true
-        });
+        const resConfig = await axios.get(`${API_URL}/company-config`, { withCredentials: true });
         if (resConfig.data) {
-          setForm(f => ({
-            ...f,
+          novoForm = {
+            ...novoForm,
             empresaNome: resConfig.data.companyName || "",
             cnpj: resConfig.data.cnpj || "",
             telefoneEmpresa: resConfig.data.phone || "",
@@ -117,8 +72,10 @@ export default function Perfil() {
             bairro: resConfig.data.bairro || "",
             cidade: resConfig.data.cidade || "",
             estado: resConfig.data.estado || ""
-          }));
+          };
         }
+        setForm(novoForm);
+        setBackup(novoForm);
       } catch (err) {
         setToastMsg("Erro ao buscar usuário");
         setToastType("error");
@@ -127,6 +84,7 @@ export default function Perfil() {
       setLoading(false);
     }
     fetchUser();
+    // eslint-disable-next-line
   }, []);
 
   async function buscarCep() {
@@ -197,30 +155,7 @@ export default function Perfil() {
         cpf: form.cpf
       }, { withCredentials: true });
 
-      const { data } = await axios.get(`${API_URL}/users/me`, { withCredentials: true });
-      setForm(f => ({
-        ...f,
-        nome: data.name || "",
-        email: data.email || "",
-        telefone: data.telefone || "",
-        cpf: data.cpf || ""
-      }));
-
-      const resConfig = await axios.get(`${API_URL}/company-config`, { withCredentials: true });
-      if (resConfig.data) {
-        setForm(f => ({
-          ...f,
-          empresaNome: resConfig.data.companyName || "",
-          cnpj: resConfig.data.cnpj || "",
-          telefoneEmpresa: resConfig.data.phone || "",
-          cep: resConfig.data.cep || "",
-          rua: resConfig.data.rua || "",
-          numero: resConfig.data.numero || "",
-          bairro: resConfig.data.bairro || "",
-          cidade: resConfig.data.cidade || "",
-          estado: resConfig.data.estado || ""
-        }));
-      }
+      setBackup(form);
 
       setToastMsg("Configurações salvas!");
       setToastType("success");
@@ -235,237 +170,231 @@ export default function Perfil() {
 
   function handleCancelar() {
     setEditando(false);
+    setForm(backup); // Volta ao estado antes da edição
   }
 
-  const [mainHover, setMainHover] = useState(false);
-  const [secHover, setSecHover] = useState(false);
-  const [cepHover, setCepHover] = useState(false);
-  const [semNumeroHover, setSemNumeroHover] = useState(false);
-
-  if (loading) return <div style={{ color: "#fff", margin: 24 }}>Carregando...</div>;
+  if (loading) return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
 
   return (
-    <div style={perfilCard}>
+    <div className="perfil-branco-main">
       <ModalToast
         show={showToast}
         message={toastMsg}
         type={toastType}
         onClose={() => setShowToast(false)}
       />
-      <div style={innerBlock}>
-        <h2 style={{
-          color: "#ffe060",
-          fontWeight: 900,
-          fontSize: 22,
-          marginBottom: 2,
-          letterSpacing: 0.35
-        }}>
-          Perfil
-        </h2>
-        <div style={sectionTitle}>Seus Dados</div>
-        <label style={labelStyle}>Nome</label>
-        <input
-          disabled
-          name="nome"
-          placeholder="Seu nome"
-          value={form.nome}
-          style={disabledInput}
-        />
-        <label style={labelStyle}>E-mail</label>
-        <input
-          disabled
-          name="email"
-          placeholder="E-mail"
-          value={form.email}
-          style={disabledInput}
-        />
-        <label style={labelStyle}>CPF</label>
-        <input
-          disabled={!editando}
-          name="cpf"
-          placeholder="CPF"
-          value={form.cpf}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-          maxLength={14}
-        />
-        <label style={labelStyle}>Telefone</label>
-        <input
-          disabled={!editando}
-          name="telefone"
-          placeholder="Telefone"
-          value={form.telefone}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-          maxLength={15}
-        />
 
-        <div style={sectionTitle}>Dados da Empresa</div>
-        <label style={labelStyle}>Nome da empresa</label>
-        <input
-          disabled={!editando}
-          name="empresaNome"
-          placeholder="Nome da empresa"
-          value={form.empresaNome}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-        />
-        <label style={labelStyle}>CNPJ</label>
-        <input
-          disabled={!editando}
-          name="cnpj"
-          placeholder="CNPJ"
-          value={form.cnpj}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-          maxLength={18}
-        />
-        <label style={labelStyle}>Telefone da empresa</label>
-        <input
-          disabled={!editando}
-          name="telefoneEmpresa"
-          placeholder="Telefone da empresa"
-          value={form.telefoneEmpresa}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-          maxLength={15}
-        />
+      <div className="perfil-branco-side">
+        <Avatar />
+        <div className="perfil-branco-nome">{form.nome || "Seu Nome"}</div>
+        <div className="perfil-branco-cargo">Usuário</div>
+        <button className="perfil-branco-btn-info">Personal Information</button>
+        <button className="perfil-branco-btn-outro" disabled>Login & Password</button>
+        <button className="perfil-branco-btn-outro" disabled>Log Out</button>
+      </div>
 
-        <div style={sectionTitle}>Endereço da Empresa</div>
-        <label style={labelStyle}>CEP</label>
-        <div style={blocoCep}>
-          <input
-            disabled={!editando}
-            name="cep"
-            placeholder="CEP"
-            value={form.cep}
-            onChange={handleChange}
-            maxLength={9}
-            style={editando ? inputCepStyle : inputCepDisabled}
-          />
-          <button
-            type="button"
-            disabled={!editando}
-            onClick={buscarCep}
-            style={
-              editando
-                ? (cepHover ? { ...btnCep, background: "#6d3be6" } : btnCep)
-                : btnCepDisabled
-            }
-            onMouseEnter={() => setCepHover(true)}
-            onMouseLeave={() => setCepHover(false)}
-          >
-            Buscar CEP
-          </button>
+      <form
+        className="perfil-branco-content"
+        autoComplete="off"
+        onSubmit={e => { e.preventDefault(); handleSalvar(); }}
+      >
+        <h2 className="perfil-branco-titulo">Personal Information</h2>
+        <div className="perfil-branco-form">
+          {/* Nome */}
+          <div className="perfil-branco-form-row">
+            <div>
+              <label>Nome</label>
+              <input
+                type="text"
+                name="nome"
+                disabled={!editando}
+                value={form.nome}
+                onChange={handleChange}
+                placeholder="Seu nome"
+              />
+            </div>
+            <div>
+              <label>CPF</label>
+              <input
+                type="text"
+                name="cpf"
+                disabled={!editando}
+                value={form.cpf}
+                onChange={handleChange}
+                placeholder="CPF"
+              />
+            </div>
+          </div>
+          {/* Email e Tel */}
+          <div className="perfil-branco-form-row">
+            <div style={{ flex: 1 }}>
+              <label>Email</label>
+              <input
+                type="email"
+                name="email"
+                disabled={!editando}
+                value={form.email}
+                onChange={handleChange}
+                placeholder="E-mail"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Telefone</label>
+              <input
+                type="text"
+                name="telefone"
+                disabled={!editando}
+                value={form.telefone}
+                onChange={handleChange}
+                placeholder="Telefone"
+              />
+            </div>
+          </div>
+          {/* Empresa / CNPJ */}
+          <div className="perfil-branco-form-row">
+            <div>
+              <label>Empresa</label>
+              <input
+                type="text"
+                name="empresaNome"
+                disabled={!editando}
+                value={form.empresaNome}
+                onChange={handleChange}
+                placeholder="Empresa"
+              />
+            </div>
+            <div>
+              <label>CNPJ</label>
+              <input
+                type="text"
+                name="cnpj"
+                disabled={!editando}
+                value={form.cnpj}
+                onChange={handleChange}
+                placeholder="CNPJ"
+              />
+            </div>
+          </div>
+          {/* Endereço */}
+          <div className="perfil-branco-form-row">
+            <div style={{ flex: 2 }}>
+              <label>Endereço</label>
+              <input
+                type="text"
+                name="rua"
+                disabled={!editando}
+                value={form.rua}
+                onChange={handleChange}
+                placeholder="Rua"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Número</label>
+              <input
+                type="text"
+                name="numero"
+                disabled={!editando || form.semNumero}
+                value={form.numero}
+                onChange={handleChange}
+                placeholder="Nº"
+              />
+              <label style={{ display: 'inline-block', fontSize: 11 }}>
+                <input
+                  type="checkbox"
+                  checked={form.semNumero}
+                  disabled={!editando}
+                  onChange={handleSemNumeroClick}
+                  style={{ marginRight: 3, marginTop: 4 }}
+                />
+                Sem número
+              </label>
+            </div>
+          </div>
+          <div className="perfil-branco-form-row">
+            <div>
+              <label>Bairro</label>
+              <input
+                type="text"
+                name="bairro"
+                disabled={!editando}
+                value={form.bairro}
+                onChange={handleChange}
+                placeholder="Bairro"
+              />
+            </div>
+            <div>
+              <label>Cidade</label>
+              <input
+                type="text"
+                name="cidade"
+                disabled={!editando}
+                value={form.cidade}
+                onChange={handleChange}
+                placeholder="Cidade"
+              />
+            </div>
+            <div>
+              <label>Estado</label>
+              <input
+                type="text"
+                name="estado"
+                disabled={!editando}
+                value={form.estado}
+                onChange={handleChange}
+                placeholder="Estado"
+              />
+            </div>
+          </div>
+          {/* CEP + buscar */}
+          <div className="perfil-branco-form-row">
+            <div>
+              <label>CEP</label>
+              <input
+                type="text"
+                name="cep"
+                disabled={!editando}
+                value={form.cep}
+                onChange={handleChange}
+                placeholder="CEP"
+              />
+            </div>
+            <div>
+              <button
+                className="perfil-branco-btn-buscar"
+                type="button"
+                onClick={buscarCep}
+                disabled={!editando}
+              >
+                Buscar CEP
+              </button>
+            </div>
+          </div>
         </div>
-        <label style={labelStyle}>Rua</label>
-        <input
-          disabled={!editando}
-          name="rua"
-          placeholder="Rua"
-          value={form.rua}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-        />
-
-        <label style={labelStyle}>Número</label>
-        <div style={blocoNumero}>
-          <input
-            disabled={!editando || form.semNumero}
-            name="numero"
-            placeholder="Número"
-            value={form.numero}
-            onChange={handleChange}
-            style={!editando || form.semNumero ? inputNumeroDisabled : inputNumeroStyle}
-          />
-          <button
-            type="button"
-            onClick={handleSemNumeroClick}
-            disabled={!editando}
-            style={
-              !editando
-                ? btnSemNumeroDisabled
-                : semNumeroHover || form.semNumero
-                  ? { ...btnSemNumero, background: "#ffe060", color: "#23213a" }
-                  : btnSemNumero
-            }
-            onMouseEnter={() => setSemNumeroHover(true)}
-            onMouseLeave={() => setSemNumeroHover(false)}
-            aria-pressed={form.semNumero}
-          >
-            <input
-              type="checkbox"
-              checked={form.semNumero}
-              readOnly
-              tabIndex={-1}
-              style={{
-                marginRight: 7,
-                accentColor: "#8c52ff",
-                width: 16,
-                height: 16,
-                verticalAlign: "middle",
-                pointerEvents: "none"
-              }}
-            />
-            Sem número
-          </button>
-        </div>
-
-        <label style={labelStyle}>Bairro</label>
-        <input
-          disabled={!editando}
-          name="bairro"
-          placeholder="Bairro"
-          value={form.bairro}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-        />
-        <label style={labelStyle}>Cidade</label>
-        <input
-          disabled={!editando}
-          name="cidade"
-          placeholder="Cidade"
-          value={form.cidade}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-        />
-        <label style={labelStyle}>Estado</label>
-        <input
-          disabled={!editando}
-          name="estado"
-          placeholder="Estado"
-          value={form.estado}
-          onChange={handleChange}
-          style={editando ? inputStyle : disabledInput}
-        />
-
-        <div style={{ marginTop: 16, display: "flex", gap: 7 }}>
+        <div className="perfil-branco-actions">
           {editando ? (
             <>
               <button
-                onClick={handleSalvar}
-                style={mainHover ? { ...btnMain, background: "#6d3be6" } : btnMain}
-                onMouseEnter={() => setMainHover(true)}
-                onMouseLeave={() => setMainHover(false)}
-              >Salvar</button>
-              <button
+                type="button"
+                className="perfil-branco-btn-discard"
                 onClick={handleCancelar}
-                style={secHover ? { ...btnSec, background: "#ffe060", color: "#23213a" } : btnSec}
-                onMouseEnter={() => setSecHover(true)}
-                onMouseLeave={() => setSecHover(false)}
-              >Cancelar</button>
+              >
+                Discard Changes
+              </button>
+              <button type="submit" className="perfil-branco-btn-save">
+                Save Changes
+              </button>
             </>
           ) : (
             <button
+              type="button"
+              className="perfil-branco-btn-save"
               onClick={() => setEditando(true)}
-              style={mainHover ? { ...btnMain, background: "#6d3be6" } : btnMain}
-              onMouseEnter={() => setMainHover(true)}
-              onMouseLeave={() => setMainHover(false)}
-            >Editar</button>
+            >
+              Editar
+            </button>
           )}
         </div>
-        <div style={{ height: 12 }} />
-      </div>
+      </form>
     </div>
   );
 }

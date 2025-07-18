@@ -156,23 +156,18 @@ function getPercentualGastosFaturamento(idx, funcionarios, despesasFixasSubcats,
     maximumFractionDigits: 2
   });
 }
-
-// FUNÇÃO CERTA — só soma os R$ dos ativos!
 function somarEncargosReais(ativos, data, outrosEncargos) {
   let total = 0;
-  // Impostos
   ["icms", "iss", "pisCofins", "irpjCsll", "ipi"].forEach(key => {
     if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
       total += Number(data[key].value) / 100;
     }
   });
-  // Taxas de pagamento
   ["debito", "credito", "boleto", "pix", "gateway"].forEach(key => {
     if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
       total += Number(data[key].value) / 100;
     }
   });
-  // Parcelado
   if (Array.isArray(data.creditoParcelado)) {
     data.creditoParcelado.forEach((parcela, idx) => {
       const key = `creditoParcelado_${parcela.nome || idx}`;
@@ -181,13 +176,11 @@ function somarEncargosReais(ativos, data, outrosEncargos) {
       }
     });
   }
-  // Comissões
   ["marketing", "delivery", "saas", "colaboradores"].forEach(key => {
     if (ativos[key] && data[key]?.value != null && data[key]?.value !== "") {
       total += Number(data[key].value) / 100;
     }
   });
-  // Outros Encargos
   if (Array.isArray(outrosEncargos)) {
     outrosEncargos.forEach(item => {
       const key = item.id ?? item.nome;
@@ -199,7 +192,6 @@ function somarEncargosReais(ativos, data, outrosEncargos) {
   return total;
 }
 
-// Componentes auxiliares
 function ToggleSwitchRoxo({ checked, onChange, disabled }) {
   return (
     <label className="markupideal-switch">
@@ -218,12 +210,12 @@ function LinhaVisual(props) {
     label,
     percentual,
     markup,
-    lucroEditable,
-    onLucroChange,
-    onLucroFocus,
-    onLucroBlur,
-    lucroEdit,
-    lucro,
+    markupEditable,
+    onMarkupChange,
+    onMarkupFocus,
+    onMarkupBlur,
+    markupEdit,
+    markupValue,
     mediaFaturamento,
   } = props;
 
@@ -266,7 +258,7 @@ function LinhaVisual(props) {
       </tr>
     );
   }
-  if (lucroEditable) {
+  if (markupEditable) {
     return (
       <tr>
         <td className="markup-ideal-row-label">{label}</td>
@@ -274,10 +266,10 @@ function LinhaVisual(props) {
           <span className="markup-ideal-box">
             <input
               type="text"
-              value={lucro}
-              onChange={e => onLucroChange(maskPercentInput(e.target.value))}
-              onFocus={onLucroFocus}
-              onBlur={onLucroBlur}
+              value={markupValue}
+              onChange={e => onMarkupChange(maskPercentInput(e.target.value))}
+              onFocus={onMarkupFocus}
+              onBlur={onMarkupBlur}
               maxLength={6}
               className="markup-ideal-lucro-input"
               style={{ textAlign: "right" }}
@@ -299,6 +291,7 @@ function LinhaVisual(props) {
     </tr>
   );
 }
+
 function BlocoSubReceita() {
   const [nome, setNome] = useState("SubReceita");
   const [editando, setEditando] = useState(false);
@@ -360,7 +353,6 @@ function BlocoSubReceita() {
   );
 }
 
-// BlocoCard — já com a soma dos encargos reais
 function BlocoCard({
   nome, campos, onChangeNome, onDelete, obs, onConfig, mediaFaturamento, totalEncargosReais
 }) {
@@ -438,7 +430,6 @@ function BlocoCard({
             ))}
           </tbody>
         </table>
-        {/* Mostra o total de encargos em reais, alinhado à direita logo abaixo do botão amarelo */}
         <div
           style={{
             color: "#19ff8a",
@@ -463,9 +454,6 @@ function BlocoCard({
   );
 }
 
-// ==========================
-// MARKUP IDEAL PRINCIPAL
-// ==========================
 export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   const [mediaTipo, setMediaTipo] = useState("6");
   const [faturamentoLista, setFaturamentoLista] = useState([]);
@@ -484,11 +472,68 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   const [encargos, setEncargos] = useState({});
   const [outrosEncargos, setOutrosEncargos] = useState([]);
 
-  // --- Estado do modal para edição "desacoplada" ---
   const [custosAtivosEdicao, setCustosAtivosEdicao] = useState({});
   const [mudouAlgumaCoisa, setMudouAlgumaCoisa] = useState(false);
 
-  // useEffects para buscar dados
+  // FUNÇÃO QUE SALVA O BLOCO, AGORA CORRETA!
+  async function salvarMarkupBloco(idx) {
+    const bloco = blocos[idx];
+    if (!bloco?.id) return;
+
+    // <-- CÁLCULO NOVO: totalEncargosReais antes do PUT!
+    let totalEncargosReais = 0;
+    if (encargos && encargos.data) {
+      totalEncargosReais = somarEncargosReais(
+        custosAtivosPorBloco[idx] || {},
+        encargos.data,
+        outrosEncargos || []
+      );
+    }
+    console.log("totalEncargosReais enviado (EDITAR):", totalEncargosReais);
+
+    // Aqui calcula o Markup Ideal ANTES de enviar!
+    const ativos = custosAtivosPorBloco[idx] || {};
+    const impostosTotais = somaImpostos(encargos.data || {}, ativos);
+    const taxasTotais = somaTaxas(encargos.data || {}, ativos);
+    const comissoesTotais = somaComissoes(encargos.data || {}, ativos);
+    const outrosTotais = somaOutros(encargos.data || {}, outrosEncargos || [], ativos);
+    const gastoSobreFaturamento = getPercentualGastosFaturamento(
+      idx,
+      funcionarios,
+      despesasFixasSubcats,
+      custosAtivosPorBloco,
+      faturamentoMedia
+    );
+    const markupIdeal = calcularMarkupIdeal(
+      toDecimal(gastoSobreFaturamento),
+      toDecimal(impostosTotais?.percent),
+      toDecimal(taxasTotais?.percent),
+      toDecimal(comissoesTotais?.percent),
+      toDecimal(outrosTotais?.percent),
+      toDecimal(bloco.markup)
+    );
+
+    try {
+      await axios.put(
+        `/api/markup-ideal/${bloco.id}`,
+        {
+          markup: bloco.markup,
+          markupIdeal: markupIdeal,
+          gastosFaturamento: gastoSobreFaturamento,
+          impostos: impostosTotais?.percent ?? 0,
+          taxasPagamento: taxasTotais?.percent ?? 0,
+          comissoes: comissoesTotais?.percent ?? 0,
+          outros: outrosTotais?.percent ?? 0,
+          totalEncargosReais: totalEncargosReais,
+        },
+        { withCredentials: true }
+      );
+    } catch (err) {
+      alert("Erro ao salvar markup: " + err.message);
+    }
+  }
+
+  // O RESTANTE DO CÓDIGO CONTINUA IGUAL...
   useEffect(() => {
     async function fetchFiltro() {
       try {
@@ -645,20 +690,48 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
 
   // handlers
   const handleAddBloco = async () => {
-    if (inputNovo.trim() === "") return;
-    try {
-      const response = await axios.post(
-        "/api/markup-ideal",
-        { nome: inputNovo.trim(), lucro: "0,00" },
-        { withCredentials: true }
-      );
-      setBlocos(blocos => [...blocos, response.data]);
-      setInputNovo("");
-    } catch (err) {
-      alert("Erro ao adicionar bloco: " + err.message);
-    }
-  };
-  function montarCamposBloco(idx, lucro, lucroEdit) {
+  if (inputNovo.trim() === "") return;
+
+  // Calcule o totalEncargosReais antes de enviar ao back!
+  const ativos = custosAtivosPorBloco[blocos.length] || {};
+  const totalEncargosReais = somarEncargosReais(
+    ativos,
+    encargos.data || {},
+    outrosEncargos || []
+  );
+
+  console.log("totalEncargosReais enviado (CRIAR):", totalEncargosReais);
+
+  try {
+    const blocoCompleto = {
+      nome: inputNovo.trim(),
+      markup: "0,00",
+      markupIdeal: "1,000",
+      gastosFaturamento: "",
+      impostos: "",
+      taxasPagamento: "",
+      comissoes: "",
+      outros: "",
+      lucroDesejado: "",
+      mediaFaturamento: faturamentoMedia,
+      custosAtivos: {},
+      observacoes: "",
+      totalEncargosReais: totalEncargosReais,
+    };
+    const response = await axios.post(
+      "/api/markup-ideal",
+      blocoCompleto,
+      { withCredentials: true }
+    );
+    setBlocos(blocos => [...blocos, response.data]);
+    setInputNovo("");
+  } catch (err) {
+    alert("Erro ao adicionar bloco: " + err.message);
+  }
+};
+
+
+  function montarCamposBloco(idx, markupValue, markupEdit) {
     const ativos = custosAtivosPorBloco[idx] || {};
     const impostosTotais = somaImpostos(encargos.data || {}, ativos);
     const taxasTotais = somaTaxas(encargos.data || {}, ativos);
@@ -689,12 +762,12 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
       {
         label: "Lucro desejado sobre venda",
         percentual: "",
-        lucroEditable: true,
-        onLucroChange: (valor) => handleLucroBlocoChange(idx, valor),
-        onLucroFocus: () => handleLucroBlocoFocus(idx),
-        onLucroBlur: () => handleLucroBlocoBlur(idx),
-        lucroEdit: lucroEdit,
-        lucro: lucro
+        markupEditable: true,
+        onMarkupChange: (valor) => handleMarkupBlocoChange(idx, valor),
+        onMarkupFocus: () => handleMarkupBlocoFocus(idx),
+        onMarkupBlur: () => handleMarkupBlocoBlur(idx),
+        markupEdit: markupEdit,
+        markupValue: markupValue
       },
       {
         label: "Markup ideal",
@@ -704,32 +777,33 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
           toDecimal(taxasTotais?.percent),
           toDecimal(comissoesTotais?.percent),
           toDecimal(outrosTotais?.percent),
-          toDecimal(lucro)
+          toDecimal(markupValue)
         ),
         bold: true
       }
     ];
   }
-  const handleLucroBlocoChange = (idx, valorFormatado) => {
+  const handleMarkupBlocoChange = (idx, valorFormatado) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
-        i === idx ? { ...b, lucro: valorFormatado } : b
+        i === idx ? { ...b, markup: valorFormatado } : b
       )
     );
   };
-  const handleLucroBlocoFocus = (idx) => {
+  const handleMarkupBlocoFocus = (idx) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
-        i === idx ? { ...b, lucroEdit: true } : b
+        i === idx ? { ...b, markupEdit: true } : b
       )
     );
   };
-  const handleLucroBlocoBlur = (idx) => {
+  const handleMarkupBlocoBlur = (idx) => {
     setBlocos(blocos =>
       blocos.map((b, i) =>
-        i === idx ? { ...b, lucroEdit: false } : b
+        i === idx ? { ...b, markupEdit: false } : b
       )
     );
+    salvarMarkupBloco(idx);
   };
   const handleChangeNome = (idx, novoNome) => {
     setBlocos(blocos => blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
@@ -768,23 +842,46 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     });
   }
   async function salvarEdicaoModal() {
-    if (modalConfigIdx === null) return;
-    const blocoId = blocos[modalConfigIdx]?.id;
-    if (!blocoId) return;
-    try {
-      await axios.post(`/api/bloco-ativos/${blocoId}`,
-        { ativos: custosAtivosEdicao },
-        { withCredentials: true }
-      );
-      setCustosAtivosPorBloco(prev => ({
-        ...prev,
-        [modalConfigIdx]: custosAtivosEdicao
-      }));
-      setMudouAlgumaCoisa(false);
-    } catch {
-      alert("Erro ao salvar alterações! Tente novamente.");
-    }
+  if (modalConfigIdx === null) return;
+  const blocoId = blocos[modalConfigIdx]?.id;
+  if (!blocoId) return;
+
+  // 1. PEGA OS ATIVOS JÁ EDITADOS (os que estão marcados)
+  const ativos = custosAtivosEdicao;
+
+  // 2. CALCULA O TOTAL (é a mesma função que você já tem)
+  const totalEncargosReais = somarEncargosReais(
+    ativos,
+    encargos.data || {},
+    outrosEncargos || []
+  );
+
+  // 3. DEBUG VISUAL PRA VC VER NO CONSOLE
+  console.log("totalEncargosReais enviado (SALVAR):", totalEncargosReais);
+
+  // 4. ENVIA OS ATIVOS ATUALIZADOS + TOTAL PARA O BACKEND
+  try {
+    await axios.post(`/api/bloco-ativos/${blocoId}`,
+      { ativos: custosAtivosEdicao },
+      { withCredentials: true }
+    );
+
+    // 5. ENVIA O NOVO totalEncargosReais PARA O BLOCO
+    await axios.put(`/api/markup-ideal/${blocoId}`,
+      { totalEncargosReais },
+      { withCredentials: true }
+    );
+
+    setCustosAtivosPorBloco(prev => ({
+      ...prev,
+      [modalConfigIdx]: custosAtivosEdicao
+    }));
+    setMudouAlgumaCoisa(false);
+  } catch {
+    alert("Erro ao salvar alterações! Tente novamente.");
   }
+}
+
   const custosAtivos = modalConfigIdx !== null ? (custosAtivosEdicao || {}) : {};
 
   return (
@@ -834,7 +931,6 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         <BlocoSubReceita />
 
         {Array.isArray(blocos) && blocos.map((bloco, idx) => {
-          // Só calcula dentro do map, só depois que tudo existe!
           let totalEncargosReais = 0;
           if (encargos && encargos.data) {
             totalEncargosReais = somarEncargosReais(
@@ -847,7 +943,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
             <BlocoCard
               key={bloco.id || idx}
               nome={bloco.nome}
-              campos={montarCamposBloco(idx, bloco.lucro, bloco.lucroEdit)}
+              campos={montarCamposBloco(idx, bloco.markup, bloco.markupEdit)}
               onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
               onDelete={() => pedirConfirmacaoDelete(idx)}
               onConfig={() => setModalConfigIdx(idx)}
