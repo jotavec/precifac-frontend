@@ -3,15 +3,27 @@
   width: 100vw;
 }
 
+/* Sidebar fechada */
 .main-content {
   flex: 1 1 0%;
   transition: margin-left 0.22s cubic-bezier(.4,0,.2,1);
-  margin-left: 72px;   /* largura da sidebar fechada */
-  padding: 40px 32px;  /* pode ajustar esse padding como preferir */
+  margin-left: 0;
+  padding: 0 32px 32px 32px;  /* padding: topo 0, direita 32px, baixo 32px, esquerda 32px */
   min-height: 100vh;
-  background: #191626; /* cor do fundo do app, pode ajustar */
+  background: #f8fafc;     /* cor de fundo global do app */
 }
 
+/* Sidebar expandida */
 .app-container.sidebar-expanded .main-content {
-  margin-left: 340px;  /* largura da sidebar aberta */
+  margin-left: 268px;      /* Ajuste esse valor para a largura real da sidebar */
+}
+
+/* Responsivo, se precisar */
+@media (max-width: 900px) {
+  .main-content {
+    padding: 0 6px 14px 6px; /* padding responsivo: topo 0, direita 6px, baixo 14px, esquerda 6px */
+  }
+  .app-container.sidebar-expanded .main-content {
+    margin-left: 68px;    /* Ou a largura da sidebar reduzida em telas pequenas */
+  }
 }

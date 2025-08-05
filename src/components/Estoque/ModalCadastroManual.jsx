@@ -12,12 +12,10 @@ import { BsInfoCircle } from "react-icons/bs";
 
 function formatarDataBR(dataStr) {
   if (!dataStr) return "";
-  // Se for formato ISO (tipo "2025-07-07T00:00:00.000Z")
   if (dataStr.includes("T")) {
     const d = new Date(dataStr);
     return d.toLocaleDateString("pt-BR");
   }
-  // Se for tipo "2025-07-07"
   if (dataStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
     const [ano, mes, dia] = dataStr.split("-");
     return `${dia}/${mes}/${ano}`;
@@ -33,7 +31,6 @@ function gerarCodigoUnico(produtos = []) {
   return novoCodigo;
 }
 
-// ===== Máscara manual BRL centavos =====
 function formatCentavosBRL(v) {
   v = (v ?? "").toString().replace(/[^\d]/g, "");
   if (v.length === 0) return "";
@@ -93,7 +90,6 @@ function getCroppedImg(imageSrc, crop) {
   });
 }
 
-// === BUSCA SUGESTÃO DE IMAGEM PELO NOME (PEXELS) ===
 const PEXELS_API_KEY = "WuzrA5OSZJWxMFWiKxI86odDbKqS3wecYrg3pV7NhvDp1030fglB6YjQ";
 async function buscarImagensPexels(nome, page = 1) {
   if (!nome) return [];
@@ -109,7 +105,6 @@ async function buscarImagensPexels(nome, page = 1) {
   }
 }
 
-// === BUSCA O NOME PELO CÓDIGO DE BARRAS (OPEN FOOD FACTS) ===
 async function buscarNomePorCodigoBarras(codBarras) {
   if (!codBarras) return "";
   try {
@@ -122,55 +117,95 @@ async function buscarNomePorCodigoBarras(codBarras) {
   }
 }
 
-// ====== ESTILO DO REACT SELECT (DARK MODE ROXO) ======
+// ESTILO PADRÃO DOS SELECTS
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    backgroundColor: "#231844",
-    borderColor: state.isFocused ? "#ffe066" : "#b894ff",
-    color: "#eee",
+    backgroundColor: "#f8fafd",
+    borderColor: state.isFocused ? "#00cfff" : "#e1e9f7",
+    color: "#237be7",
     minHeight: 44,
-    boxShadow: state.isFocused ? "0 0 0 2px #ffe06644" : "none",
-    "&:hover": { borderColor: "#ffe066" },
+    boxShadow: state.isFocused ? "0 0 0 2px #00cfff44" : "none",
+    "&:hover": { borderColor: "#2196f3" },
     borderRadius: 10,
   }),
   menu: (base) => ({
     ...base,
-    backgroundColor: "#231844",
-    color: "#eee",
+    backgroundColor: "#fff",
+    color: "#237be7",
     zIndex: 9999,
     borderRadius: 10,
     marginTop: 2,
+    boxShadow: "0 2px 12px #a0cef540"
   }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isFocused ? "#381aa7" : "#231844",
-    color: "#eee",
+    backgroundColor: state.isFocused
+      ? "#e1e9f7"
+      : state.isSelected
+        ? "#00cfff22"
+        : "#fff",
+    color: "#237be7",
     cursor: "pointer"
   }),
   singleValue: (base) => ({
     ...base,
-    color: "#eee"
+    color: "#237be7"
+  }),
+  multiValue: (base) => ({
+    ...base,
+    backgroundColor: "#f8fafd",
+    color: "#237be7",
+    border: "1px solid #e1e9f7"
+  }),
+  multiValueLabel: (base) => ({
+    ...base,
+    color: "#237be7"
+  }),
+  multiValueRemove: (base) => ({
+    ...base,
+    color: "#2196f3",
+    ":hover": {
+      backgroundColor: "#e1e9f7",
+      color: "#ef4444"
+    }
   }),
   placeholder: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#8fb9e7"
   }),
   input: (base) => ({
     ...base,
-    color: "#eee"
+    color: "#237be7"
   }),
   dropdownIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#00cfff"
   }),
   indicatorSeparator: (base) => ({
     ...base,
-    backgroundColor: "#b894ff"
+    backgroundColor: "#00cfff"
   }),
   clearIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#00cfff"
+  }),
+};
+
+// ESTILO DOS SELECTS DO ROTULO (com scroll forçado)
+const selectStylesRotulo = {
+  ...selectStyles,
+  menu: (base) => ({
+    ...base,
+    backgroundColor: "#fff",
+    color: "#237be7",
+    zIndex: 9999,
+    borderRadius: 10,
+    marginTop: 2,
+    boxShadow: "0 2px 12px #a0cef540",
+    maxHeight: 160,
+    overflowY: "auto",
+    overscrollBehavior: "contain",
   }),
 };
 
@@ -196,9 +231,7 @@ export default function ModalCadastroManual({
   refreshMarcas,
   produtos
 }) {
-  // --- Abas DENTRO do bloco ---
   const [abaBloco, setAbaBloco] = useState("estoque");
-
   const [rotuloConfigOpen, setRotuloConfigOpen] = useState(false);
   const [descricoesNutricionais, setDescricoesNutricionais] = useState([
     "Calorias", "Proteínas", "Carboidratos", "Gorduras"
@@ -221,14 +254,12 @@ export default function ModalCadastroManual({
   const [marcas, setMarcas] = useState([]);
   const [modalMarcasOpen, setModalMarcasOpen] = useState(false);
 
-  // Imagens Pexels - paginação e loading
   const [sugestoesImg, setSugestoesImg] = useState([]);
   const [paginaImagens, setPaginaImagens] = useState(1);
   const [loadingImagens, setLoadingImagens] = useState(false);
   const [temMaisImagens, setTemMaisImagens] = useState(true);
   const [loadingImgsIndex, setLoadingImgsIndex] = useState([]);
 
-  // ============ Lógica da máscara centavos ============
   const [custoTotalRaw, setCustoTotalRaw] = useState("");
   useEffect(() => {
     if (open && ingrediente.custoTotal && ingrediente.custoTotal !== parseCentavosToNumber(custoTotalRaw)) {
@@ -249,7 +280,6 @@ export default function ModalCadastroManual({
   }
   const custoTotalInputFormatted = formatCentavosBRL(custoTotalRaw);
 
-  // ========== Cálculo do custo unitário ==========
   const custoUnitario =
     Number(ingrediente.totalEmbalagem) > 0 && Number(ingrediente.custoTotal) > 0
       ? ingrediente.custoTotal / Number(ingrediente.totalEmbalagem)
@@ -273,7 +303,6 @@ export default function ModalCadastroManual({
     }
   }, [ingrediente.custoTotal]);
 
-  // ======== CATEGORIAS E MARCAS ==========
   useEffect(() => {
     if (open) listarMarcas().then(setMarcas);
   }, [open, modalMarcasOpen]);
@@ -281,7 +310,6 @@ export default function ModalCadastroManual({
     if (open) listarCategorias().then(setCategorias);
   }, [open, modalCategoriasOpen]);
 
-  // ======== SUGESTÃO DE IMAGENS - PEXELS PAGINADO ========
   useEffect(() => {
     if (!ingrediente.nome) {
       setSugestoesImg([]);
@@ -337,7 +365,6 @@ export default function ModalCadastroManual({
     }
   }, [open, ingrediente.codBarras]);
 
-  // ======= Funções Rotulo Nutricional =======
   function handleAddRotulo() {
     if (!formRotulo.descricao || !formRotulo.unidade) return;
     onChange({
@@ -398,12 +425,10 @@ export default function ModalCadastroManual({
 
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
-  // ------------------ HISTÓRICO DE ENTRADAS ------------------
   const [entradas, setEntradas] = useState([]);
   const [loadingEntradas, setLoadingEntradas] = useState(false);
 
   useEffect(() => {
-    // Só busca se a aba 'historico' estiver aberta e tiver um produto selecionado
     if (abaBloco === "historico" && ingrediente?.id) {
       setLoadingEntradas(true);
       fetch(`/api/produtos/${ingrediente.id}/entradas`, { credentials: "include" })
@@ -414,15 +439,14 @@ export default function ModalCadastroManual({
     }
   }, [abaBloco, ingrediente?.id]);
 
-  // PREENCHIMENTO AUTOMÁTICO DO CÓDIGO INTERNO QUANDO ABRIR MODAL DE NOVO PRODUTO
-useEffect(() => {
-  if (open && (!ingrediente.codigo || ingrediente.codigo === "")) {
-    onChange({
-      ...ingrediente,
-      codigo: gerarCodigoUnico(produtos),
-    });
-  }
-}, [open, produtos]);
+  useEffect(() => {
+    if (open && (!ingrediente.codigo || ingrediente.codigo === "")) {
+      onChange({
+        ...ingrediente,
+        codigo: gerarCodigoUnico(produtos),
+      });
+    }
+  }, [open, produtos]);
 
   if (!open) return null;
 
@@ -439,9 +463,7 @@ useEffect(() => {
         </button>
         <h2 className="modal-title">Novo Cadastro</h2>
         <div className="cadastro-top-main">
-          {/* Coluna Esquerda */}
           <div className="bloco-cadastro-esquerda">
-            {/* Nome */}
             <div className="cadastro-row bloco-nome">
               <label className="label-form-braba" htmlFor="input-nome">
                 Nome
@@ -458,7 +480,6 @@ useEffect(() => {
                 maxLength={60}
               />
             </div>
-            {/* Marca (React Select) */}
             <div className="cadastro-row bloco-marca">
               <label className="label-form-braba" htmlFor="input-marca">
                 Marca
@@ -468,14 +489,34 @@ useEffect(() => {
                   <Select
                     inputId="input-marca"
                     classNamePrefix="input-form-brabo"
+                    styles={selectStyles}
+                    theme={theme => ({
+                      ...theme,
+                      colors: {
+                        ...theme.colors,
+                        primary: "#00cfff",
+                        primary25: "#e1e9f7",
+                        primary50: "#b3e6fa",
+                        neutral0: "#fff",
+                        neutral80: "#237be7",
+                        neutral20: "#e1e9f7",
+                        neutral30: "#00cfff",
+                        neutral10: "#f8fafd",
+                      }
+                    })}
                     options={marcaOptions}
                     value={
-                      marcaOptions.find(opt => opt.value === ingrediente.marca) || null
+                      Array.isArray(ingrediente.marca)
+                        ? marcaOptions.filter(opt => ingrediente.marca.includes(opt.value))
+                        : []
                     }
-                    onChange={selected => onChange({ ...ingrediente, marca: selected ? selected.value : "" })}
+                    onChange={selected => onChange({
+                      ...ingrediente,
+                      marca: selected ? selected.map(opt => opt.value) : []
+                    })}
                     placeholder="Selecione"
-                    styles={selectStyles}
                     isClearable
+                    isMulti
                   />
                 </div>
                 <button
@@ -490,7 +531,6 @@ useEffect(() => {
                 </button>
               </div>
             </div>
-            {/* Categoria (React Select) */}
             <div className="cadastro-row bloco-categoria">
               <label className="label-form-braba" htmlFor="input-categoria">
                 Categoria
@@ -500,13 +540,27 @@ useEffect(() => {
                   <Select
                     inputId="input-categoria"
                     classNamePrefix="input-form-brabo"
+                    styles={selectStyles}
+                    theme={theme => ({
+                      ...theme,
+                      colors: {
+                        ...theme.colors,
+                        primary: "#00cfff",
+                        primary25: "#e1e9f7",
+                        primary50: "#b3e6fa",
+                        neutral0: "#fff",
+                        neutral80: "#237be7",
+                        neutral20: "#e1e9f7",
+                        neutral30: "#00cfff",
+                        neutral10: "#f8fafd",
+                      }
+                    })}
                     options={categoriaOptions}
                     value={
                       categoriaOptions.find(opt => opt.value === ingrediente.categoria) || null
                     }
                     onChange={selected => handleSelecionaCategoria(selected ? selected.value : "")}
                     placeholder="Selecione"
-                    styles={selectStyles}
                     isClearable
                   />
                 </div>
@@ -522,7 +576,6 @@ useEffect(() => {
                 </button>
               </div>
             </div>
-            {/* Códigos */}
             <div className="cadastro-row bloco-codigos">
               <div className="bloco-cod-interno">
                 <label className="label-form-braba" htmlFor="input-codigo">
@@ -558,11 +611,9 @@ useEffect(() => {
               </div>
             </div>
           </div>
-          {/* Coluna Direita */}
           <div className="cadastro-top-direita">
             <div className="coluna-direita-fixa">
               <div>
-                {/* ------ IMAGEM/CROPPER ------ */}
                 <div className="form-image grid-marcar">
                   <label htmlFor="input-imagem" className="input-imagem-label">
                     {ingrediente.imagem ? (
@@ -597,7 +648,6 @@ useEffect(() => {
                     />
                   </label>
                 </div>
-                {/* ------ SUGESTÃO DE IMAGEM ------ */}
                 <div className="sugestao-imagem-painel">
                   <div
                     className="sugestao-titulo-independente"
@@ -671,8 +721,8 @@ useEffect(() => {
                         marginRight: 7,
                         borderRadius: 9,
                         overflow: "hidden",
-                        background: "#1d1532",
-                        border: ingrediente.imagem === img ? "2px solid #ffe066" : "2px solid #333",
+                        background: "#e1e9f7",
+                        border: ingrediente.imagem === img ? "2px solid #00cfff" : "2px solid #e1e9f7",
                       }}>
                         {loadingImgsIndex.includes(idx) && (
                           <div style={{
@@ -681,7 +731,7 @@ useEffect(() => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: "rgba(30,18,54,0.55)",
+                            background: "rgba(30,18,54,0.12)",
                             zIndex: 2,
                           }}>
                             <div className="loader-bolinha"></div>
@@ -706,7 +756,6 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
-                  {/* Botão "Mostrar mais..." */}
                   {!loadingImagens && sugestoesImg.length > 0 && temMaisImagens && (
                     <div
                       onClick={() => setPaginaImagens(p => p + 1)}
@@ -722,7 +771,6 @@ useEffect(() => {
                       Mostrar mais...
                     </div>
                   )}
-                  {/* Nenhuma imagem */}
                   {!loadingImagens && sugestoesImg.length === 0 && (
                     <div className="sugestao-vazia">Sem sugestões para o termo buscado.</div>
                   )}
@@ -733,9 +781,10 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* BLOCO ESTOQUE E CUSTOS COM AS ABAS DENTRO */}
-        <div className="bloco-estoque-custos">
-          <div style={{ display: "flex", alignItems: "center", gap: 28, marginBottom: 14 }}>
+        {/* ABAS E BLOCOS FIXOS */}
+        {/* ESTOQUE */}
+        {abaBloco === "estoque" && (
+          <div className="bloco-estoque-custos">
             <div className="abas-cadastro">
               <button
                 className={abaBloco === "estoque" ? "aba-btn ativa" : "aba-btn"}
@@ -759,8 +808,6 @@ useEffect(() => {
                 Histórico de Entradas
               </button>
             </div>
-          </div>
-          {abaBloco === "estoque" && (
             <div className="estoque-custos-grid bloco-escuro-custom">
               <div>
                 <label className="label-form-braba" htmlFor="input-totalEmbalagem">
@@ -784,13 +831,27 @@ useEffect(() => {
                 <Select
                   inputId="input-unidade"
                   classNamePrefix="input-form-brabo"
+                  styles={selectStyles}
+                  theme={theme => ({
+                    ...theme,
+                    colors: {
+                      ...theme.colors,
+                      primary: "#00cfff",
+                      primary25: "#e1e9f7",
+                      primary50: "#b3e6fa",
+                      neutral0: "#fff",
+                      neutral80: "#237be7",
+                      neutral20: "#e1e9f7",
+                      neutral30: "#00cfff",
+                      neutral10: "#f8fafd",
+                    }
+                  })}
                   options={unidadeMedidaOptions}
                   value={unidadeOption}
                   onChange={selected =>
                     onChange({ ...ingrediente, unidade: selected ? selected.value : "" })
                   }
                   placeholder="Selecione"
-                  styles={selectStyles}
                   isClearable
                 />
               </div>
@@ -853,44 +914,197 @@ useEffect(() => {
                 />
               </div>
             </div>
-          )}
-          {abaBloco === "rotulo" && (
-            <div className="bloco-rotulo-nutricional">
-              <div className="rotulo-header" style={{ display: 'flex', justifyContent: 'flex-Cend', gap: 12, marginBottom: 18 }}>
-                <button
-                  type="button"
-                  className="rotulo-btn-cog"
-                  title="Gerenciar categorias nutricionais"
-                  onClick={() => setRotuloConfigOpen(true)}
-                  style={{ marginRight: 4 }}
-                >
-                  <FaCog />
-                </button>
-                <button
-                  onClick={() => setEditIdx(-1)}
-                  type="button"
-                  className="rotulo-btn-add"
-                  title="Adicionar linha"
-                >
-                  <FaPlus />
-                </button>
-              </div>
-              <table className="rotulo-table">
-                <thead>
-                  <tr>
-                    <th>Descrição</th>
-                    <th>Quantidade</th>
-                    <th>Unidade de Medida</th>
-                    <th>%VD</th>
-                    <th></th>
+          </div>
+        )}
+
+        {/* RÓTULO */}
+        {abaBloco === "rotulo" && (
+          <div className="bloco-rotulo-nutricional">
+            <div className="abas-cadastro">
+              <button
+                className={abaBloco === "estoque" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("estoque")}
+                type="button"
+              >
+                Estoque e Custos
+              </button>
+              <button
+                className={abaBloco === "rotulo" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("rotulo")}
+                type="button"
+              >
+                Rótulo Nutricional
+              </button>
+              <button
+                className={abaBloco === "historico" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("historico")}
+                type="button"
+              >
+                Histórico de Entradas
+              </button>
+            </div>
+            <div className="rotulo-header" style={{ display: 'flex', justifyContent: 'flex-Cend', gap: 12, marginBottom: 18 }}>
+              <button
+                type="button"
+                className="rotulo-btn-cog"
+                title="Gerenciar categorias nutricionais"
+                onClick={() => setRotuloConfigOpen(true)}
+                style={{ marginRight: 4 }}
+              >
+                <FaCog />
+              </button>
+              <button
+                onClick={() => setEditIdx(-1)}
+                type="button"
+                className="rotulo-btn-add"
+                title="Adicionar linha"
+              >
+                <FaPlus />
+              </button>
+            </div>
+            <table className="rotulo-table">
+              <thead>
+                <tr>
+                  <th className="rotulo-td-desc">Descrição</th>
+                  <th className="rotulo-td-quant">Quantidade</th>
+                  <th className="rotulo-td-unid">Unidade de Medida</th>
+                  <th className="rotulo-td-vd">%VD</th>
+                  <th className="rotulo-td-acoes"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {editIdx === -1 && (
+                  <tr style={{ background: "#f8fafd" }}>
+                    <td>
+                      <Select
+                        classNamePrefix="input-form-brabo"
+                        styles={selectStylesRotulo}
+                        theme={theme => ({
+                          ...theme,
+                          colors: {
+                            ...theme.colors,
+                            primary: "#00cfff",
+                            primary25: "#e1e9f7",
+                            primary50: "#b3e6fa",
+                            neutral0: "#fff",
+                            neutral80: "#237be7",
+                            neutral20: "#e1e9f7",
+                            neutral30: "#00cfff",
+                            neutral10: "#f8fafd",
+                          }
+                        })}
+                        options={descricoesNutricionaisOptions}
+                        value={
+                          formRotulo.descricao
+                            ? { value: formRotulo.descricao, label: formRotulo.descricao }
+                            : null
+                        }
+                        onChange={selected =>
+                          setFormRotulo(f => ({ ...f, descricao: selected ? selected.value : "" }))
+                        }
+                        placeholder="Selecione"
+                        isClearable
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="Quantidade"
+                        className="input-form-brabo"
+                        value={formRotulo.quantidade}
+                        onChange={e => setFormRotulo(f => ({ ...f, quantidade: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <Select
+                        classNamePrefix="input-form-brabo"
+                        styles={selectStylesRotulo}
+                        theme={theme => ({
+                          ...theme,
+                          colors: {
+                            ...theme.colors,
+                            primary: "#00cfff",
+                            primary25: "#e1e9f7",
+                            primary50: "#b3e6fa",
+                            neutral0: "#fff",
+                            neutral80: "#237be7",
+                            neutral20: "#e1e9f7",
+                            neutral30: "#00cfff",
+                            neutral10: "#f8fafd",
+                          }
+                        })}
+                        options={unidadesNutricionaisOptions}
+                        value={
+                          formRotulo.unidade
+                            ? { value: formRotulo.unidade, label: formRotulo.unidade }
+                            : null
+                        }
+                        onChange={selected =>
+                          setFormRotulo(f => ({ ...f, unidade: selected ? selected.value : "" }))
+                        }
+                        placeholder="Selecione"
+                        isClearable
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="%VD"
+                        className="input-form-brabo"
+                        value={formRotulo.vd}
+                        onChange={e => setFormRotulo(f => ({ ...f, vd: e.target.value }))}
+                      />
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <div className="acoes-rotulo-btns">
+                        <button
+                          onClick={handleAddRotulo}
+                          type="button"
+                          className="rotulo-table-btn-save"
+                          title="Salvar"
+                        >
+                          <FaCheck style={{ color: "#237be7", fontSize: "1.4rem" }} />
+                        </button>
+                        <button
+                          onClick={handleCancelEditRotulo}
+                          type="button"
+                          className="rotulo-table-btn-cancel"
+                          title="Cancelar"
+                        >
+                          <FaTimes style={{ color: "#ef4444", fontSize: "1.4rem" }} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {editIdx === -1 && (
-                    <tr style={{ background: "#1b1531" }}>
+                )}
+                {(ingrediente.rotuloNutricional || []).length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="rotulo-nenhuma-linha">
+                      Nenhuma linha adicionada.
+                    </td>
+                  </tr>
+                )}
+                {(ingrediente.rotuloNutricional || []).map((linha, idx) =>
+                  editIdx === idx ? (
+                    <tr key={idx} style={{ background: "#f8fafd" }}>
                       <td>
                         <Select
                           classNamePrefix="input-form-brabo"
+                          styles={selectStylesRotulo}
+                          theme={theme => ({
+                            ...theme,
+                            colors: {
+                              ...theme.colors,
+                              primary: "#00cfff",
+                              primary25: "#e1e9f7",
+                              primary50: "#b3e6fa",
+                              neutral0: "#fff",
+                              neutral80: "#237be7",
+                              neutral20: "#e1e9f7",
+                              neutral30: "#00cfff",
+                              neutral10: "#f8fafd",
+                            }
+                          })}
                           options={descricoesNutricionaisOptions}
                           value={
                             formRotulo.descricao
@@ -901,18 +1115,12 @@ useEffect(() => {
                             setFormRotulo(f => ({ ...f, descricao: selected ? selected.value : "" }))
                           }
                           placeholder="Selecione"
-                          styles={{
-                            ...selectStyles,
-                            menuPortal: base => ({ ...base, zIndex: 99999 }),
-                          }}
-                          menuPortalTarget={document.body}
                           isClearable
                         />
                       </td>
                       <td>
                         <input
                           type="text"
-                          placeholder="Quantidade"
                           className="input-form-brabo"
                           value={formRotulo.quantidade}
                           onChange={e => setFormRotulo(f => ({ ...f, quantidade: e.target.value }))}
@@ -921,6 +1129,21 @@ useEffect(() => {
                       <td>
                         <Select
                           classNamePrefix="input-form-brabo"
+                          styles={selectStylesRotulo}
+                          theme={theme => ({
+                            ...theme,
+                            colors: {
+                              ...theme.colors,
+                              primary: "#00cfff",
+                              primary25: "#e1e9f7",
+                              primary50: "#b3e6fa",
+                              neutral0: "#fff",
+                              neutral80: "#237be7",
+                              neutral20: "#e1e9f7",
+                              neutral30: "#00cfff",
+                              neutral10: "#f8fafd",
+                            }
+                          })}
                           options={unidadesNutricionaisOptions}
                           value={
                             formRotulo.unidade
@@ -931,127 +1154,44 @@ useEffect(() => {
                             setFormRotulo(f => ({ ...f, unidade: selected ? selected.value : "" }))
                           }
                           placeholder="Selecione"
-                          styles={{
-                            ...selectStyles,
-                            menuPortal: base => ({ ...base, zIndex: 99999 }),
-                          }}
-                          menuPortalTarget={document.body}
                           isClearable
                         />
                       </td>
                       <td>
                         <input
                           type="text"
-                          placeholder="%VD"
                           className="input-form-brabo"
                           value={formRotulo.vd}
                           onChange={e => setFormRotulo(f => ({ ...f, vd: e.target.value }))}
                         />
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <button
-                          onClick={handleAddRotulo}
-                          type="button"
-                          className="rotulo-table-btn-save"
-                          title="Salvar"
-                        >
-                          <FaCheck style={{ color: "#fff", fontSize: "1.4rem" }} />
-                        </button>
-                        <button
-                          onClick={handleCancelEditRotulo}
-                          type="button"
-                          className="rotulo-table-btn-cancel"
-                          title="Cancelar"
-                        >
-                          <FaTimes style={{ color: "#fff", fontSize: "1.4rem" }} />
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-                  {(ingrediente.rotuloNutricional || []).length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="rotulo-nenhuma-linha">
-                        Nenhuma linha adicionada.
-                      </td>
-                    </tr>
-                  )}
-                  {(ingrediente.rotuloNutricional || []).map((linha, idx) =>
-                    editIdx === idx ? (
-                      <tr key={idx} style={{ background: "#1b1531" }}>
-                        <td>
-                          <Select
-                            classNamePrefix="input-form-brabo"
-                            options={descricoesNutricionaisOptions}
-                            value={
-                              formRotulo.descricao
-                                ? { value: formRotulo.descricao, label: formRotulo.descricao }
-                                : null
-                            }
-                            onChange={selected =>
-                              setFormRotulo(f => ({ ...f, descricao: selected ? selected.value : "" }))
-                            }
-                            placeholder="Selecione"
-                            styles={selectStyles}
-                            isClearable
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="input-form-brabo"
-                            value={formRotulo.quantidade}
-                            onChange={e => setFormRotulo(f => ({ ...f, quantidade: e.target.value }))}
-                          />
-                        </td>
-                        <td>
-                          <Select
-                            classNamePrefix="input-form-brabo"
-                            options={unidadesNutricionaisOptions}
-                            value={
-                              formRotulo.unidade
-                                ? { value: formRotulo.unidade, label: formRotulo.unidade }
-                                : null
-                            }
-                            onChange={selected =>
-                              setFormRotulo(f => ({ ...f, unidade: selected ? selected.value : "" }))
-                            }
-                            placeholder="Selecione"
-                            styles={selectStyles}
-                            isClearable
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="input-form-brabo"
-                            value={formRotulo.vd}
-                            onChange={e => setFormRotulo(f => ({ ...f, vd: e.target.value }))}
-                          />
-                        </td>
-                        <td style={{ textAlign: "center" }}>
+                        <div className="acoes-rotulo-btns">
                           <button
                             onClick={() => handleSaveEditRotulo(idx)}
                             className="rotulo-table-btn-save"
                             title="Salvar"
                           >
-                            <FaCheck style={{ color: "#fff", fontSize: "1.4rem" }} />
+                            <FaCheck style={{ color: "#237be7", fontSize: "1.4rem" }} />
                           </button>
                           <button
                             onClick={handleCancelEditRotulo}
                             className="rotulo-table-btn-cancel"
                             title="Cancelar"
                           >
-                            <FaTimes style={{ color: "#fff", fontSize: "1.4rem" }} />
+                            <FaTimes style={{ color: "#ef4444", fontSize: "1.4rem" }} />
                           </button>
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={idx}>
-                        <td>{linha.descricao}</td>
-                        <td>{linha.quantidade}</td>
-                        <td>{linha.unidade}</td>
-                        <td>{linha.vd ? `${linha.vd}%` : ""}</td>
-                        <td style={{ textAlign: "center" }}>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={idx}>
+                      <td className="rotulo-td-desc">{linha.descricao}</td>
+                      <td className="rotulo-td-quant">{linha.quantidade}</td>
+                      <td className="rotulo-td-unid">{linha.unidade}</td>
+                      <td className="rotulo-td-vd">{linha.vd ? `${linha.vd}%` : ""}</td>
+                      <td className="rotulo-td-acoes" style={{ textAlign: "center" }}>
+                        <div className="acoes-rotulo-btns">
                           <button
                             onClick={() => handleEditRotulo(idx)}
                             className="rotulo-table-btn-edit"
@@ -1066,71 +1206,91 @@ useEffect(() => {
                           >
                             <FaTrash />
                           </button>
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {abaBloco === "historico" && (
-            <div className="bloco-historico-entradas bloco-escuro-custom">
-              {loadingEntradas ? (
-                <div>Carregando...</div>
-              ) : entradas.length === 0 ? (
-                <div>Nenhuma entrada registrada ainda.</div>
-              ) : (
-                <div className="historico-entradas-wrapper">
-                  <table className="historico-entradas-table">
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Quantidade</th>
-                        <th>Lote</th>
-                        <th>Valor</th>
-                        <th>Usuário</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entradas.map((entrada, idx) => (
-                        <tr key={entrada.id || idx}>
-                          <td>
-  {(() => {
-    const dt = entrada.data || entrada.createdAt;
-    if (!dt) return "";
-    // Se vier no formato YYYY-MM-DD, converte manualmente para dd/MM/yyyy
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-      const [ano, mes, dia] = dt.split("-");
-      return `${dia}/${mes}/${ano}`;
-    }
-    // Se vier dd/MM/yyyy já, só exibe
-    const match = dt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    if (match) return `${match[1]}/${match[2]}/${match[3]}`;
-    // Tenta usar Date para ISO completo
-    if (dt.includes("T")) {
-      const d = new Date(dt);
-      if (!isNaN(d)) return d.toLocaleDateString("pt-BR");
-    }
-    // fallback: mostra do jeito que veio
-    return dt;
-  })()}
-</td>
-                          <td>{entrada.quantidade}</td>
-                          <td>{entrada.lote || "-"}</td>
-                          <td>{entrada.valor ? `R$ ${Number(entrada.valor).toFixed(2)}` : "-"}</td>
-                          <td>{entrada.user?.name || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        {/* BOTÕES NO RODAPÉ */}
+        {/* HISTÓRICO */}
+        {abaBloco === "historico" && (
+          <div className="bloco-historico-entradas bloco-escuro-custom">
+            <div className="abas-cadastro">
+              <button
+                className={abaBloco === "estoque" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("estoque")}
+                type="button"
+              >
+                Estoque e Custos
+              </button>
+              <button
+                className={abaBloco === "rotulo" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("rotulo")}
+                type="button"
+              >
+                Rótulo Nutricional
+              </button>
+              <button
+                className={abaBloco === "historico" ? "aba-btn ativa" : "aba-btn"}
+                onClick={() => setAbaBloco("historico")}
+                type="button"
+              >
+                Histórico de Entradas
+              </button>
+            </div>
+            {loadingEntradas ? (
+              <div>Carregando...</div>
+            ) : entradas.length === 0 ? (
+              <div>Nenhuma entrada registrada ainda.</div>
+            ) : (
+              <div className="historico-entradas-wrapper">
+                <table className="historico-entradas-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Quantidade</th>
+                      <th>Lote</th>
+                      <th>Valor</th>
+                      <th>Usuário</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entradas.map((entrada, idx) => (
+                      <tr key={entrada.id || idx}>
+                        <td>
+                          {(() => {
+                            const dt = entrada.data || entrada.createdAt;
+                            if (!dt) return "";
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+                              const [ano, mes, dia] = dt.split("-");
+                              return `${dia}/${mes}/${ano}`;
+                            }
+                            const match = dt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                            if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+                            if (dt.includes("T")) {
+                              const d = new Date(dt);
+                              if (!isNaN(d)) return d.toLocaleDateString("pt-BR");
+                            }
+                            return dt;
+                          })()}
+                        </td>
+                        <td>{entrada.quantidade}</td>
+                        <td>{entrada.lote || "-"}</td>
+                        <td>{entrada.valor ? `R$ ${Number(entrada.valor).toFixed(2)}` : "-"}</td>
+                        <td>{entrada.user?.name || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="acoes-cadastro-btns-rodape">
           <button
             className="btn-salvar"
@@ -1148,18 +1308,16 @@ useEffect(() => {
             onClick={() => onDelete && onDelete(ingrediente)}
           >Excluir</button>
         </div>
-
-        {/* MODAL DE CROPPER CENTRALIZADO */}
         {showCropperModal && (
           <div className="modal-backdrop" style={{ zIndex: 200 }}>
             <div
               style={{
-                background: "#1b1231",
-                borderRadius: 20,
+                background: "#fff",
+                borderRadius: 22,
                 padding: 38,
                 minWidth: 370,
                 minHeight: 440,
-                boxShadow: "0 8px 48px #0e0b225c",
+                boxShadow: "0 8px 48px #2196f399",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -1170,12 +1328,12 @@ useEffect(() => {
                 style={{
                   width: 320,
                   height: 320,
-                  background: "#18122a",
+                  background: "#f8fafd",
                   borderRadius: 16,
                   overflow: "hidden",
                   position: "relative",
                   marginBottom: 26,
-                  border: "2px solid #b894ff"
+                  border: "2px solid #00cfff"
                 }}
               >
                 <Cropper
@@ -1196,7 +1354,7 @@ useEffect(() => {
                   type="button"
                   style={{
                     minWidth: 108,
-                    background: "linear-gradient(90deg, #4600eb, #b884fd)",
+                    background: "linear-gradient(90deg, #00cfff, #2196f3)",
                     color: "#fff",
                     fontWeight: 700,
                     borderRadius: 12,
@@ -1219,8 +1377,8 @@ useEffect(() => {
                   type="button"
                   style={{
                     minWidth: 108,
-                    background: "#3e295a",
-                    color: "#fff",
+                    background: "#e1e9f7",
+                    color: "#237be7",
                     fontWeight: 700,
                     borderRadius: 12,
                     border: "none",
@@ -1239,8 +1397,6 @@ useEffect(() => {
             </div>
           </div>
         )}
-
-        {/* MODAIS AUXILIARES */}
         <ModalCategorias
           open={modalCategoriasOpen}
           onClose={() => setModalCategoriasOpen(false)}
@@ -1251,7 +1407,6 @@ useEffect(() => {
           onClose={() => setModalMarcasOpen(false)}
           refresh={refreshMarcas}
         />
-
         <ModalRotuloNutricional
           open={rotuloConfigOpen}
           onClose={() => setRotuloConfigOpen(false)}

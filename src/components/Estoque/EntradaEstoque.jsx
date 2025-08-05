@@ -4,20 +4,20 @@ import ModalCadastroManual from "./ModalCadastroManual"; // Produto
 import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
 import Select from "react-select";
 
-// ====== ESTILO REACT-SELECT (100% igual ao input) ======
+// ====== ESTILO REACT-SELECT (azul/despesasfixas) ======
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    backgroundColor: "#1b1332",
-    borderColor: state.isFocused ? "#ffe066" : "#b884fd",
-    color: "#fff",
+    backgroundColor: "#f8fafd",
+    borderColor: state.isFocused ? "#00cfff" : "#e1e9f7",
+    color: "#237be7",
     minHeight: 48,
     height: 48,
     borderRadius: 10,
     fontSize: "1.03rem",
-    borderWidth: "2px",
-    boxShadow: state.isFocused ? "0 0 0 2px #ffe06644" : "none",
-    "&:hover": { borderColor: "#ffe066" },
+    borderWidth: "1.7px",
+    boxShadow: state.isFocused ? "0 0 0 2px #00cfff22" : "none",
+    "&:hover": { borderColor: "#00cfff" },
     transition: "border 0.19s",
   }),
   valueContainer: (base) => ({
@@ -29,13 +29,13 @@ const selectStyles = {
   }),
   input: (base) => ({
     ...base,
-    color: "#fff",
+    color: "#237be7",
     margin: 0,
     padding: 0,
   }),
   singleValue: (base) => ({
     ...base,
-    color: "#fff",
+    color: "#237be7",
     display: "flex",
     alignItems: "center",
   }),
@@ -45,33 +45,35 @@ const selectStyles = {
   }),
   menu: (base) => ({
     ...base,
-    backgroundColor: "#231844",
-    color: "#eee",
+    backgroundColor: "#fff",
+    color: "#237be7",
     zIndex: 9999,
     borderRadius: 10,
     marginTop: 2,
+    border: "1.5px solid #e1e9f7",
+    boxShadow: "0 2px 14px #c1e6fc1c",
   }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isFocused ? "#381aa7" : "#231844",
-    color: "#eee",
+    backgroundColor: state.isFocused ? "#e3f3fc" : "#fff",
+    color: "#237be7",
     cursor: "pointer"
   }),
   placeholder: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#b4c7e8"
   }),
   dropdownIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#2196f3"
   }),
   indicatorSeparator: (base) => ({
     ...base,
-    backgroundColor: "#b884fd"
+    backgroundColor: "#e1e9f7"
   }),
   clearIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#b4c7e8"
   }),
 };
 
@@ -142,7 +144,6 @@ export default function EntradaEstoque() {
     );
   }
 
-  // Seleciona produto e já preenche código interno
   function handleSelecionarProduto(idx, produtoId) {
     const produtoObj = produtos.find(p => p.id === produtoId);
     setProdutosList(list =>
@@ -158,7 +159,6 @@ export default function EntradaEstoque() {
     );
   }
 
-  // Busca produto pelo código interno e preenche o select
   function handleBuscaProdutoPorCodigo(idx, codigoDigitado) {
     if (!codigoDigitado) return;
     const produtoEncontrado = produtos.find(p => String(p.codigo) === String(codigoDigitado));
@@ -173,13 +173,11 @@ export default function EntradaEstoque() {
     }
   }
 
-  // SALVAR ENTRADA DE ESTOQUE
   async function handleSalvarTudo(e) {
     e.preventDefault();
     setMsg("");
     setCarregando(true);
 
-    // VALIDAÇÃO: Fornecedor obrigatório
     if (!fornecedorSelecionado) {
       setMsg("Selecione um fornecedor!");
       setCarregando(false);
@@ -224,217 +222,185 @@ export default function EntradaEstoque() {
   }
 
   return (
-    <div className="estoque-limpo-main">
-      <h2 className="estoque-limpo-titulo">Entrada de Estoque</h2>
+    <div className="estoque-main-full">
+      <div className="estoque-container">
+        <h2 className="estoque-titulo">Entrada de Estoque</h2>
 
-      {/* === Bloco Fornecedor (Select + botão novo) === */}
-      <section className="estoque-limpo-section">
-        <h3>Dados do Fornecedor</h3>
-        <div style={{ maxWidth: 460 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-            <label style={{ color: "#ffe066", fontWeight: 700 }}>
-              Fornecedor *
-            </label>
-            <button
-              type="button"
-              title="Cadastrar novo fornecedor"
-              style={{
-                fontWeight: 700,
-                fontSize: 19,
-                background: "linear-gradient(90deg, #7c3aed 60%, #ffe066 130%)",
-                border: "none",
-                color: "#fff",
-                borderRadius: 8,
-                width: 36,
-                height: 36,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                boxShadow: "0 1px 7px #37008a29"
-              }}
-              onClick={() => {
-                setNovoFornecedor({});
-                setModalFornecedorOpen(true);
-              }}
-            >+</button>
-          </div>
-          <Select
-            options={fornecedores.map(f => ({
-              value: f.id,
-              label: `${f.razaoSocial} - ${f.cnpjCpf}`,
-              ...f
-            }))}
-            value={fornecedorSelecionado}
-            onChange={setFornecedorSelecionado}
-            placeholder="Selecione um fornecedor..."
-            styles={selectStyles}
-            isClearable
-          />
-          {/* Exibe info ao selecionar */}
-          {fornecedorSelecionado && (
-            <div style={{ marginTop: 14, color: "#ffe066cc", fontSize: "1.08rem" }}>
-              <div><b>Razão Social:</b> {fornecedorSelecionado.razaoSocial}</div>
-              <div><b>CNPJ/CPF:</b> {fornecedorSelecionado.cnpjCpf}</div>
-              <div><b>Nome:</b> {fornecedorSelecionado.nomeVendedor}</div>
+        {/* === Bloco Fornecedor (Select + botão ao lado direito, grudado na direita) === */}
+        <section className="estoque-section">
+          <h3>Dados do Fornecedor</h3>
+          <div style={{ width: "100%" }}>
+            {/* LABEL REMOVIDO AQUI */}
+            <div className="fornecedor-select-abs-wrap">
+              <Select
+                options={fornecedores.map(f => ({
+                  value: f.id,
+                  label: `${f.razaoSocial} - ${f.cnpjCpf}`,
+                  ...f
+                }))}
+                value={fornecedorSelecionado}
+                onChange={setFornecedorSelecionado}
+                placeholder="Selecione um fornecedor..."
+                styles={selectStyles}
+                isClearable
+                classNamePrefix="input-form-brabo"
+              />
+              <button
+                type="button"
+                title="Cadastrar novo fornecedor"
+                className="estoque-btn-fornecedor-abs"
+                onClick={() => {
+                  setNovoFornecedor({});
+                  setModalFornecedorOpen(true);
+                }}
+              >
+                <span style={{ fontSize: "1.25em", fontWeight: 900, marginRight: 7 }}>+</span>
+                Cadastrar um fornecedor novo
+              </button>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* Produtos Dinâmicos */}
-      <section className="estoque-limpo-section">
-        <form onSubmit={handleSalvarTudo}>
-          <h3 style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            Produtos
-            <button
-              type="button"
-              title="Cadastrar novo produto"
-              style={{
-                marginLeft: 6,
-                fontWeight: 700,
-                fontSize: 19,
-                background: "linear-gradient(90deg, #7c3aed 60%, #c394fa 100%)",
-                border: "none",
-                color: "#fff",
-                borderRadius: 8,
-                width: 34,
-                height: 34,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                boxShadow: "0 1px 7px #37008a29"
-              }}
-              onClick={() => {
-                setNovoProduto({});
-                setCadastroProdutoModalOpen(true);
-              }}
-            >+</button>
-          </h3>
-
-          {produtosList.map((produto, idx) => (
-            <div key={idx} style={{ border: "1px solid #38276b", borderRadius: 13, padding: 16, marginBottom: 22, background: "#21194a", position: "relative" }}>
-              <div style={{ fontWeight: 700, color: "#ffe066", marginBottom: 10 }}>
-                Produto #{idx + 1}
-                {produtosList.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoverProduto(idx)}
-                    style={{
-                      marginLeft: 16,
-                      background: "transparent",
-                      color: "#FF6666",
-                      border: "none",
-                      fontSize: 18,
-                      cursor: "pointer"
-                    }}
-                    title="Remover produto"
-                  >
-                    🗑️
-                  </button>
-                )}
+            {fornecedorSelecionado && (
+              <div style={{ marginTop: 14, color: "#2196f3", fontSize: "1.05rem" }}>
+                <div><b>Razão Social:</b> {fornecedorSelecionado.razaoSocial}</div>
+                <div><b>CNPJ/CPF:</b> {fornecedorSelecionado.cnpjCpf}</div>
+                <div><b>Nome:</b> {fornecedorSelecionado.nomeVendedor}</div>
               </div>
-              {/* Primeira linha */}
-              <div className="produto-grid produto-grid-3">
-                <div>
-                  <label>Código Interno</label>
-                  <input
-                    value={produto.codigoInterno}
-                    onChange={e => handleChangeProduto(idx, "codigoInterno", e.target.value)}
-                    placeholder="(opcional)"
-                    onBlur={e => handleBuscaProdutoPorCodigo(idx, e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>Produto *</label>
-                  <Select
-                    classNamePrefix="input-form-brabo"
-                    options={produtos.map(prod => ({
-                      value: prod.id,
-                      label: prod.nome
-                    }))}
-                    value={
-                      produtos.find(p => p.id === produto.produtoId)
-                        ? { value: produto.produtoId, label: produtos.find(p => p.id === produto.produtoId).nome }
-                        : null
-                    }
-                    onChange={selected => handleSelecionarProduto(idx, selected ? selected.value : "")}
-                    placeholder="Selecione..."
-                    styles={selectStyles}
-                    isClearable
-                  />
-                </div>
-                <div>
-                  <label>Quantidade *</label>
-                  <input
-                    type="number"
-                    value={produto.quantidade}
-                    onChange={e => handleChangeProduto(idx, "quantidade", e.target.value)}
-                    min="1"
-                  />
-                </div>
-              </div>
-              {/* Valor total */}
-              <div className="produto-grid produto-grid-2">
-                <div>
-                  <label>Valor total da entrada</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={produto.valor}
-                    onChange={e => handleChangeProduto(idx, "valor", e.target.value)}
-                    placeholder="Ex: 50.00"
-                  />
-                </div>
-              </div>
-              {/* Lote + Validade */}
-              <h3>Informações do lote</h3>
-              <div className="produto-grid produto-grid-2">
-                <div>
-                  <label>Lote</label>
-                  <input
-                    value={produto.lote}
-                    onChange={e => handleChangeProduto(idx, "lote", e.target.value)}
-                    placeholder="(opcional)"
-                  />
-                </div>
-                <div>
-                  <label>Data de validade</label>
-                  <input
-                    type="date"
-                    value={produto.validade}
-                    onChange={e => handleChangeProduto(idx, "validade", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div className="botoes-produto-finalizar">
-            <button
-              type="button"
-              className="estoque-limpo-btn"
-              style={{ background: "linear-gradient(90deg, #7c3aed 60%, #c394fa 100%)" }}
-              onClick={handleAdicionarProduto}
-            >
-              + Adicionar Produto
-            </button>
-
-            <button
-              className="estoque-limpo-btn"
-              type="submit"
-              disabled={carregando}
-              style={{ background: "linear-gradient(90deg, #7c3aed 60%, #c394fa 100%)" }}
-            >
-              {carregando ? "Salvando..." : "Finalizar Entrada"}
-            </button>
+            )}
           </div>
+        </section>
 
-          {msg && <div className="estoque-limpo-msg">{msg}</div>}
-        </form>
-      </section>
+        {/* Produtos Dinâmicos */}
+        <section className="estoque-section">
+          <form onSubmit={handleSalvarTudo}>
+            <div className="produtos-header-bar">
+              <h3>Produtos</h3>
+              <button
+                type="button"
+                title="Cadastrar novo produto"
+                className="estoque-btn btn-cadastrar-produto"
+                onClick={() => {
+                  setNovoProduto({});
+                  setCadastroProdutoModalOpen(true);
+                }}
+              >
+                <span style={{ fontWeight: 900, marginRight: 8, fontSize: "1.17em" }}>+</span>
+                cadastrar novo produto
+              </button>
+            </div>
+
+            {produtosList.map((produto, idx) => (
+              <div key={idx} className="produto-card">
+                <div className="produto-card-titulo">
+                  Produto #{idx + 1}
+                  {produtosList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverProduto(idx)}
+                      className="produto-card-remove"
+                      title="Remover produto"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                {/* Primeira linha */}
+                <div className="produto-grid produto-grid-3">
+                  <div>
+                    <label>Código Interno</label>
+                    <input
+                      value={produto.codigoInterno}
+                      onChange={e => handleChangeProduto(idx, "codigoInterno", e.target.value)}
+                      placeholder="(opcional)"
+                      onBlur={e => handleBuscaProdutoPorCodigo(idx, e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label>Produto <span style={{ color: "#FF4848" }}>*</span></label>
+                    <Select
+                      classNamePrefix="input-form-brabo"
+                      options={produtos.map(prod => ({
+                        value: prod.id,
+                        label: prod.nome
+                      }))}
+                      value={
+                        produtos.find(p => p.id === produto.produtoId)
+                          ? { value: produto.produtoId, label: produtos.find(p => p.id === produto.produtoId).nome }
+                          : null
+                      }
+                      onChange={selected => handleSelecionarProduto(idx, selected ? selected.value : "")}
+                      placeholder="Selecione..."
+                      styles={selectStyles}
+                      isClearable
+                    />
+                  </div>
+                  <div>
+                    <label>Quantidade <span style={{ color: "#FF4848" }}>*</span></label>
+                    <input
+                      type="number"
+                      value={produto.quantidade}
+                      onChange={e => handleChangeProduto(idx, "quantidade", e.target.value)}
+                      min="1"
+                    />
+                  </div>
+                </div>
+                {/* Valor total */}
+                <div className="produto-grid produto-grid-2">
+                  <div>
+                    <label>Valor total da entrada</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={produto.valor}
+                      onChange={e => handleChangeProduto(idx, "valor", e.target.value)}
+                      placeholder="Ex: 50.00"
+                    />
+                  </div>
+                </div>
+                {/* Lote + Validade */}
+                <h3 style={{ fontSize: "1.06rem", color: "#2196f3", marginBottom: 8, marginTop: 8, fontWeight: 900 }}>Informações do lote</h3>
+                <div className="produto-grid produto-grid-2">
+                  <div>
+                    <label>Lote</label>
+                    <input
+                      value={produto.lote}
+                      onChange={e => handleChangeProduto(idx, "lote", e.target.value)}
+                      placeholder="(opcional)"
+                    />
+                  </div>
+                  <div>
+                    <label>Data de validade</label>
+                    <input
+                      type="date"
+                      value={produto.validade}
+                      onChange={e => handleChangeProduto(idx, "validade", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="botoes-produto-finalizar">
+              <button
+                type="button"
+                className="estoque-btn btn-esquerda"
+                onClick={handleAdicionarProduto}
+              >
+                + Adicionar Produto
+              </button>
+
+              <button
+                className="estoque-btn btn-direita"
+                type="submit"
+                disabled={carregando}
+              >
+                {carregando ? "Salvando..." : "Finalizar Entrada"}
+              </button>
+            </div>
+
+            {msg && <div className="estoque-msg">{msg}</div>}
+          </form>
+        </section>
+      </div>
 
       {/* MODAL DE CADASTRO DE PRODUTO */}
       {cadastroProdutoModalOpen && (
@@ -468,7 +434,7 @@ export default function EntradaEstoque() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(30, 30, 60, 0.58)",
+            background: "rgba(30, 52, 80, 0.33)",
             backdropFilter: "blur(4px)",
             zIndex: 1000,
             display: "flex",
@@ -479,15 +445,15 @@ export default function EntradaEstoque() {
         >
           <div
             style={{
-              background: "rgba(40, 40, 60, 0.98)",
+              background: "#fff",
               borderRadius: 22,
-              boxShadow: "0 8px 38px 0 rgba(36, 11, 54, 0.28)",
+              boxShadow: "0 8px 38px 0 #a0cef5cc",
               padding: "0 0 18px 0",
               minWidth: 390,
               maxWidth: "96vw",
-              color: "#f4f4fa",
+              color: "#237be7",
               position: "relative",
-              border: "1.5px solid #7a48ff33",
+              border: "1.5px solid #e1e9f7",
               animation: "fadeIn .18s",
             }}
           >

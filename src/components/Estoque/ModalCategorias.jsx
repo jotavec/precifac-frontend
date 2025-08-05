@@ -7,17 +7,23 @@ import {
 } from "../../services/categoriasApi";
 import { FaTrash, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 
-// Agora recebe refresh como prop!
+const BG_MODAL = "#fff";
+const CARD_BG = "#fff";
+const BORDER = "#e1e9f7";
+const TITLE = "#00cfff";
+const BTN_AZUL = "#00cfff";
+const BTN_AZUL_HOVER = "#00b8e6";
+const BTN_VERMELHO = "#ef4444";
+const TEXT_COLOR = "#222";
+
 export default function ModalCategorias({ open, onClose, refresh }) {
   const [categorias, setCategorias] = useState([]);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Editar
   const [editIdx, setEditIdx] = useState(null);
   const [editNome, setEditNome] = useState("");
 
-  // Agora ouve também refresh:
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -65,13 +71,11 @@ export default function ModalCategorias({ open, onClose, refresh }) {
     setLoading(false);
   }
 
-  // Começar edição
   function startEdit(idx, nomeAtual) {
     setEditIdx(idx);
     setEditNome(nomeAtual);
   }
 
-  // Salvar edição
   async function saveEdit(cat) {
     const novoNome = editNome.trim();
     if (!novoNome) return;
@@ -98,7 +102,6 @@ export default function ModalCategorias({ open, onClose, refresh }) {
     setLoading(false);
   }
 
-  // Cancelar edição
   function cancelEdit() {
     setEditIdx(null);
     setEditNome("");
@@ -108,25 +111,48 @@ export default function ModalCategorias({ open, onClose, refresh }) {
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-categorias" style={{
-        background: "#201844",
-        borderRadius: 15,
-        maxWidth: 370,
-        margin: "80px auto",
-        padding: 26,
-        boxShadow: "0 4px 38px #120b29cc",
-        color: "#fff"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ color: "#a78bfa", fontSize: 22, margin: 0 }}>Categorias</h2>
-          <button onClick={onClose}
+      <div
+        style={{
+          background: BG_MODAL,
+          borderRadius: 20,
+          maxWidth: 400,
+          minWidth: 340,
+          margin: "90px auto",
+          padding: 28,
+          boxShadow: "0 8px 40px #00cfff23",
+          border: `2.3px solid ${BORDER}`,
+          color: TEXT_COLOR,
+          fontFamily: "Roboto, Arial, sans-serif",
+        }}
+      >
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10
+        }}>
+          <h2 style={{
+            color: TITLE,
+            fontSize: 23,
+            margin: 0,
+            fontWeight: 900,
+            letterSpacing: 0.3
+          }}>
+            Categorias
+          </h2>
+          <button
+            onClick={onClose}
             style={{
-              fontSize: 22, background: "none", border: "none", color: "#fff", cursor: "pointer"
+              fontSize: 28,
+              background: "none",
+              border: "none",
+              color: TITLE,
+              cursor: "pointer",
+              fontWeight: 800,
+              marginLeft: 16,
+              lineHeight: 1
             }}
             title="Fechar"
           >×</button>
         </div>
-        <div style={{ margin: "22px 0 18px 0", minHeight: 180 }}>
+        <div style={{ margin: "18px 0 18px 0", minHeight: 120 }}>
           {loading && <div style={{ color: "#bbb" }}>Carregando...</div>}
           {!loading &&
             categorias.filter(cat => cat.nome && cat.nome.trim() !== "").length === 0 && (
@@ -138,11 +164,15 @@ export default function ModalCategorias({ open, onClose, refresh }) {
               <div key={cat.id} style={{
                 display: "flex",
                 alignItems: "center",
-                background: "#231b39",
-                borderRadius: 8,
+                background: CARD_BG,
+                borderRadius: 12,
+                border: `1.5px solid ${BORDER}`,
+                boxShadow: "0 2px 8px #a0cef520",
                 padding: "10px 0 10px 14px",
-                marginBottom: 8,
-                gap: 8
+                marginBottom: 10,
+                gap: 8,
+                minHeight: 36,
+                transition: "border 0.17s",
               }}>
                 {editIdx === idx ? (
                   <>
@@ -152,13 +182,15 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       autoFocus
                       style={{
                         flex: 1,
-                        background: "#2b204a",
-                        color: "#fff",
-                        border: "1px solid #7c3aed",
-                        borderRadius: 7,
+                        background: "#fff",
+                        color: TEXT_COLOR,
+                        border: `1.7px solid ${BTN_AZUL}`,
+                        borderRadius: 9,
                         padding: "8px 9px",
                         fontSize: 15,
-                        outline: "none"
+                        outline: "none",
+                        fontWeight: 600,
+                        marginRight: 4,
                       }}
                       onKeyDown={e => {
                         if (e.key === "Enter") saveEdit(cat);
@@ -166,102 +198,96 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       }}
                       disabled={loading}
                     />
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      marginLeft: "auto",
-                      marginRight: 6
-                    }}>
-                      <button
-                        onClick={() => saveEdit(cat)}
-                        style={{
-                          background: "#06e0e0",
-                          border: "none",
-                          color: "#201844",
-                          fontSize: 17,
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          height: 28,
-                          width: 28,
-                          padding: "0 6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        title="Salvar"
-                        disabled={loading}
-                      ><FaCheck /></button>
-                      <button
-                        onClick={cancelEdit}
-                        style={{
-                          background: "#231b39",
-                          border: "none",
-                          color: "#fc8181",
-                          fontSize: 17,
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          height: 28,
-                          width: 28,
-                          padding: "0 6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        title="Cancelar"
-                        disabled={loading}
-                      ><FaTimes /></button>
-                    </div>
+                    <button
+                      onClick={() => saveEdit(cat)}
+                      style={{
+                        background: BTN_AZUL,
+                        border: "none",
+                        color: "#fff",
+                        fontSize: 19,
+                        borderRadius: 9,
+                        cursor: "pointer",
+                        height: 32,
+                        width: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 2,
+                        boxShadow: "0 2px 8px #00cfff33",
+                        transition: "background .13s"
+                      }}
+                      title="Salvar"
+                      disabled={loading}
+                    ><FaCheck /></button>
+                    <button
+                      onClick={cancelEdit}
+                      style={{
+                        background: "#fff",
+                        border: `1.1px solid ${BORDER}`,
+                        color: BTN_VERMELHO,
+                        fontSize: 19,
+                        borderRadius: 9,
+                        cursor: "pointer",
+                        height: 32,
+                        width: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 3
+                      }}
+                      title="Cancelar"
+                      disabled={loading}
+                    ><FaTimes /></button>
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: 16, flex: 1 }}>{cat.nome}</span>
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      marginLeft: "auto",
-                      marginRight: 6
-                    }}>
-                      <button
-                        onClick={() => startEdit(idx, cat.nome)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#22d3ee",
-                          fontSize: 18,
-                          cursor: "pointer",
-                          height: 28,
-                          width: 28,
-                          padding: "0 6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        title="Editar"
-                        disabled={loading}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        onClick={() => handleRemoverCategoria(cat.id)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#fc8181",
-                          fontSize: 20,
-                          cursor: "pointer",
-                          height: 28,
-                          width: 28,
-                          padding: "0 6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        title={`Remover "${cat.nome}"`}
-                        disabled={loading}
-                      ><FaTrash /></button>
-                    </div>
+                    <span style={{
+                      fontSize: 16,
+                      flex: 1,
+                      color: TEXT_COLOR,
+                      fontWeight: 600,
+                      letterSpacing: 0.05,
+                      marginRight: 5
+                    }}>{cat.nome}</span>
+                    <button
+                      onClick={() => startEdit(idx, cat.nome)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: BTN_AZUL,
+                        fontSize: 20,
+                        cursor: "pointer",
+                        height: 32,
+                        width: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 2,
+                        transition: "color 0.15s"
+                      }}
+                      title="Editar"
+                      disabled={loading}
+                    >
+                      <FaEdit />
+                    </button>
+                    <button
+                      onClick={() => handleRemoverCategoria(cat.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: BTN_VERMELHO,
+                        fontSize: 21,
+                        cursor: "pointer",
+                        height: 32,
+                        width: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 3
+                      }}
+                      title={`Remover "${cat.nome}"`}
+                      disabled={loading}
+                    ><FaTrash /></button>
                   </>
                 )}
               </div>
@@ -274,8 +300,16 @@ export default function ModalCategorias({ open, onClose, refresh }) {
             onChange={e => setNovaCategoria(e.target.value)}
             placeholder="Nova categoria"
             style={{
-              flex: 1, background: "#2b204a", color: "#fff", border: "1px solid #7c3aed",
-              borderRadius: 7, padding: "9px 10px", fontSize: 15, outline: "none"
+              flex: 1,
+              background: "#fff",
+              color: TEXT_COLOR,
+              border: `1.7px solid ${BORDER}`,
+              borderRadius: 9,
+              padding: "10px 11px",
+              fontSize: 15,
+              outline: "none",
+              fontWeight: 600,
+              marginRight: 0,
             }}
             onKeyDown={e => { if (e.key === "Enter") handleAdicionarCategoria(); }}
             disabled={loading}
@@ -284,9 +318,25 @@ export default function ModalCategorias({ open, onClose, refresh }) {
             onClick={handleAdicionarCategoria}
             disabled={loading || !novaCategoria.trim()}
             style={{
-              background: "#7c3aed", color: "#fff", fontWeight: 700, padding: "8px 19px",
-              border: "none", borderRadius: 8, fontSize: 15, cursor: "pointer"
+              background: BTN_AZUL,
+              color: "#fff",
+              fontWeight: 800,
+              padding: "0 22px",
+              height: 40,
+              border: "none",
+              borderRadius: 9,
+              fontSize: 15.5,
+              cursor: "pointer",
+              letterSpacing: ".05em",
+              boxShadow: "0 2px 9px #00cfff2a",
+              transition: "background .13s",
+              minWidth: 112,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
+            onMouseOver={e => e.currentTarget.style.background = BTN_AZUL_HOVER}
+            onMouseOut={e => e.currentTarget.style.background = BTN_AZUL}
           >
             Adicionar
           </button>

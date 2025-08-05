@@ -16,9 +16,8 @@ import QuadroReceitas from "./components/QuadroReceitas";
 import PlanejamentoVendas from "./components/PlanejamentoVendas";
 import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
-import TesteIcones from "./TesteIcones";
-import CadastroReceita from "./components/QuadroDeReceitas/Cadastro";
-import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas"; // <-- NOVO
+// import CadastroReceita from "./components/QuadroDeReceitas/Cadastro";
+import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import "./App.css";
 import "./AppContainer.css";
 
@@ -321,9 +320,9 @@ export default function App() {
     if (aba === "movimentacoes") {
       return "Estoque:Movimentações";
     }
-    if (aba === "cadastro_receita") {
-      return "Quadro de Receitas:Cadastro";
-    }
+    // if (aba === "cadastro_receita") {
+    //   return "Quadro de Receitas:Cadastro";
+    // }
     if (aba === "central_receitas") { // <-- NOVO
       return "Quadro de Receitas:Central de Receitas";
     }
@@ -351,8 +350,8 @@ export default function App() {
       setAba("saida");
     } else if (label === "Estoque:Movimentações") {
       setAba("movimentacoes");
-    } else if (label === "Quadro de Receitas:Cadastro") {
-      setAba("cadastro_receita");
+    // } else if (label === "Quadro de Receitas:Cadastro") {
+    //   setAba("cadastro_receita");
     } else if (label === "Quadro de Receitas:Central de Receitas") { // <-- NOVO
       setAba("central_receitas");
     } else {
@@ -380,7 +379,9 @@ export default function App() {
           setSidebarExpanded={setSidebarExpanded}
         />
         <main className="main-content">
-          {aba === 2 ? (
+          {aba === 0 ? (
+            <Perfil onLogout={handleLogout} />
+          ) : aba === 2 ? (
             catIdx === 2 ? (
               <EncargosSobreVenda
                 data={encargosData}
@@ -444,8 +445,8 @@ export default function App() {
             <SaidaEstoque />
           ) : aba === "movimentacoes" ? (
             <Movimentacoes />
-          ) : aba === "cadastro_receita" ? (
-            <CadastroReceita />
+          // ) : aba === "cadastro_receita" ? (
+          //   <CadastroReceita />   // REMOVIDO
           ) : aba === "central_receitas" ? ( // <-- NOVO
             <CentralReceitas />
           ) : AbaComponent ? (

@@ -6,7 +6,9 @@ import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import "./MarkupIdeal.css";
 
-// Helpers
+// =====================
+// Helpers (TODOS AQUI!)
+// =====================
 function maskPercentInput(valorDigitado) {
   let v = valorDigitado.replace(/\D/g, "");
   if (v.length === 0) v = "0";
@@ -192,6 +194,53 @@ function somarEncargosReais(ativos, data, outrosEncargos) {
   return total;
 }
 
+// ============ COMPONENTE FOLHA DE PAGAMENTO (aba folha) ============
+function FolhaPagamentoModalAba({
+  funcionarios = [],
+  ativos = {},
+  onToggle,
+  calcularTotalFuncionarioObj
+}) {
+  const indiretos = Array.isArray(funcionarios)
+    ? funcionarios.filter(f => (f.tipoMaoDeObra || '').toLowerCase() === "indireta")
+    : [];
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      {indiretos.length === 0 && (
+        <div style={{ color: "#ffe060", fontWeight: 700 }}>
+          Nenhuma mão de obra indireta cadastrada.
+        </div>
+      )}
+      {indiretos.map((f, idx) => {
+        const id = f.id ?? f._id ?? f.nome;
+        const ativo = !!ativos[id];
+        return (
+          <div key={id} className="markupideal-listitem">
+            <label className="markupideal-switch">
+              <input
+                type="checkbox"
+                checked={ativo}
+                onChange={() => onToggle(id)}
+              />
+              <span className="markupideal-slider" />
+            </label>
+            <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
+              {f.nome}
+            </span>
+            <span className="markupideal-listitem-valor">
+              {calcularTotalFuncionarioObj
+                ? calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : (f.custoTotal ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+              }
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ToggleSwitchRoxo({ checked, onChange, disabled }) {
   return (
     <label className="markupideal-switch">
@@ -205,6 +254,7 @@ function ToggleSwitchRoxo({ checked, onChange, disabled }) {
     </label>
   );
 }
+
 function LinhaVisual(props) {
   const {
     label,
@@ -228,17 +278,14 @@ function LinhaVisual(props) {
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 500,
+                fontWeight: 800,
                 marginTop: 2,
                 marginBottom: -2,
-                color: "#fff",
+                color: "#8ba2c6",
                 display: "block"
               }}
             >
-              <span>
-                <span style={{ color: "#9cfa90" }}>Média de faturamento:</span>{" "}
-                <span style={{ color: "#ffe156", fontWeight: 700 }}>{mediaFaturamento}</span>
-              </span>
+              Média de faturamento: {mediaFaturamento}
             </div>
           )}
         </td>
@@ -292,6 +339,7 @@ function LinhaVisual(props) {
   );
 }
 
+// ============ BLOCO SUBRECEITA COM TOOLTIP =============
 function BlocoSubReceita() {
   const [nome, setNome] = useState("SubReceita");
   const [editando, setEditando] = useState(false);
@@ -345,8 +393,13 @@ function BlocoSubReceita() {
             <LinhaVisual label="Markup ideal" markup="1,000" />
           </tbody>
         </table>
-        <div className="markup-ideal-tip">
-          <b>Atenção:</b> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em outras receitas, evitando que a margem de lucro seja aplicada duas vezes no produto final.
+        <div className="markup-ideal-tip-tooltip">
+          <span className="markup-ideal-tip-icon" tabIndex={0}>
+            i
+          </span>
+          <span className="markup-ideal-tip-tooltip-text">
+            <b>Atenção:</b> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em outras receitas, evitando que a margem de lucro seja aplicada duas vezes no produto final.
+          </span>
         </div>
       </div>
     </div>
@@ -404,7 +457,6 @@ function BlocoCard({
                     className="markup-ideal-edit-btn"
                     onClick={onConfig}
                     title="Configurar bloco"
-                    style={{ color: "#7b57e7" }}
                   >⚙️</button>
                 )}
                 {onDelete && (
@@ -412,7 +464,6 @@ function BlocoCard({
                     className="markup-ideal-edit-btn"
                     onClick={onDelete}
                     title="Excluir bloco"
-                    style={{ color: "#e15c5c" }}
                   >🗑️</button>
                 )}
               </div>
@@ -430,23 +481,8 @@ function BlocoCard({
             ))}
           </tbody>
         </table>
-        <div
-          style={{
-            color: "#19ff8a",
-            fontSize: 13,
-            fontWeight: 700,
-            marginTop: 10,
-            marginBottom: 8,
-            background: "none",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <div>
-            Total em <span style={{ color: "#ffe156", fontWeight: 900 }}>
-              R$ {totalEncargosReais.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
+        <div className="markup-ideal-total-rs-cinza">
+          Total em R$ {totalEncargosReais.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         {obs}
       </div>
@@ -475,12 +511,10 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   const [custosAtivosEdicao, setCustosAtivosEdicao] = useState({});
   const [mudouAlgumaCoisa, setMudouAlgumaCoisa] = useState(false);
 
-  // FUNÇÃO QUE SALVA O BLOCO, AGORA CORRETA!
   async function salvarMarkupBloco(idx) {
     const bloco = blocos[idx];
     if (!bloco?.id) return;
 
-    // <-- CÁLCULO NOVO: totalEncargosReais antes do PUT!
     let totalEncargosReais = 0;
     if (encargos && encargos.data) {
       totalEncargosReais = somarEncargosReais(
@@ -489,9 +523,6 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         outrosEncargos || []
       );
     }
-    console.log("totalEncargosReais enviado (EDITAR):", totalEncargosReais);
-
-    // Aqui calcula o Markup Ideal ANTES de enviar!
     const ativos = custosAtivosPorBloco[idx] || {};
     const impostosTotais = somaImpostos(encargos.data || {}, ativos);
     const taxasTotais = somaTaxas(encargos.data || {}, ativos);
@@ -533,7 +564,6 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     }
   }
 
-  // O RESTANTE DO CÓDIGO CONTINUA IGUAL...
   useEffect(() => {
     async function fetchFiltro() {
       try {
@@ -688,48 +718,43 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     }
   }, [modalConfigIdx, custosAtivosPorBloco]);
 
-  // handlers
   const handleAddBloco = async () => {
-  if (inputNovo.trim() === "") return;
+    if (inputNovo.trim() === "") return;
 
-  // Calcule o totalEncargosReais antes de enviar ao back!
-  const ativos = custosAtivosPorBloco[blocos.length] || {};
-  const totalEncargosReais = somarEncargosReais(
-    ativos,
-    encargos.data || {},
-    outrosEncargos || []
-  );
-
-  console.log("totalEncargosReais enviado (CRIAR):", totalEncargosReais);
-
-  try {
-    const blocoCompleto = {
-      nome: inputNovo.trim(),
-      markup: "0,00",
-      markupIdeal: "1,000",
-      gastosFaturamento: "",
-      impostos: "",
-      taxasPagamento: "",
-      comissoes: "",
-      outros: "",
-      lucroDesejado: "",
-      mediaFaturamento: faturamentoMedia,
-      custosAtivos: {},
-      observacoes: "",
-      totalEncargosReais: totalEncargosReais,
-    };
-    const response = await axios.post(
-      "/api/markup-ideal",
-      blocoCompleto,
-      { withCredentials: true }
+    const ativos = custosAtivosPorBloco[blocos.length] || {};
+    const totalEncargosReais = somarEncargosReais(
+      ativos,
+      encargos.data || {},
+      outrosEncargos || []
     );
-    setBlocos(blocos => [...blocos, response.data]);
-    setInputNovo("");
-  } catch (err) {
-    alert("Erro ao adicionar bloco: " + err.message);
-  }
-};
 
+    try {
+      const blocoCompleto = {
+        nome: inputNovo.trim(),
+        markup: "0,00",
+        markupIdeal: "1,000",
+        gastosFaturamento: "",
+        impostos: "",
+        taxasPagamento: "",
+        comissoes: "",
+        outros: "",
+        lucroDesejado: "",
+        mediaFaturamento: faturamentoMedia,
+        custosAtivos: {},
+        observacoes: "",
+        totalEncargosReais: totalEncargosReais,
+      };
+      const response = await axios.post(
+        "/api/markup-ideal",
+        blocoCompleto,
+        { withCredentials: true }
+      );
+      setBlocos(blocos => [...blocos, response.data]);
+      setInputNovo("");
+    } catch (err) {
+      alert("Erro ao adicionar bloco: " + err.message);
+    }
+  };
 
   function montarCamposBloco(idx, markupValue, markupEdit) {
     const ativos = custosAtivosPorBloco[idx] || {};
@@ -842,52 +867,43 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     });
   }
   async function salvarEdicaoModal() {
-  if (modalConfigIdx === null) return;
-  const blocoId = blocos[modalConfigIdx]?.id;
-  if (!blocoId) return;
+    if (modalConfigIdx === null) return;
+    const blocoId = blocos[modalConfigIdx]?.id;
+    if (!blocoId) return;
 
-  // 1. PEGA OS ATIVOS JÁ EDITADOS (os que estão marcados)
-  const ativos = custosAtivosEdicao;
-
-  // 2. CALCULA O TOTAL (é a mesma função que você já tem)
-  const totalEncargosReais = somarEncargosReais(
-    ativos,
-    encargos.data || {},
-    outrosEncargos || []
-  );
-
-  // 3. DEBUG VISUAL PRA VC VER NO CONSOLE
-  console.log("totalEncargosReais enviado (SALVAR):", totalEncargosReais);
-
-  // 4. ENVIA OS ATIVOS ATUALIZADOS + TOTAL PARA O BACKEND
-  try {
-    await axios.post(`/api/bloco-ativos/${blocoId}`,
-      { ativos: custosAtivosEdicao },
-      { withCredentials: true }
+    const ativos = custosAtivosEdicao;
+    const totalEncargosReais = somarEncargosReais(
+      ativos,
+      encargos.data || {},
+      outrosEncargos || []
     );
-
-    // 5. ENVIA O NOVO totalEncargosReais PARA O BLOCO
-    await axios.put(`/api/markup-ideal/${blocoId}`,
-      { totalEncargosReais },
-      { withCredentials: true }
-    );
-
-    setCustosAtivosPorBloco(prev => ({
-      ...prev,
-      [modalConfigIdx]: custosAtivosEdicao
-    }));
-    setMudouAlgumaCoisa(false);
-  } catch {
-    alert("Erro ao salvar alterações! Tente novamente.");
+    try {
+      await axios.post(`/api/bloco-ativos/${blocoId}`,
+        { ativos: custosAtivosEdicao },
+        { withCredentials: true }
+      );
+      await axios.put(`/api/markup-ideal/${blocoId}`,
+        { totalEncargosReais },
+        { withCredentials: true }
+      );
+      setCustosAtivosPorBloco(prev => ({
+        ...prev,
+        [modalConfigIdx]: custosAtivosEdicao
+      }));
+      setMudouAlgumaCoisa(false);
+    } catch {
+      alert("Erro ao salvar alterações! Tente novamente.");
+    }
   }
-}
 
   const custosAtivos = modalConfigIdx !== null ? (custosAtivosEdicao || {}) : {};
 
+  // ======= Título e input no mesmo bloco (grid) =======
   return (
     <>
-      <div className="markup-ideal-main">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 32px 0" }}>
+      <div className="markup-ideal-header">
+        <h1 className="markup-ideal-top-title">Markup Ideal</h1>
+        <div className="markup-ideal-input-row">
           <input
             type="text"
             placeholder="Nome do novo card..."
@@ -895,67 +911,48 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
             onChange={e => setInputNovo(e.target.value)}
             maxLength={40}
             className="markup-ideal-input-edit"
-            style={{
-              width: 260,
-              fontWeight: 700,
-              fontSize: 20,
-              padding: "13px 18px",
-              background: "#231d3c",
-              border: "2px solid #a780ff",
-              color: "#adadff"
-            }}
             onKeyDown={e => { if (e.key === "Enter" && inputNovo.trim()) handleAddBloco(); }}
           />
           <button
             className="markup-ideal-add-btn"
-            style={{
-              color: "#ffe060",
-              fontWeight: 800,
-              fontSize: 22,
-              border: "2px solid #fff",
-              borderRadius: 10,
-              padding: "12px 26px",
-              marginLeft: 8,
-              background: inputNovo.trim() ? "#18132a" : "#2a2450",
-              boxShadow: "0 3px 20px #0007",
-              opacity: inputNovo.trim() ? 1 : 0.5,
-              cursor: inputNovo.trim() ? "pointer" : "not-allowed"
-            }}
             disabled={!inputNovo.trim()}
             onClick={handleAddBloco}
           >
             + Adicionar Card
           </button>
         </div>
-
-        <BlocoSubReceita />
-
-        {Array.isArray(blocos) && blocos.map((bloco, idx) => {
-          let totalEncargosReais = 0;
-          if (encargos && encargos.data) {
-            totalEncargosReais = somarEncargosReais(
-              custosAtivosPorBloco[idx] || {},
-              encargos.data,
-              outrosEncargos || []
+      </div>
+      <div className="markup-ideal-main">
+        <div className="markup-ideal-row-cards">
+          <BlocoSubReceita />
+          {Array.isArray(blocos) && [...blocos].reverse().map((bloco, i) => {
+            const idx = blocos.length - 1 - i;
+            let totalEncargosReais = 0;
+            if (encargos && encargos.data) {
+              totalEncargosReais = somarEncargosReais(
+                custosAtivosPorBloco[idx] || {},
+                encargos.data,
+                outrosEncargos || []
+              );
+            }
+            return (
+              <BlocoCard
+                key={bloco.id || idx}
+                nome={bloco.nome}
+                campos={montarCamposBloco(idx, bloco.markup, bloco.markupEdit)}
+                onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
+                onDelete={() => pedirConfirmacaoDelete(idx)}
+                onConfig={() => setModalConfigIdx(idx)}
+                mediaFaturamento={
+                  faturamentoMedia
+                    ? "R$ " + faturamentoMedia.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : ""
+                }
+                totalEncargosReais={totalEncargosReais}
+              />
             );
-          }
-          return (
-            <BlocoCard
-              key={bloco.id || idx}
-              nome={bloco.nome}
-              campos={montarCamposBloco(idx, bloco.markup, bloco.markupEdit)}
-              onChangeNome={novoNome => handleChangeNome(idx, novoNome)}
-              onDelete={() => pedirConfirmacaoDelete(idx)}
-              onConfig={() => setModalConfigIdx(idx)}
-              mediaFaturamento={
-                faturamentoMedia
-                  ? "R$ " + faturamentoMedia.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : ""
-              }
-              totalEncargosReais={totalEncargosReais}
-            />
-          );
-        })}
+          })}
+        </div>
       </div>
       {modalConfigIdx !== null && (
         <div
@@ -1005,22 +1002,9 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
                 />
               )}
             </div>
-            {/* BOTÃO DE SALVAR */}
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "18px 24px 0 0" }}>
               <button
                 className="markupideal-btn-salvar"
-                style={{
-                  background: mudouAlgumaCoisa ? "#ffe156" : "#333",
-                  color: mudouAlgumaCoisa ? "#231d3c" : "#bbb",
-                  border: "none",
-                  borderRadius: 10,
-                  fontWeight: 900,
-                  fontSize: 18,
-                  padding: "13px 38px",
-                  boxShadow: mudouAlgumaCoisa ? "0 0 0 2px #fff2" : "none",
-                  cursor: mudouAlgumaCoisa ? "pointer" : "not-allowed",
-                  transition: "all .15s"
-                }}
                 disabled={!mudouAlgumaCoisa}
                 onClick={salvarEdicaoModal}
               >
@@ -1040,52 +1024,5 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         itemLabel="bloco"
       />
     </>
-  );
-}
-
-// ============ COMPONENTE FOLHA DE PAGAMENTO (aba folha) ============
-function FolhaPagamentoModalAba({
-  funcionarios = [],
-  ativos = {},
-  onToggle,
-  calcularTotalFuncionarioObj
-}) {
-  const indiretos = Array.isArray(funcionarios)
-    ? funcionarios.filter(f => (f.tipoMaoDeObra || '').toLowerCase() === "indireta")
-    : [];
-
-  return (
-    <div style={{ marginTop: 10 }}>
-      {indiretos.length === 0 && (
-        <div style={{ color: "#ffe060", fontWeight: 700 }}>
-          Nenhuma mão de obra indireta cadastrada.
-        </div>
-      )}
-      {indiretos.map((f, idx) => {
-        const id = f.id ?? f._id ?? f.nome;
-        const ativo = !!ativos[id];
-        return (
-          <div key={id} className="markupideal-listitem">
-            <label className="markupideal-switch">
-              <input
-                type="checkbox"
-                checked={ativo}
-                onChange={() => onToggle(id)}
-              />
-              <span className="markupideal-slider" />
-            </label>
-            <span className="markupideal-listitem-nome" style={{ flex: 1 }}>
-              {f.nome}
-            </span>
-            <span className="markupideal-listitem-valor">
-              {calcularTotalFuncionarioObj
-                ? calcularTotalFuncionarioObj(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                : (f.custoTotal ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-              }
-            </span>
-          </div>
-        );
-      })}
-    </div>
   );
 }

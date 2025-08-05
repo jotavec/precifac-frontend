@@ -23,7 +23,7 @@ export default function SidebarMenu({
   const [custosOpen, setCustosOpen] = useState(false);
   const [markupOpen, setMarkupOpen] = useState(false);
   const [estoqueOpen, setEstoqueOpen] = useState(false);
-  const [receitasOpen, setReceitasOpen] = useState(false); // <-- NOVO
+  const [receitasOpen, setReceitasOpen] = useState(false);
 
   const menuItems = [
     { label: "Perfil", icon: <FaUser /> },
@@ -57,8 +57,8 @@ export default function SidebarMenu({
       label: "Quadro de Receitas",
       icon: <GiChefToque size={22} />,
       subItems: [
-        { label: "Cadastro" },
-        { label: "Central de Receitas" }, // <-- Adicionamos aqui
+        // { label: "Cadastro" }, // REMOVIDO
+        { label: "Central de Receitas" },
       ],
     },
     {
@@ -130,7 +130,6 @@ export default function SidebarMenu({
               <span className="icon">{item.icon}</span>
               <span className="label">
                 <span className="label-text">{item.label}</span>
-                {/* SETAS DOS MENUS */}
                 {item.label === "Custos" && item.subItems && (
                   <span
                     className="submenu-arrow"

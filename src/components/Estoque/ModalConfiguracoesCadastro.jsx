@@ -3,6 +3,7 @@ import Modal from "react-modal";
 import { FiX } from "react-icons/fi";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
+// Switch azul igual o do app
 function Switch({ checked, onChange }) {
   return (
     <label style={{
@@ -15,17 +16,18 @@ function Switch({ checked, onChange }) {
         style={{ display: "none" }}
       />
       <span style={{
-        width: 36, height: 18, borderRadius: 15,
-        background: checked ? "#a78bfa" : "#3d3161",
-        position: "relative", transition: ".17s", display: "inline-block"
+        width: 38, height: 22, borderRadius: 16,
+        background: checked ? "linear-gradient(90deg,#20bbff 0%,#1898ff 100%)" : "#e3eaf3",
+        position: "relative", transition: ".16s", display: "inline-block"
       }}>
         <span style={{
-          width: 16, height: 16, borderRadius: "50%",
-          background: checked ? "#fff" : "#7c7c93",
+          width: 18, height: 18, borderRadius: "50%",
+          background: checked ? "#fff" : "#b0cdf2",
           position: "absolute",
-          left: checked ? 18 : 2,
-          top: 1,
-          transition: ".17s"
+          left: checked ? 17 : 2,
+          top: 2,
+          boxShadow: checked ? "0 1px 4px #20bbff44" : "none",
+          transition: ".16s"
         }} />
       </span>
     </label>
@@ -51,7 +53,6 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
   const [colunas, setColunas] = useState(null);
   const [erro, setErro] = useState("");
 
-  // Carrega as preferências do backend quando abrir o modal
   useEffect(() => {
     if (isOpen) {
       const userId = localStorage.getItem("user_id") || "1";
@@ -67,10 +68,8 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     }
   }, [isOpen]);
 
-  // Enquanto não carregou, retorna null ou loading
   if (!colunas) return null;
 
-  // Mantém as visíveis no topo
   const ordenadas = [
     ...colunas.filter(c => c.visivel),
     ...colunas.filter(c => !c.visivel)
@@ -118,7 +117,6 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     }
   }
 
-  // Reordena a lista
   function reorder(list, startIndex, endIndex) {
     const result = Array.from(list);
     const [removed] = result.splice(startIndex, 1);
@@ -129,7 +127,6 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
   function onDragEnd(result) {
     if (!result.destination) return;
     const visibleCount = colunas.filter(c => c.visivel).length;
-    // só permite arrastar entre visíveis ou entre invisíveis
     if (
       (result.source.index < visibleCount && result.destination.index >= visibleCount) ||
       (result.source.index >= visibleCount && result.destination.index < visibleCount)
@@ -140,7 +137,6 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     setColunas(newCols);
   }
 
-  // Bloco visual do item (com melhorias para fluidez)
   const renderBloco = (coluna, prov, snapshot, idx) => (
     <div
       ref={prov ? prov.innerRef : undefined}
@@ -149,19 +145,19 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "9px 10px 9px 0",
-        borderBottom: "1px solid #2f2250",
-        background: snapshot && snapshot.isDragging ? "#ffe066" : "rgba(34,22,53,0.96)",
-        color: snapshot && snapshot.isDragging ? "#241d39" : "#fff",
+        padding: "15px 20px 15px 0",
+        borderBottom: "1px solid #dbeafe",
+        background: snapshot && snapshot.isDragging ? "#e3f0fd" : "#f7fbfe",
+        color: "#1b2749",
         boxShadow: snapshot && snapshot.isDragging
-          ? "0 6px 22px #ffe06680, 0 2px 10px #140c3230"
-          : "0 1px 2px #140c3210",
+          ? "0 6px 22px #22aaff25, 0 2px 10px #140c3230"
+          : undefined,
         zIndex: snapshot && snapshot.isDragging ? 1001 : "auto",
-        borderRadius: 8,
-        minHeight: 44,
-        border: snapshot && snapshot.isDragging ? "2px solid #a78bfa" : "none",
-        fontSize: 16,
-        fontWeight: coluna.visivel ? 600 : 400,
+        borderRadius: 12,
+        minHeight: 56,
+        border: snapshot && snapshot.isDragging ? "2px solid #38a1ff" : "none",
+        fontSize: 18,
+        fontWeight: coluna.visivel ? 700 : 500,
         transition: "box-shadow 0.09s, background 0.09s, color 0.09s",
         willChange: "transform",
         userSelect: "none",
@@ -172,18 +168,18 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
       <div
         {...(prov ? prov.dragHandleProps : {})}
         style={{
-          fontSize: 20,
-          color: "#a78bfa",
-          padding: "0 12px",
+          fontSize: 24,
+          color: "#38a1ff",
+          padding: "0 18px",
           cursor: "grab",
           userSelect: "none",
-          opacity: 0.95,
+          opacity: 0.96,
         }}
         title="Arrastar para mover"
       >
         ≡
       </div>
-      <span style={{ flex: 1, fontWeight: coluna.visivel ? 700 : 400 }}>
+      <span style={{ flex: 1, fontWeight: coluna.visivel ? 800 : 500 }}>
         {coluna.label}
       </span>
       <Switch
@@ -203,7 +199,7 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
       ariaHideApp={false}
       style={{
         overlay: {
-          backgroundColor: "rgba(16, 11, 40, 0.6)",
+          backgroundColor: "rgba(16, 11, 40, 0.22)",
           zIndex: 1000,
           backdropFilter: "blur(2px)",
         },
@@ -214,55 +210,72 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
           bottom: "auto",
           marginRight: "-50%",
           transform: "translate(-50%, -50%)",
-          background: "linear-gradient(135deg, #241d39 80%, #35215c 100%)",
-          borderRadius: 18,
+          background: "#fff",
+          borderRadius: "32px",
           border: "none",
-          padding: "34px 32px 24px 32px",
-          minWidth: 350,
-          maxWidth: 420,
-          minHeight: 220,
-          boxShadow: "0 6px 32px #160c3570",
+          padding: "3rem 2.6rem 2.3rem 2.6rem",
+          minWidth: 440,
+          maxWidth: 520,
+          minHeight: 260,
+          boxShadow: "0 8px 38px 0 #38a1ff23, 0 1.5px 0.5px #2196f366",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
         },
       }}
     >
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        marginBottom: 20,
-        gap: 12,
-      }}>
-        <h2 style={{ flex: 1, color: "#ffe066", fontWeight: 700, fontSize: 22, margin: 0 }}>
-          Configurar Colunas
-        </h2>
-        <button
-          style={{
-            border: "none",
-            background: "none",
-            color: "#aaa",
-            fontSize: 20,
-            cursor: "pointer",
-            marginLeft: 10,
-          }}
-          title="Fechar"
-          onClick={onRequestClose}
-        >
-          <FiX size={26} />
-        </button>
-      </div>
+      <button
+        onClick={onRequestClose}
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          background: "none",
+          border: "none",
+          color: "#38a1ff",
+          fontSize: 34,
+          cursor: "pointer",
+          fontWeight: 700,
+          transition: "color 0.17s"
+        }}
+        aria-label="Fechar"
+        title="Fechar"
+        tabIndex={0}
+      >
+        <FiX />
+      </button>
 
-      <div style={{ color: "#fff", fontSize: 17, marginTop: 10, marginBottom: 8 }}>
-        <p style={{ marginBottom: 8, color: "#ffe066", fontWeight: 600 }}>
+      <h2 style={{
+        color: "#1898ff",
+        fontSize: 26,
+        marginBottom: 26,
+        fontWeight: 900,
+        letterSpacing: 0.1,
+        textAlign: "left",
+        width: "100%",
+        fontFamily: "inherit"
+      }}>
+        Configurar Colunas
+      </h2>
+      <div style={{ width: "100%", marginBottom: 12 }}>
+        <p style={{
+          color: "#38a1ff",
+          fontWeight: 700,
+          fontSize: 17,
+          marginBottom: 18
+        }}>
           Arraste para reordenar. Ative/desative as colunas desejadas:
         </p>
         <div
           style={{
-            borderRadius: 10,
-            background: "#221635",
-            padding: 4,
-            marginBottom: 10,
+            borderRadius: 16,
+            background: "#f2f8fd",
+            padding: 7,
+            marginBottom: 20,
             maxHeight: 340,
             overflowY: "auto",
             position: "relative",
+            border: "1.5px solid #e5eef7"
           }}
         >
           <DragDropContext onDragEnd={onDragEnd}>
@@ -302,13 +315,12 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
         {erro && (
           <div style={{
             color: "#ff6363",
-            background: "#231844",
-            borderRadius: 8,
-            padding: "8px 12px",
-            marginBottom: 10,
-            marginTop: -2,
-            fontWeight: 500,
-            fontSize: 15,
+            background: "#eaf6ff",
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontWeight: 700,
+            fontSize: 16,
             textAlign: "center",
           }}>
             {erro}
@@ -317,17 +329,18 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
         <button
           style={{
             width: "100%",
-            background: "#a78bfa",
-            color: "#21173A",
+            background: "linear-gradient(90deg,#20bbff 0%,#1898ff 100%)",
+            color: "#fff",
             border: "none",
-            borderRadius: 8,
-            padding: "12px 0",
-            fontWeight: 700,
-            fontSize: 17,
+            borderRadius: 13,
+            padding: "17px 0",
+            fontWeight: 900,
+            fontSize: 18,
             cursor: (totalMarcados >= 5 && totalMarcados <= 9) ? "pointer" : "not-allowed",
             opacity: (totalMarcados >= 5 && totalMarcados <= 9) ? 1 : 0.6,
-            marginTop: 14,
-            boxShadow: "0 2px 10px #160c3530",
+            marginTop: 10,
+            marginBottom: 12,
+            boxShadow: "0 2px 10px #20bbff33",
             transition: "filter .17s"
           }}
           onClick={handleSalvar}
@@ -335,7 +348,15 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
         >
           Salvar Alterações
         </button>
-        <p style={{ color: "#ffe066", marginTop: 18, fontSize: 15, textAlign: "center" }}>
+        <p style={{
+          color: "#38a1ff",
+          marginTop: 10,
+          fontSize: 15,
+          textAlign: "center",
+          lineHeight: 1.5,
+          marginBottom: 0,
+          fontWeight: 700
+        }}>
           Selecione de 5 a 9 colunas.<br />
           (Os ativos sempre aparecem no topo)<br />
           Arraste para reordenar.

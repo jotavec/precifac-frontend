@@ -46,7 +46,8 @@ export default function EncargosSobreVendaModal({
     { key: "colaboradores", label: "Comissão Colaboradores" }
   ];
 
-  const purple = "#a780ff";
+  const azul = "#2196f3";
+  const cinza = "#97a7c3";
   const parcelas = Array.isArray(encargosData.creditoParcelado)
     ? encargosData.creditoParcelado
     : [];
@@ -59,12 +60,24 @@ export default function EncargosSobreVendaModal({
         <td style={{ width: 56, textAlign: "center" }}>
           <ToggleComponent checked={!!ativos[key]} onChange={() => onToggle(key)} />
         </td>
-        <td style={{ color: "#fff", fontWeight: 500 }}>{label}</td>
+        <td style={{ color: azul, fontWeight: 700 }}>{label}</td>
         <td style={{ width: 90, textAlign: "right" }}>
-          <span style={{ color: purple, fontWeight: 700, minWidth: 60 }}>{percentMasked} %</span>
+          <span style={{
+            color: azul,
+            fontWeight: 900,
+            minWidth: 60
+          }}>
+            {percentMasked} %
+          </span>
         </td>
         <td style={{ width: 120, textAlign: "right" }}>
-          <span style={{ color: purple, fontWeight: 700, minWidth: 60 }}>R$ {valueMasked}</span>
+          <span style={{
+            color: azul,
+            fontWeight: 900,
+            minWidth: 60
+          }}>
+            R$ {valueMasked}
+          </span>
         </td>
       </tr>
     );
@@ -75,7 +88,14 @@ export default function EncargosSobreVendaModal({
       <tbody>
         {/* IMPOSTOS */}
         <tr>
-          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "10px 0 4px" }}>Impostos</td>
+          <td colSpan={4} style={{
+            color: cinza,
+            fontWeight: 800,
+            fontSize: "1.07rem",
+            padding: "10px 0 4px"
+          }}>
+            Impostos
+          </td>
         </tr>
         {["icms", "iss", "pisCofins", "irpjCsll", "ipi"].map(key =>
           renderLinha(key, CHAVES.find(c => c.key === key)?.label, encargosData[key]?.percent ?? 0, encargosData[key]?.value ?? 0)
@@ -83,7 +103,14 @@ export default function EncargosSobreVendaModal({
 
         {/* TAXAS */}
         <tr>
-          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Taxas de Meios de Pagamento</td>
+          <td colSpan={4} style={{
+            color: cinza,
+            fontWeight: 800,
+            fontSize: "1.07rem",
+            padding: "16px 0 4px"
+          }}>
+            Taxas de Meios de Pagamento
+          </td>
         </tr>
         {["debito", "credito", "boleto", "pix", "gateway"].flatMap(key => {
           const linhas = [
@@ -105,7 +132,14 @@ export default function EncargosSobreVendaModal({
 
         {/* COMISSÕES */}
         <tr>
-          <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Comissões e Plataformas</td>
+          <td colSpan={4} style={{
+            color: cinza,
+            fontWeight: 800,
+            fontSize: "1.07rem",
+            padding: "16px 0 4px"
+          }}>
+            Comissões e Plataformas
+          </td>
         </tr>
         {["marketing", "delivery", "saas", "colaboradores"].map(key =>
           renderLinha(key, CHAVES.find(c => c.key === key)?.label, encargosData[key]?.percent ?? 0, encargosData[key]?.value ?? 0)
@@ -115,7 +149,14 @@ export default function EncargosSobreVendaModal({
         {outrosEncargos.length > 0 && (
           <>
             <tr>
-              <td colSpan={4} style={{ color: "#ffe156", fontWeight: 700, padding: "16px 0 4px" }}>Outros Encargos</td>
+              <td colSpan={4} style={{
+                color: cinza,
+                fontWeight: 800,
+                fontSize: "1.07rem",
+                padding: "16px 0 4px"
+              }}>
+                Outros Encargos
+              </td>
             </tr>
             {outrosEncargos.map(item =>
               renderLinha(item.id ?? item.nome, item.nome, item.percent, item.value)

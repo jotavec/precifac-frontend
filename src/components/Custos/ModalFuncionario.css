@@ -1,0 +1,416 @@
+/* Overlay do modal */
+.ReactModal__Overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(34, 28, 58, 0.36);
+  z-index: 1099;
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ReactModal__Content {
+  position: relative;
+  z-index: 1100;
+  background: #fff !important;
+  color: #18122b !important;
+  border-radius: 22px;
+  min-width: 420px;
+  max-width: 96vw;
+  min-height: 250px;
+  box-shadow: 0 16px 64px #a780ff16, 0 2px 14px #2c234820;
+  padding: 44px 38px 34px 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: visible;
+  transition: box-shadow 0.2s;
+  outline: none;
+}
+
+.modal-func-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #222;
+  margin-bottom: 15px;
+  letter-spacing: 0.5px;
+}
+
+.modal-func-label {
+  color: #2694fb;
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin: 10px 0 7px 0;
+  letter-spacing: 0.2px;
+  display: block;
+}
+
+.folha-input,
+.folha-input-salario {
+  display: block;
+  width: 100%;
+  background: #f8fafd !important;
+  border: 1.5px solid #e1e9f7;
+  border-radius: 14px;
+  color: #18122b !important;
+  font-size: 1.13rem;
+  padding: 13px 18px;
+  font-weight: 700;
+  outline: none;
+  margin-bottom: 16px;
+  margin-top: 0;
+  box-sizing: border-box;
+  transition: border-color 0.17s, background 0.15s;
+  box-shadow: none !important;
+}
+
+.folha-input:focus,
+.folha-input:active,
+.folha-input-salario:focus,
+.folha-input-salario:active {
+  border-color: #b6b6b6 !important;
+  background: #f8fafd !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.folha-input:-webkit-autofill,
+.folha-input:focus,
+.folha-input:active,
+.folha-input-salario:-webkit-autofill,
+.folha-input-salario:focus,
+.folha-input-salario:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.folha-input-salario {
+  padding-left: 48px !important;
+  margin-bottom: 16px;
+}
+
+.folha-input-prefix {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a5b6ce;
+  font-size: 1.12rem;
+  pointer-events: none;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* ===== CAMPOS PERCENTUAIS E VALOR ===== */
+.folha-campos-percentuais {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.folha-percent-row {
+  display: grid;
+  grid-template-columns: 170px 110px 190px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.folha-percent-label {
+  font-weight: 900;
+  color: #2196f3 !important;
+  font-size: 1.02rem;
+}
+
+/* Caixinha de % alinhada toda à direita */
+.folha-percent-inputbox {
+  display: flex;
+  align-items: center;
+  background: #f8fafd !important;
+  border-radius: 14px;
+  padding: 0 12px 0 8px;
+  border: 1.5px solid #e1e9f7;
+  height: 48px;
+  min-width: 78px;
+  max-width: 110px;
+  box-sizing: border-box;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.folha-percent-input {
+  width: auto;
+  min-width: 0;
+  max-width: 56px;
+  font-size: 1.13rem;
+  background: transparent !important;
+  color: #222 !important;
+  border: none;
+  outline: none;
+  text-align: right;
+  font-weight: 900;
+  box-shadow: none !important;
+  padding: 0;
+  margin: 0;
+  height: 46px;
+  line-height: 46px;
+}
+
+.folha-percent-input:focus,
+.folha-percent-input:active {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+.folha-percent-sufix {
+  color: #b8cef7 !important;
+  font-weight: 900;
+  font-size: 1.02rem;
+  margin-left: 0;
+  margin-right: 0;
+  align-self: center;
+}
+
+/* ===== INPUT DE VALOR ===== */
+.folha-valor-inputbox {
+  display: flex;
+  align-items: center;
+  background: #f8fafd !important;
+  border-radius: 14px;
+  padding: 0 12px;
+  gap: 4px;
+  border: 1.5px solid #e1e9f7;
+  min-width: 140px;
+  max-width: 190px;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.folha-valor-prefix {
+  color: #a5b6ce !important;
+  margin-right: 1px;
+  font-weight: 800;
+  font-size: 1.07rem;
+}
+
+.folha-valor-input {
+  width: 115px;
+  font-size: 1.13rem;
+  background: transparent !important;
+  color: #18122b !important;
+  border: none;
+  outline: none;
+  text-align: right;
+  font-weight: 900;
+  box-shadow: none !important;
+  padding: 0;
+  margin: 0;
+  height: 46px;
+  line-height: 46px;
+}
+
+.folha-valor-input:focus,
+.folha-valor-input:active {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+/* ===== OUTROS ===== */
+.folha-modal-total {
+  font-weight: 900;
+  color: #2196f3 !important;
+  text-align: center;
+  margin: 22px 0 8px 0;
+  font-size: 1.11rem;
+}
+
+.folha-horas-bloco {
+  margin: 14px 0 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafd !important;
+  border-radius: 13px;
+  border: 1.5px solid #e1e9f7;
+  padding: 17px 18px 10px 18px;
+}
+
+.folha-horas-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folha-horas-label {
+  color: #2196f3 !important;
+  font-weight: 900;
+  font-size: 1.04rem;
+}
+
+.folha-horas-input {
+  width: 60px;
+  background: #fff !important;
+  color: #18122b !important;
+  border: 1.5px solid #e1e9f7;
+  border-radius: 7px;
+  font-weight: 900;
+  font-size: 1.06rem;
+  text-align: center;
+  padding: 4px 6px;
+  box-shadow: none !important;
+}
+
+.folha-horas-input:focus,
+.folha-horas-input:active {
+  box-shadow: none !important;
+  outline: none !important;
+  border: 1.5px solid #b6b6b6 !important;
+}
+
+.folha-horas-valor {
+  color: #2196f3 !important;
+  font-weight: 900;
+  font-size: 1.18rem;
+  margin-top: 8px;
+  letter-spacing: 0.3px;
+  background: #f3fafd !important;
+  border-radius: 7px;
+  padding: 6px 18px;
+}
+
+.folha-modal-btns {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  justify-content: center;
+}
+.folha-btn-salvar {
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
+  color: #fff !important;
+  border: none;
+  border-radius: 11px;
+  padding: 12px 36px;
+  font-weight: 800;
+  font-size: 1.13rem;
+  cursor: pointer;
+  margin-right: 8px;
+  box-shadow: 0 2px 12px #00eaff33;
+  transition: background .2s;
+}
+.folha-btn-salvar:hover,
+.folha-btn-salvar:focus {
+  background: linear-gradient(90deg, #00eaff 0%, #229bd6 100%);
+}
+.folha-btn-cancelar {
+  background: #ececec !important;
+  color: #237be7 !important;
+  border: none;
+  border-radius: 11px;
+  padding: 12px 36px;
+  font-size: 1.13rem;
+  font-weight: 800;
+  box-shadow: 0 2px 10px #b7d9fd13;
+  transition: background .16s;
+}
+.folha-btn-cancelar:hover {
+  background: #e1e9f7 !important;
+}
+
+.ReactModal__Content {
+  max-height: 88vh;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #d6eaff #f8fafd;
+}
+.ReactModal__Content::-webkit-scrollbar {
+  width: 9px;
+  background: #f8fafd;
+}
+.ReactModal__Content::-webkit-scrollbar-thumb {
+  background: #d6eaff;
+  border-radius: 8px;
+  min-height: 48px;
+  border: 2px solid #f8fafd;
+  transition: background 0.2s;
+}
+.ReactModal__Content::-webkit-scrollbar-thumb:hover {
+  background: #b6d6fd;
+}
+.ReactModal__Content::-webkit-scrollbar-track {
+  background: #f8fafd;
+  border-radius: 8px;
+}
+
+/* Remove as setinhas dos inputs type="number" em TODOS navegadores */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Tooltip de informação das horas - À ESQUERDA do "i" */
+.horas-info-icon {
+  display: inline-block;
+  margin-left: 16px;
+  background: #eaf4ff;
+  color: #1893ff;
+  font-weight: bold;
+  font-family: sans-serif;
+  border-radius: 50%;
+  width: 23px;
+  height: 23px;
+  text-align: center;
+  line-height: 23px;
+  cursor: pointer;
+  border: 1.3px solid #bfe0ff;
+  position: relative;
+  font-size: 1.1rem;
+  user-select: none;
+  box-shadow: 0 1px 6px #005ec833;
+  transition: box-shadow 0.16s;
+}
+
+.horas-info-icon:focus,
+.horas-info-icon:active {
+  outline: none;
+  box-shadow: 0 0 0 3px #80c2ff66;
+}
+
+.horas-info-icon:focus .horas-tooltip,
+.horas-info-icon:hover .horas-tooltip {
+  display: block;
+}
+
+.horas-tooltip {
+  display: none;
+  position: absolute;
+  right: 100%; /* fica à esquerda do "i" */
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 265px;
+  max-width: 340px;
+  background: #f8fafd;
+  color: #18122b;
+  border: 1.7px solid #bfe0ff;
+  border-radius: 12px;
+  box-shadow: 0 8px 36px #005ec84b, 0 2px 8px #005ec81b;
+  padding: 16px 20px 14px 18px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  z-index: 19999;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+}

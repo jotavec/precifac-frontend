@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function ModalRotuloNutricional({
   open,
@@ -8,20 +8,46 @@ export default function ModalRotuloNutricional({
   setDescricoes,
   setUnidades
 }) {
-  // --------- DESCRIÇÃO ---------
+  const [categoriasApi, setCategoriasApi] = useState([]);
   const [descInput, setDescInput] = useState("");
   const [descEditIdx, setDescEditIdx] = useState(null);
+  const [unidInput, setUnidInput] = useState("");
+  const [unidEditIdx, setUnidEditIdx] = useState(null);
 
+  // Carregar categorias nutricionais do backend ao abrir modal
+  useEffect(() => {
+    if (open) {
+      fetch("/api/categorias-nutricionais", { credentials: "include" })
+        .then(res => res.json())
+        .then(data => {
+          setCategoriasApi(Array.isArray(data) ? data : []);
+          setDescricoes(Array.from(new Set(data.map(d => d.descricao))));
+          setUnidades(Array.from(new Set(data.map(d => d.unidade))));
+        });
+    }
+  }, [open, setDescricoes, setUnidades]);
+
+  // --------- DESCRIÇÃO ---------
   function handleAddDescricao() {
     const novaDesc = descInput.trim();
     if (
       !novaDesc ||
-      descricoes.some((d, i) => d.toLowerCase() === novaDesc.toLowerCase())
+      categoriasApi.some((d) => d.descricao.toLowerCase() === novaDesc.toLowerCase())
     )
       return;
-    setDescricoes(prev => [...prev, novaDesc]);
-    setDescInput("");
-    setDescEditIdx(null);
+    fetch("/api/categorias-nutricionais", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ descricao: novaDesc, unidade: "" })
+    })
+      .then(res => res.json())
+      .then((cat) => {
+        setCategoriasApi(prev => [...prev, cat]);
+        setDescricoes(prev => [...prev, novaDesc]);
+        setDescInput("");
+        setDescEditIdx(null);
+      });
   }
   function handleEditDescricao(idx) {
     setDescEditIdx(idx);
@@ -29,41 +55,72 @@ export default function ModalRotuloNutricional({
   }
   function handleSaveEditDescricao(idx) {
     const novaDesc = descInput.trim();
+    const oldDesc = descricoes[idx];
+    const categoria = categoriasApi.find(c => c.descricao === oldDesc);
     if (
       !novaDesc ||
-      descricoes.some(
-        (d, i) => d.toLowerCase() === novaDesc.toLowerCase() && i !== idx
+      categoriasApi.some(
+        (d) => d.descricao.toLowerCase() === novaDesc.toLowerCase() && d.descricao !== oldDesc
       )
     )
       return;
-    setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
-    setDescEditIdx(null);
-    setDescInput("");
+    if (!categoria) return;
+    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade })
+    })
+      .then(res => res.json())
+      .then((cat) => {
+        const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
+        setCategoriasApi(cats);
+        setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
+        setDescEditIdx(null);
+        setDescInput("");
+      });
   }
   function handleCancelEditDescricao() {
     setDescEditIdx(null);
     setDescInput("");
   }
   function handleDeleteDescricao(idx) {
-    setDescricoes(prev => prev.filter((_, i) => i !== idx));
-    setDescEditIdx(null);
-    setDescInput("");
+    const desc = descricoes[idx];
+    const categoria = categoriasApi.find(c => c.descricao === desc);
+    if (!categoria) return;
+    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
+      method: "DELETE",
+      credentials: "include"
+    })
+      .then(() => {
+        setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
+        setDescricoes(prev => prev.filter((_, i) => i !== idx));
+        setDescEditIdx(null);
+        setDescInput("");
+      });
   }
 
   // --------- UNIDADE ---------
-  const [unidInput, setUnidInput] = useState("");
-  const [unidEditIdx, setUnidEditIdx] = useState(null);
-
   function handleAddUnidade() {
     const novaUnid = unidInput.trim();
     if (
       !novaUnid ||
-      unidades.some((u, i) => u.toLowerCase() === novaUnid.toLowerCase())
+      categoriasApi.some((u) => u.unidade && u.unidade.toLowerCase() === novaUnid.toLowerCase())
     )
       return;
-    setUnidades(prev => [...prev, novaUnid]);
-    setUnidInput("");
-    setUnidEditIdx(null);
+    fetch("/api/categorias-nutricionais", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ descricao: "", unidade: novaUnid })
+    })
+      .then(res => res.json())
+      .then((cat) => {
+        setCategoriasApi(prev => [...prev, cat]);
+        setUnidades(prev => [...prev, novaUnid]);
+        setUnidInput("");
+        setUnidEditIdx(null);
+      });
   }
   function handleEditUnidade(idx) {
     setUnidEditIdx(idx);
@@ -71,25 +128,49 @@ export default function ModalRotuloNutricional({
   }
   function handleSaveEditUnidade(idx) {
     const novaUnid = unidInput.trim();
+    const oldUnid = unidades[idx];
+    const categoria = categoriasApi.find(c => c.unidade === oldUnid);
     if (
       !novaUnid ||
-      unidades.some(
-        (u, i) => u.toLowerCase() === novaUnid.toLowerCase() && i !== idx
+      categoriasApi.some(
+        (u) => u.unidade && u.unidade.toLowerCase() === novaUnid.toLowerCase() && u.unidade !== oldUnid
       )
     )
       return;
-    setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
-    setUnidEditIdx(null);
-    setUnidInput("");
+    if (!categoria) return;
+    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ descricao: categoria.descricao, unidade: novaUnid })
+    })
+      .then(res => res.json())
+      .then((cat) => {
+        const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
+        setCategoriasApi(cats);
+        setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
+        setUnidEditIdx(null);
+        setUnidInput("");
+      });
   }
   function handleCancelEditUnidade() {
     setUnidEditIdx(null);
     setUnidInput("");
   }
   function handleDeleteUnidade(idx) {
-    setUnidades(prev => prev.filter((_, i) => i !== idx));
-    setUnidEditIdx(null);
-    setUnidInput("");
+    const unid = unidades[idx];
+    const categoria = categoriasApi.find(c => c.unidade === unid);
+    if (!categoria) return;
+    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
+      method: "DELETE",
+      credentials: "include"
+    })
+      .then(() => {
+        setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
+        setUnidades(prev => prev.filter((_, i) => i !== idx));
+        setUnidEditIdx(null);
+        setUnidInput("");
+      });
   }
 
   if (!open) return null;
@@ -105,16 +186,16 @@ export default function ModalRotuloNutricional({
       justifyContent: "center",
     }}>
       <div style={{
-        background: "#22163b",
+        background: "#fff",
         borderRadius: 24,
         minWidth: 640,
         maxWidth: 780,
         width: "95vw",
         padding: "40px 46px 32px 46px",
-        boxShadow: "0 10px 48px #11082c88",
-        color: "#fff",
+        boxShadow: "0 10px 48px #a0cef57a",
+        color: "#2196f3",
         position: "relative",
-        border: "2.5px solid #a78bfa22",
+        border: "2px solid #e1e9f7",
         display: "flex",
         flexDirection: "column",
         gap: 20,
@@ -127,7 +208,7 @@ export default function ModalRotuloNutricional({
             right: 34,
             background: "none",
             border: "none",
-            color: "#fff",
+            color: "#2196f3",
             fontSize: 28,
             fontWeight: 700,
             cursor: "pointer"
@@ -135,7 +216,7 @@ export default function ModalRotuloNutricional({
           onClick={onClose}
         >×</button>
         <h2 style={{
-          color: "#b49cff",
+          color: "#2196f3",
           margin: 0,
           marginBottom: 28,
           fontSize: 30,
@@ -159,13 +240,13 @@ export default function ModalRotuloNutricional({
               justifyContent: "space-between",
               marginBottom: 12,
             }}>
-              <b style={{ fontSize: 23, color: "#fff", letterSpacing: "-0.5px" }}>
+              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>
                 Descrição
               </b>
               <button
                 type="button"
                 style={{
-                  background: "#a78bfa",
+                  background: "linear-gradient(90deg, #00cfff 60%, #2196f3 100%)",
                   border: "none",
                   color: "#fff",
                   borderRadius: 13,
@@ -186,16 +267,16 @@ export default function ModalRotuloNutricional({
               </button>
             </div>
             <div style={{
-              background: "#1b1330",
+              background: "#f8fafd",
               minHeight: 130,
               borderRadius: 14,
               padding: 15,
               fontSize: 18,
-              boxShadow: "0 1px 14px #140e2944",
+              boxShadow: "0 1px 14px #a0cef540",
               marginBottom: 2
             }}>
               {descricoes.length === 0 && descEditIdx !== -1 && (
-                <div style={{ color: "#aaa" }}>Nenhuma descrição.</div>
+                <div style={{ color: "#8fb9e7" }}>Nenhuma descrição.</div>
               )}
               {descricoes.map((desc, idx) =>
                 descEditIdx === idx ? (
@@ -203,9 +284,9 @@ export default function ModalRotuloNutricional({
                     <input
                       style={{
                         flex: 1,
-                        background: "#201739",
-                        color: "#fff",
-                        border: "1px solid #3a2c59",
+                        background: "#f8fafd",
+                        color: "#237be7",
+                        border: "2px solid #00cfff",
                         borderRadius: 8,
                         padding: "8px 11px",
                         fontSize: 17
@@ -223,9 +304,9 @@ export default function ModalRotuloNutricional({
                       onClick={() => handleSaveEditDescricao(idx)}
                       title="Salvar"
                       style={{
-                        background: "#22d3ee",
+                        background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
                         border: "none",
-                        color: "#201739",
+                        color: "#fff",
                         borderRadius: 7,
                         fontSize: 17,
                         padding: "0 12px"
@@ -240,7 +321,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#aaa",
+                        color: "#8fb9e7",
                         fontSize: 17,
                         padding: "0 10px"
                       }}
@@ -256,7 +337,8 @@ export default function ModalRotuloNutricional({
                       flex: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
+                      whiteSpace: "nowrap",
+                      color: "#237be7",
                     }}>
                       {desc}
                     </span>
@@ -267,7 +349,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#19e5ff",
+                        color: "#00cfff",
                         cursor: "pointer",
                         fontSize: 19,
                         padding: "0 7px"
@@ -280,7 +362,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#fc8181",
+                        color: "#ef4444",
                         cursor: "pointer",
                         fontSize: 19,
                         padding: "0 7px"
@@ -294,9 +376,9 @@ export default function ModalRotuloNutricional({
                   <input
                     style={{
                       flex: 1,
-                      background: "#201739",
-                      color: "#fff",
-                      border: "1px solid #3a2c59",
+                      background: "#f8fafd",
+                      color: "#237be7",
+                      border: "2px solid #00cfff",
                       borderRadius: 8,
                       padding: "8px 11px",
                       fontSize: 17
@@ -315,9 +397,9 @@ export default function ModalRotuloNutricional({
                     onClick={handleAddDescricao}
                     title="Salvar"
                     style={{
-                      background: "#22d3ee",
+                      background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
                       border: "none",
-                      color: "#201739",
+                      color: "#fff",
                       borderRadius: 7,
                       fontSize: 17,
                       padding: "0 12px"
@@ -330,7 +412,7 @@ export default function ModalRotuloNutricional({
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#aaa",
+                      color: "#8fb9e7",
                       fontSize: 17,
                       padding: "0 10px"
                     }}
@@ -347,13 +429,13 @@ export default function ModalRotuloNutricional({
               justifyContent: "space-between",
               marginBottom: 12,
             }}>
-              <b style={{ fontSize: 23, color: "#fff", letterSpacing: "-0.5px" }}>
+              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>
                 Unidade de Medida
               </b>
               <button
                 type="button"
                 style={{
-                  background: "#a78bfa",
+                  background: "linear-gradient(90deg, #00cfff 60%, #2196f3 100%)",
                   border: "none",
                   color: "#fff",
                   borderRadius: 13,
@@ -374,16 +456,16 @@ export default function ModalRotuloNutricional({
               </button>
             </div>
             <div style={{
-              background: "#1b1330",
+              background: "#f8fafd",
               minHeight: 130,
               borderRadius: 14,
               padding: 15,
               fontSize: 18,
-              boxShadow: "0 1px 14px #140e2944",
+              boxShadow: "0 1px 14px #a0cef540",
               marginBottom: 2
             }}>
               {unidades.length === 0 && unidEditIdx !== -1 && (
-                <div style={{ color: "#aaa" }}>Nenhuma unidade.</div>
+                <div style={{ color: "#8fb9e7" }}>Nenhuma unidade.</div>
               )}
               {unidades.map((unid, idx) =>
                 unidEditIdx === idx ? (
@@ -391,9 +473,9 @@ export default function ModalRotuloNutricional({
                     <input
                       style={{
                         flex: 1,
-                        background: "#201739",
-                        color: "#fff",
-                        border: "1px solid #3a2c59",
+                        background: "#f8fafd",
+                        color: "#237be7",
+                        border: "2px solid #00cfff",
                         borderRadius: 8,
                         padding: "8px 11px",
                         fontSize: 17
@@ -411,9 +493,9 @@ export default function ModalRotuloNutricional({
                       onClick={() => handleSaveEditUnidade(idx)}
                       title="Salvar"
                       style={{
-                        background: "#22d3ee",
+                        background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
                         border: "none",
-                        color: "#201739",
+                        color: "#fff",
                         borderRadius: 7,
                         fontSize: 17,
                         padding: "0 12px"
@@ -426,7 +508,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#aaa",
+                        color: "#8fb9e7",
                         fontSize: 17,
                         padding: "0 10px"
                       }}
@@ -440,7 +522,8 @@ export default function ModalRotuloNutricional({
                       flex: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
+                      whiteSpace: "nowrap",
+                      color: "#237be7",
                     }}>
                       {unid}
                     </span>
@@ -451,7 +534,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#19e5ff",
+                        color: "#00cfff",
                         cursor: "pointer",
                         fontSize: 19,
                         padding: "0 7px"
@@ -464,7 +547,7 @@ export default function ModalRotuloNutricional({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#fc8181",
+                        color: "#ef4444",
                         cursor: "pointer",
                         fontSize: 19,
                         padding: "0 7px"
@@ -478,9 +561,9 @@ export default function ModalRotuloNutricional({
                   <input
                     style={{
                       flex: 1,
-                      background: "#201739",
-                      color: "#fff",
-                      border: "1px solid #3a2c59",
+                      background: "#f8fafd",
+                      color: "#237be7",
+                      border: "2px solid #00cfff",
                       borderRadius: 8,
                       padding: "8px 11px",
                       fontSize: 17
@@ -499,9 +582,9 @@ export default function ModalRotuloNutricional({
                     onClick={handleAddUnidade}
                     title="Salvar"
                     style={{
-                      background: "#22d3ee",
+                      background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
                       border: "none",
-                      color: "#201739",
+                      color: "#fff",
                       borderRadius: 7,
                       fontSize: 17,
                       padding: "0 12px"
@@ -514,7 +597,7 @@ export default function ModalRotuloNutricional({
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#aaa",
+                      color: "#8fb9e7",
                       fontSize: 17,
                       padding: "0 10px"
                     }}
@@ -529,7 +612,7 @@ export default function ModalRotuloNutricional({
             type="button"
             onClick={onClose}
             style={{
-              background: "#a78bfa",
+              background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
               color: "#fff",
               border: "none",
               borderRadius: 12,
@@ -538,7 +621,7 @@ export default function ModalRotuloNutricional({
               padding: "10px 38px",
               marginTop: 8,
               cursor: "pointer",
-              boxShadow: "0 2px 12px #1c1336"
+              boxShadow: "0 2px 12px #e1e9f7"
             }}
           >
             Salvar

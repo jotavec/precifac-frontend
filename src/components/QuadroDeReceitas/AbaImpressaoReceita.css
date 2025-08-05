@@ -1,0 +1,217 @@
+.painel-a4-impressao-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 18px;
+}
+
+.painel-a4-impressao-linhas {
+  display: flex;
+  flex-direction: row;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.folha-a4-impressao {
+  background: #fff;
+  border: 1.6px solid #e1eaf2;
+  border-radius: 11px;
+  box-shadow: 0 2px 18px #00cfff10;
+  width: 794px;
+  height: 1123px;
+  margin: 0;
+  padding: 38px 32px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+@media (max-width: 900px) {
+  .folha-a4-impressao {
+    width: 98vw;
+    height: auto;
+    min-height: 70vh;
+    padding: 14px 4vw;
+  }
+}
+
+.a4-topo-empresa {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1.5px solid #eaf3ff;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+}
+
+.a4-empresa-avatar {
+  min-width: 131.5px;
+  min-height: 131.5px;
+  width: 131.5px;
+  height: 131.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.a4-empresa-logo-img {
+  width: 131.5px;
+  height: 131.5px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: #f3f6f9;
+  box-shadow: 0 2px 12px #00cfff0a;
+  border: 2.5px solid #e1eaf2;
+  display: block;
+}
+
+.a4-logo-placeholder {
+  color: #176582;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+}
+
+.a4-empresa-dados {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.a4-empresa-nome {
+  font-size: 19px;
+  color: #2196f3;
+  font-weight: 800;
+}
+
+.a4-empresa-cnpj,
+.a4-empresa-endereco,
+.a4-empresa-cidade,
+.a4-empresa-cep {
+  font-size: 13px;
+  font-weight: 600;
+  color: #176582;
+}
+
+.a4-nome-receita {
+  font-size: 30px;
+  color: #1559c3;
+  font-weight: 900;
+  text-align: center;
+  margin-top: 24px;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  word-break: break-word;
+}
+
+.a4-imagem-receita-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.a4-imagem-receita-img {
+  max-width: 300px;
+  max-height: 220px;
+  border-radius: 15px;
+  border: 2px solid #eaf3ff;
+  background: #f7fafd;
+  object-fit: cover;
+  box-shadow: 0 2px 16px #b2dcf53b;
+}
+
+/* ----------- NOVO: QUADRO DE CONSERVAÇÃO COM TABELA ----------- */
+
+.a4-quadro-conservacao {
+  margin-top: 8px;
+  margin-bottom: 22px;
+  padding: 18px 22px 18px 22px;
+  background: #f7fafd;
+  border-radius: 13px;
+  border: 1.5px solid #eaf3ff;
+  width: 100%;
+  max-width: 100%;
+  box-shadow: 0 2px 10px #00cfff07;
+}
+
+.a4-conservacao-titulo {
+  font-size: 18px;
+  color: #2196f3;
+  font-weight: 800;
+  margin-bottom: 9px;
+}
+
+/* Cabeçalho da tabela de conservação */
+.a4-conservacao-tabela-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background: #eaf6ff;
+  border-radius: 9px;
+  padding: 7px 16px;
+  font-weight: 800;
+  color: #1ba3fc;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.a4-conservacao-tabela-head span {
+  flex: 1 1 0;
+  text-align: left;
+  /* Colunas mais próximas do print */
+}
+
+/* Linhas dos dados de conservação */
+.a4-conservacao-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.a4-conservacao-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  padding: 7px 16px;
+  background: transparent;
+  border-bottom: 1px solid #eaf3ff;
+}
+
+.a4-conservacao-item:last-child {
+  border-bottom: none;
+}
+
+.a4-cons-desc {
+  flex: 1 1 0;
+  color: #2196f3;
+  font-weight: 700;
+}
+
+.a4-cons-temp {
+  flex: 1 1 0;
+  color: #4bb7f4;
+  font-weight: 800;
+  text-align: left;
+}
+
+.a4-cons-tempo {
+  flex: 1 1 0;
+  color: #159260;
+  font-weight: 800;
+  text-align: left;
+}
+
+/* Remove o layout antigo */
+.a4-conservacao-linha,
+.a4-conservacao-desc,
+.a4-conservacao-temp,
+.a4-conservacao-tempo {
+  display: none !important;
+}

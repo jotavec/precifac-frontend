@@ -1,0 +1,280 @@
+/* ====== MODAL CUSTOM SCROLLBAR ====== */
+.ReactModal__Content {
+  max-height: 88vh;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #a780ff #221c3a;
+  background: #221c3a !important;
+  color: #fff !important;
+}
+.ReactModal__Content::-webkit-scrollbar {
+  width: 9px;
+  background: transparent;
+}
+.ReactModal__Content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #39206a 30%, #a780ff 90%);
+  border-radius: 8px;
+  min-height: 48px;
+  border: 2.5px solid #221c3a;
+  transition: background 0.2s;
+}
+.ReactModal__Content::-webkit-scrollbar-thumb:hover {
+  background: #a780ff;
+}
+.ReactModal__Content::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 8px;
+}
+
+/* ====== SOMENTE FOLHA DE PAGAMENTO - BLOCO LARGO ====== */
+.folha-content {
+  max-width: 1750px;
+  width: 100%;
+}
+
+/* ===== NOVO CABEÇALHO FLUTUANTE (FORA DA CAIXA) ===== */
+.folha-cabecalho-topo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  width: 100%;
+  max-width: 1780px;
+  margin: 0 auto 48px auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 10;
+}
+
+.folha-titulo-principal {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #2196f3;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  line-height: 1;
+  align-self: flex-start;
+  margin-top: 16px;
+  margin-left: 40px;
+}
+
+.folha-bloco-total-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.folha-total-titulo {
+  color: #7a93b7;
+  font-weight: 800;
+  font-size: 25px;
+  margin-bottom: 0;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+.folha-total-valor-destaque {
+  color: #2196f3;
+  font-weight: 900;
+  font-size: 48px;
+  margin-top: -4px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+
+/* ===== BADGE: VALOR MÉDIO DA HORA IGUAL AO DO FATURAMENTO ===== */
+.folha-total-hora-media {
+  display: inline-block;
+  background: #eaf4ff;
+  color: #3188e9;
+  font-weight: 700;
+  font-size: 23px;
+  border-radius: 22px;
+  padding: 11px 28px 10px 28px;
+  margin-top: 12px;
+  box-shadow: 0 4px 18px #bee4ff55;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.folha-total-hora-media b {
+  color: #2196f3;
+  font-weight: 900;
+  font-size: inherit;
+}
+
+/* ====== TABELA ====== */
+.painel-table-area {
+  width: 100%;
+  margin-top: 20px;
+  overflow-x: auto;
+}
+.painel-table {
+  width: 100%;
+  background: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.09rem;
+  min-width: 670px;
+}
+.painel-table th {
+  font-weight: 800;
+  color: #237be7;
+  font-size: 1.09rem;
+  background: #f6fafd;
+  padding: 14px 10px;
+  border-bottom: 2.3px solid #e5eaf1;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+.painel-table th:last-child {
+  text-align: center;
+}
+.painel-table td {
+  background: #fff;
+  padding: 13px 10px;
+  font-size: 1.05rem;
+  color: #222d3a;
+  border-bottom: 1.4px solid #f2f4fa;
+  font-weight: 500;
+  vertical-align: middle;
+}
+.painel-table-row {
+  transition: background 0.13s;
+}
+.painel-table-row:hover td {
+  background: #f0f6fe;
+}
+.painel-table-valor {
+  color: #237be7;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.painel-tag-tipo {
+  background: #e8f2ff;
+  color: #237be7;
+  font-weight: 700;
+  font-size: 0.99rem;
+  padding: 4.5px 14px 4px 14px;
+  border-radius: 11px;
+  letter-spacing: 0.06em;
+  display: inline-block;
+  min-width: 66px;
+  text-align: center;
+}
+.painel-table-empty {
+  text-align: center;
+  color: #b8bad6;
+  padding: 26px 10px 22px 10px;
+  font-size: 1.07rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+.painel-table-acoes {
+  display: flex;
+  gap: 9px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== BOTÕES PADRÃO ===== */
+.btn-chip-acao {
+  background: #f6fafd;
+  color: #237be7;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 23px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background .19s, color .19s;
+  outline: none;
+  letter-spacing: 0.04em;
+}
+.btn-chip-acao:hover {
+  background: #237be7;
+  color: #fff;
+}
+.btn-chip-excluir {
+  background: #ffe3e3;
+  color: #da3c3c;
+}
+.btn-chip-excluir:hover {
+  background: #da3c3c;
+  color: #fff;
+}
+
+.painel-add-btn-area {
+  width: 100%;
+  margin-top: 36px;
+  display: flex;
+  justify-content: flex-end;
+}
+.btn-azul-grad {
+  background: linear-gradient(90deg, #237be7 40%, #6bc1fc 100%);
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  padding: 15px 44px;
+  font-weight: 900;
+  font-size: 1.11rem;
+  cursor: pointer;
+  box-shadow: 0 2px 14px #237be71e;
+  transition: background .17s;
+  letter-spacing: 0.08em;
+}
+.btn-azul-grad:hover {
+  background: linear-gradient(90deg, #0852b2 40%, #2ba8f8 100%);
+  color: #fff;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 800px) {
+  .folha-content {
+    max-width: 100vw;
+    padding: 16px 4vw;
+  }
+  .folha-cabecalho-topo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0 10vw 0 4vw;
+  }
+  .folha-bloco-total-info {
+    align-items: flex-start;
+    margin-top: 10px;
+  }
+  .painel-add-btn-area {
+    justify-content: center;
+  }
+  .painel-table-area {
+    margin-top: 12px;
+  }
+  .painel-table {
+    min-width: 540px;
+  }
+}
+
+/* ==== OPCIONAL: PAINEL BLOCO MÉDIA HORA (CASO USE OUTRA CLASSE, SINCRONIZE) ==== */
+.painel-bloco-media-hora {
+  display: inline-block;
+  background: #eaf4ff;
+  color: #3188e9;
+  font-weight: 700;
+  font-size: 19px;
+  border-radius: 22px;
+  padding: 11px 28px 10px 28px;
+  margin-top: 20px;
+  box-shadow: 0 4px 18px #bee4ff55;
+  letter-spacing: 0.02em;
+}
+.painel-bloco-media-hora b {
+  color: #2196f3;
+  font-weight: 700;
+  font-size: inherit;
+}
+.painel-content.folha-content {
+  margin-left: 70px;  /* ou outro valor igual do perfil */
+}

@@ -1,167 +1,24 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import "./Movimentacoes.css";
 
-// CSS global, input e tabela bonitos
-const styles = `
-.estoque-limpo-main {
-  min-height: 100vh;
-  background: linear-gradient(135deg,#191825 80%,#443C68 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 0;
-}
-.estoque-limpo-titulo {
-  color: #FFD93D;
-  font-size: 2.4rem;
-  font-weight: 800;
-  margin-bottom: 32px;
-  text-shadow: 2px 4px 12px #0007;
-  letter-spacing: 2px;
-}
-.estoque-limpo-section {
-  background: #2d2242;
-  padding: 36px 36px 24px 36px;
-  border-radius: 22px;
-  box-shadow: 0 8px 28px #0002, 0 2px 5px #0003;
-  width: 100%;
-  max-width: 900px;
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-}
-.filtros-linha {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 22px;
-}
-.filtro-busca, .filtro-select {
-  flex: 1 1 0;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-}
-.filtro-label {
-  font-size: 1rem;
-  color: #FFD93D;
-  font-weight: 600;
-  margin-bottom: 6px;
-  letter-spacing: 1px;
-}
-.busca-input {
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 2px solid #FFD93D;
-  background: #191333;
-  color: #fff;
-  font-size: 1.08rem;
-  margin-top: 3px;
-  outline: none;
-  transition: border .2s, box-shadow .2s;
-  width: 100%;
-  box-sizing: border-box;
-  font-family: inherit;
-  height: 44px;
-  display: flex;
-  align-items: center;
-}
-.busca-input::placeholder {
-  color: #fff;
-  opacity: 0.7;
-  font-weight: 400;
-}
-.busca-input:focus {
-  border: 2px solid #FFD93D;
-  box-shadow: none;
-  background: #23183a;
-}
-.tabela-container {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-.estoque-mov-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 1.02rem;
-  margin-top: 2px;
-  background: #23183a;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px #0003;
-}
-.estoque-mov-table thead tr {
-  background: #2d2242;
-}
-.estoque-mov-table th, .estoque-mov-table td {
-  padding: 12px 8px;
-  text-align: left;
-}
-.estoque-mov-table th {
-  color: #FFD93D;
-  font-size: 1.08rem;
-  font-weight: 700;
-  letter-spacing: .7px;
-  border-bottom: 2px solid #FFD93D22;
-}
-.estoque-mov-table tbody tr {
-  border-radius: 8px;
-  transition: background .14s;
-}
-.estoque-mov-table tbody tr:hover {
-  background: #3c2a5b55;
-}
-.estoque-mov-table td {
-  color: #fff;
-  font-weight: 500;
-  border-bottom: 1px solid #3c2a5b33;
-}
-.estoque-mov-table td.tipo-entrada {
-  color: #64f87b;
-  font-weight: 700;
-  text-shadow: 0 0 2px #256d3b77;
-}
-.estoque-mov-table td.tipo-saida {
-  color: #ff6161;
-  font-weight: 700;
-  text-shadow: 0 0 2px #6d252577;
-}
-::-webkit-scrollbar { height: 7px; background: #443C6822; border-radius: 2px;}
-::-webkit-scrollbar-thumb { background: #FFD93D44; border-radius: 2px;}
-@media (max-width: 950px) {
-  .estoque-limpo-section { padding: 16px 1vw; min-width: 0; }
-  .filtros-linha { flex-direction: column; gap: 12px; }
-  .estoque-mov-table th, .estoque-mov-table td { padding: 7px 4px; }
-}
-`;
-// Injeta CSS uma vez só
-if (typeof document !== "undefined" && !document.getElementById("estoque-limpo-css")) {
-  const style = document.createElement("style");
-  style.id = "estoque-limpo-css";
-  style.innerHTML = styles;
-  document.head.appendChild(style);
-}
-
-// Estilo do Select: texto centralizado verticalmente
+// Estilo dos selects igual aos inputs do sistema
 const selectEstilo = {
   menu: base => ({
     ...base,
     zIndex: 9999,
-    background: "#191333",
-    borderRadius: 12,
+    background: "#fff",
+    borderRadius: 13,
     border: "none"
   }),
   control: (base, state) => ({
     ...base,
-    background: "#191333",
-    border: `2px solid #FFD93D`,
-    borderRadius: 12,
+    background: "#f8fafd",
+    border: `2px solid ${state.isFocused ? "#00cfff" : "#2196f3"}`,
+    borderRadius: 13,
     minHeight: 44,
     height: 44,
-    color: "#fff",
+    color: "#237be7",
     fontSize: "1.08rem",
     outline: "none",
     boxShadow: "none",
@@ -170,8 +27,9 @@ const selectEstilo = {
     transition: "border .2s",
     display: "flex",
     alignItems: "center",
+    boxSizing: "border-box",
     '&:hover': {
-      border: "2px solid #FFD93D"
+      border: "2px solid #00cfff"
     }
   }),
   valueContainer: base => ({
@@ -180,12 +38,13 @@ const selectEstilo = {
     minHeight: 44,
     height: 44,
     display: "flex",
-    alignItems: "center"
+    alignItems: "center",
+    boxSizing: "border-box"
   }),
   singleValue: base => ({
     ...base,
-    color: "#fff",
-    fontWeight: 400,
+    color: "#237be7",
+    fontWeight: 700,
     margin: 0,
     padding: 0,
     display: "flex",
@@ -194,27 +53,29 @@ const selectEstilo = {
   }),
   placeholder: base => ({
     ...base,
-    color: "#fff",
-    fontWeight: 400,
+    color: "#b4c7e8",
+    fontWeight: 500,
     margin: 0,
     padding: 0,
-    opacity: 0.7,
+    opacity: 1,
     display: "flex",
     alignItems: "center",
     height: "100%"
   }),
   input: base => ({
     ...base,
-    color: "#fff",
+    color: "#237be7",
     margin: 0,
     padding: 0,
     display: "flex",
     alignItems: "center",
-    height: "100%"
+    height: 44,
+    minHeight: 44,
+    boxSizing: "border-box"
   }),
   dropdownIndicator: base => ({
     ...base,
-    color: "#fff",
+    color: "#2196f3",
     paddingRight: 10,
     paddingLeft: 4,
     display: "flex",
@@ -229,7 +90,7 @@ const selectEstilo = {
   }),
   clearIndicator: base => ({
     ...base,
-    color: "#fff",
+    color: "#2196f3",
     paddingLeft: 6,
     paddingRight: 2,
     display: "flex",
@@ -238,9 +99,9 @@ const selectEstilo = {
   }),
   option: (base, state) => ({
     ...base,
-    background: state.isFocused ? "#FFD93D22" : "#191333",
-    color: "#fff",
-    fontWeight: state.isSelected ? 700 : 500,
+    background: state.isFocused ? "#e1e9f7" : "#fff",
+    color: "#237be7",
+    fontWeight: state.isSelected ? 900 : 700,
     fontSize: "1.08rem",
     cursor: "pointer",
     padding: "12px 18px"
@@ -254,30 +115,25 @@ export default function Movimentacoes() {
   const [filtroTipo, setFiltroTipo] = useState(""); // "entrada", "saida", ""
   const [buscaNome, setBuscaNome] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [deletando, setDeletando] = useState(null);
+
+  // Busca movimentações
+  function buscarMovs() {
+    setCarregando(true);
+    fetch("/api/movimentacoes", { credentials: "include" })
+      .then(res => res.json())
+      .then(data => setMovs(data))
+      .finally(() => setCarregando(false));
+  }
 
   useEffect(() => {
-    async function fetchMovs() {
-      setCarregando(true);
-      try {
-        const res = await fetch("/api/movimentacoes", { credentials: "include" });
-        const data = await res.json();
-        setMovs(data);
-      } catch (err) {
-        setMovs([]);
-      }
-      setCarregando(false);
-    }
-    fetchMovs();
+    buscarMovs();
   }, []);
 
   useEffect(() => {
-    async function fetchProdutos() {
-      try {
-        const res = await fetch("/api/produtos", { credentials: "include" });
-        setProdutos(await res.json());
-      } catch {}
-    }
-    fetchProdutos();
+    fetch("/api/produtos", { credentials: "include" })
+      .then(res => res.json())
+      .then(setProdutos);
   }, []);
 
   // Filtragem (produto, tipo, busca por nome)
@@ -289,11 +145,38 @@ export default function Movimentacoes() {
     return true;
   });
 
-  return (
-    <div className="estoque-limpo-main">
-      <h2 className="estoque-limpo-titulo">Movimentações de Estoque</h2>
+  // ====== DELETAR MOVIMENTAÇÃO ======
+  async function handleDelete(mov) {
+    if (deletando) return;
+    if (!window.confirm("Tem certeza que deseja apagar esta movimentação?")) return;
 
-      <section className="estoque-limpo-section">
+    setDeletando(mov.id);
+    try {
+      const rota = `/api/movimentacoes/${mov.tipo === "entrada" ? "entrada" : "saida"}/${mov.id}`;
+      const res = await fetch(rota, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Erro ao deletar movimentação");
+      buscarMovs();
+    } catch (e) {
+      alert("Erro ao deletar movimentação!");
+    }
+    setDeletando(null);
+  }
+
+  return (
+    <div className="estoque-mov-main">
+      <h2
+        className="estoque-mov-titulo"
+        style={{
+          marginLeft: 10,
+          marginTop: 10,
+          marginBottom: 24,
+          textAlign: "left"
+        }}
+      >
+        Movimentações de Estoque
+      </h2>
+
+      <section className="estoque-mov-section">
         <div className="filtros-linha">
           <div className="filtro-busca">
             <label className="filtro-label">Buscar produto:</label>
@@ -304,10 +187,11 @@ export default function Movimentacoes() {
               value={buscaNome}
               onChange={e => setBuscaNome(e.target.value)}
               autoComplete="off"
+              style={{ height: 44, minHeight: 44, boxSizing: "border-box" }}
             />
           </div>
           <div className="filtro-select">
-            <label className="filtro-label">Filtrar por:</label>
+            <label className="filtro-label">Filtrar por produto:</label>
             <Select
               options={produtos.map(p => ({ value: p.id, label: p.nome }))}
               value={filtroProduto}
@@ -317,7 +201,7 @@ export default function Movimentacoes() {
               placeholder="Selecione"
               theme={theme => ({
                 ...theme,
-                colors: { ...theme.colors, primary25: "#FFD93D22", primary: "#FFD93D" }
+                colors: { ...theme.colors, primary25: "#e1e9f7", primary: "#2196f3" }
               })}
             />
           </div>
@@ -339,7 +223,7 @@ export default function Movimentacoes() {
               placeholder="Todos"
               theme={theme => ({
                 ...theme,
-                colors: { ...theme.colors, primary25: "#FFD93D22", primary: "#FFD93D" }
+                colors: { ...theme.colors, primary25: "#e1e9f7", primary: "#2196f3" }
               })}
             />
           </div>
@@ -349,20 +233,21 @@ export default function Movimentacoes() {
           <table className="estoque-mov-table">
             <thead>
               <tr>
-                <th style={{ width: "22%" }}>Data</th>
-                <th style={{ width: "32%" }}>Produto</th>
-                <th style={{ width: "22%" }}>Tipo</th>
-                <th style={{ width: "24%" }}>Quantidade</th>
+                <th style={{ width: "18%" }}>Data</th>
+                <th style={{ width: "30%" }}>Produto</th>
+                <th style={{ width: "16%" }}>Tipo</th>
+                <th style={{ width: "16%" }}>Quantidade</th>
+                <th style={{ width: "20%" }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {carregando ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center" }}>Carregando...</td>
+                  <td colSpan={5} style={{ textAlign: "center" }}>Carregando...</td>
                 </tr>
               ) : movsFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", color: "#ccc" }}>Nenhuma movimentação encontrada</td>
+                  <td colSpan={5} style={{ textAlign: "center", color: "#b4c7e8" }}>Nenhuma movimentação encontrada</td>
                 </tr>
               ) : (
                 movsFiltradas.map((mov, i) => (
@@ -373,6 +258,18 @@ export default function Movimentacoes() {
                       {mov.tipo === "entrada" ? "Entrada" : "Saída"}
                     </td>
                     <td>{mov.quantidade}</td>
+                    <td className="acoes-col">
+                      <div className="btns-acoes-mov">
+                        <button
+                          className="btn-excluir-mov"
+                          onClick={() => handleDelete(mov)}
+                          title="Excluir movimentação"
+                          disabled={deletando === mov.id}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}

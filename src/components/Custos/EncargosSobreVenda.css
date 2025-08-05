@@ -1,0 +1,383 @@
+.encargos-main {
+  color: #222;
+  margin: 46px 0 32px 0;
+  padding: 0;
+}
+
+.encargos-title {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: #2196f3;
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 16px #00cfff24;
+  text-align: left;
+  margin-left: 70px;
+  margin-top: 16px;
+}
+
+/* GRID: 2 colunas fixas sempre do mesmo tamanho */
+.encargos-cards-row {
+  display: grid;
+  grid-template-columns: 650px 650px;
+  column-gap: 200px;    /* espaçamento horizontal (entre colunas) */
+  row-gap: 50px;      /* espaçamento vertical (entre linhas) */
+  justify-content: flex-start;
+  margin-left: 180px;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+.encargos-card {
+  background: #fff;
+  border-radius: 22px;
+  border: 2px solid #e1e9f7;
+  padding: 38px 42px 22px 42px;
+  margin-bottom: 48px;
+  box-shadow: 0 8px 34px #96b7ea28;
+  width: 100%;
+  max-width: unset;
+  height: 500px;
+  max-height: 500px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #a8d0fc #e7f5ff;
+}
+
+/* Scrollbar bonitinho para Webkit (Chrome/Safari) */
+.encargos-card::-webkit-scrollbar {
+  width: 9px;
+  background: #e7f5ff;
+}
+.encargos-card::-webkit-scrollbar-thumb {
+  background: #a8d0fc;
+  border-radius: 8px;
+  min-height: 48px;
+  border: 2px solid #e7f5ff;
+}
+.encargos-card::-webkit-scrollbar-thumb:hover {
+  background: #66b3fa;
+}
+.encargos-card::-webkit-scrollbar-track {
+  background: #e7f5ff;
+  border-radius: 8px;
+}
+
+.encargos-section-title {
+  font-size: 22px;
+  color: #2196f3;
+  margin-bottom: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  background: transparent;
+  text-shadow: 0 2px 12px #e3eefd7a;
+}
+
+.encargos-field-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+  margin-top: 0;
+}
+
+.encargos-label {
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 230px;
+  color: #2476b8;
+}
+
+.encargos-blocos-wrapper {
+  display: flex;
+  align-items: center;
+  margin-left: 32px;
+}
+
+/* BLOCO DO INPUT */
+.encargos-input-block,
+.encargos-input-block-money {
+  background: #f8fafd;
+  border: 1.5px solid #e1e9f7;
+  border-radius: 14px;
+  color: #18122b;
+  font-weight: 700;
+  font-size: 17px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-right: 19px;
+  min-width: 110px;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  transition: border .2s, box-shadow .18s;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* Só o bloco de valor, tamanho fixo! */
+.encargos-input-block-money {
+  min-width: 160px;
+  max-width: 160px;
+  width: 160px;
+  margin-right: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ===== INPUTS ===== */
+.encargos-input-inner-percent {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #222;
+  width: 80px;
+  font-weight: 900;
+  font-size: 16px;
+  text-align: right;
+  padding: 0 12px 0 0;
+  box-shadow: none;
+  height: 46px;
+  line-height: 46px;
+}
+
+.encargos-input-inner-money {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #222;
+  width: 100%;
+  font-weight: 900;
+  font-size: 16px;
+  text-align: right;
+  padding-left: 36px;
+  padding-right: 10px;
+  box-shadow: none;
+  height: 46px;
+  line-height: 46px;
+  z-index: 2;
+}
+
+/* Prefixo "R$" */
+.encargos-prefix-money {
+  position: absolute;
+  left: 14px;
+  color: #9acfff;
+  font-weight: 800;
+  font-size: 17px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Sufixo "%" (percentual) */
+.encargos-suffix-percent {
+  position: absolute;
+  right: 10px;
+  color: #9acfff;
+  font-weight: 800;
+  font-size: 17px;
+  pointer-events: none;
+}
+
+/* REMOVER GLOW/BORDA AZUL AO FOCAR */
+.encargos-input-inner-percent:focus,
+.encargos-input-inner-money:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent;
+}
+.encargos-input-block:focus-within,
+.encargos-input-block-money:focus-within {
+  border-color: #e1e9f7 !important;
+  box-shadow: none !important;
+}
+
+/* ====== BOTÕES ====== */
+.encargos-add-parcela-btn {
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  border-radius: 11px;
+  border: none;
+  padding: 0 22px;
+  height: 40px;
+  cursor: pointer;
+  margin-left: 9px;
+  letter-spacing: 0.2px;
+  transition: background .2s;
+  box-shadow: 0 1px 6px #00eaff28;
+  outline: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Remove qualquer glow ou linha amarela */
+.encargos-add-parcela-btn:focus,
+.encargos-add-parcela-btn:active,
+.encargos-add-parcela-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove qualquer border/shadow global de botão ao focar */
+button:focus,
+button:focus-visible,
+button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* BOTÃO DE LIXEIRA - Fundo removido */
+.encargos-trash-btn {
+  background: transparent;
+  border: none;
+  margin-left: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 7px;
+  transition: background 0.15s;
+  outline: none;
+  box-shadow: none;
+}
+.encargos-trash-btn:hover {
+  background: #da3c3c;
+}
+.encargos-trash-btn svg path {
+  stroke: #da3c3c;
+}
+.encargos-trash-btn:hover svg path {
+  stroke: #fff;
+}
+.encargos-trash-btn:focus,
+.encargos-trash-btn:focus-visible,
+.encargos-trash-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+.encargos-trash-btn::-moz-focus-inner {
+  border: 0;
+}
+button.encargos-trash-btn:focus,
+button.encargos-trash-btn:focus-visible,
+button.encargos-trash-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Adicionar outro item (bloco "Outros") */
+.encargos-outros-btns {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  gap: 10px;
+}
+
+.encargos-outros-novo-input {
+  min-width: 160px;
+  margin-right: 12px;
+  background: #f8fafd;
+  border: 1.5px solid #e1e9f7;
+  border-radius: 12px;
+  color: #222;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+/* Responsivo: cards empilham em telas pequenas */
+@media (max-width: 1100px) {
+  .encargos-cards-row {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    margin-left: 0;
+  }
+  .encargos-card {
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    max-height: unset;
+  }
+}
+@media (max-width: 900px) {
+  .encargos-main, .encargos-card {
+    max-width: 100vw;
+    padding: 3vw;
+  }
+  .encargos-label {
+    min-width: 120px;
+    font-size: 14px;
+  }
+  .encargos-section-title {
+    font-size: 19px;
+  }
+  .encargos-title {
+    font-size: 1.6rem;
+  }
+}
+
+/* Garantia extra: nunca scroll horizontal global */
+body, html {
+  overflow-x: clip;
+}
+
+/* ===== NOVO: Input nome da parcela (parcelado) ===== */
+.encargos-input-nome-parcela {
+  min-width: 46px;
+  width: 46px;
+  height: 46px;
+  font-weight: 900;
+  color: #2196f3;
+  background: #f8fafd;
+  border: 1.5px solid #e1e9f7;
+  border-radius: 12px;
+  font-size: 19px;
+  text-align: center;
+  outline: none;
+  box-shadow: none !important;
+  margin-right: 17px;
+  transition: border 0.16s, box-shadow 0.16s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 2px 0;
+}
+.encargos-input-nome-parcela:focus {
+  border-color: #00cfff;
+  box-shadow: 0 0 0 2px #00cfff33;
+  background: #f4fcff;
+}
+.encargos-trash-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.encargos-trash-btn:focus,
+.encargos-trash-btn:focus-visible,
+.encargos-trash-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+.encargos-trash-btn::-moz-focus-inner {
+  border: 0;
+}
+.encargos-trash-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+

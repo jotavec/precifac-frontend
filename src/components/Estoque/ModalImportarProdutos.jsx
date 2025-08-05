@@ -20,8 +20,6 @@ export default function ModalImportarProdutos({ isOpen, onRequestClose, onImport
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-      // Aqui já temos o array de objetos da planilha!
       if (onImportarDados) onImportarDados(json);
     };
     reader.readAsArrayBuffer(file);
@@ -34,7 +32,7 @@ export default function ModalImportarProdutos({ isOpen, onRequestClose, onImport
       contentLabel="Importar Produtos"
       style={{
         overlay: {
-          backgroundColor: "rgba(16,11,40,0.55)",
+          backgroundColor: "rgba(16,16,40,0.22)",
           backdropFilter: "blur(2px)",
           zIndex: 1000,
           transition: "background .25s"
@@ -47,12 +45,16 @@ export default function ModalImportarProdutos({ isOpen, onRequestClose, onImport
           bottom: "auto",
           marginRight: "-50%",
           transform: "translate(-50%, -50%)",
-          background: "linear-gradient(135deg, #241d39 80%, #18132d 100%)",
-          borderRadius: "16px",
-          padding: "2.5rem 2rem",
-          minWidth: 340,
-          maxWidth: 380,
-          boxShadow: "0 2px 32px #0007"
+          background: "#fff",
+          borderRadius: "32px",
+          padding: "3.2rem 2.8rem 2.8rem 2.8rem",
+          minWidth: 400,
+          maxWidth: 480,
+          boxShadow: "0 8px 38px 0 #38a1ff23, 0 1.5px 0.5px #2196f366",
+          border: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
         }
       }}
     >
@@ -60,43 +62,62 @@ export default function ModalImportarProdutos({ isOpen, onRequestClose, onImport
         onClick={onRequestClose}
         style={{
           position: "absolute",
-          top: 18,
-          right: 20,
+          top: 16,
+          right: 16,
           background: "none",
           border: "none",
-          color: "#fff",
-          fontSize: 22,
-          cursor: "pointer"
+          color: "#4baaf7",
+          fontSize: 32,
+          cursor: "pointer",
+          fontWeight: 700,
+          transition: "color 0.17s"
         }}
         aria-label="Fechar"
+        title="Fechar"
+        tabIndex={0}
       >
         <FiX />
       </button>
-      <h2 style={{ color: "#fff", marginBottom: 24, fontWeight: 700 }}>Importar Produtos</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      <h2 style={{
+        color: "#1898ff",
+        marginBottom: 46,
+        fontWeight: 900,
+        fontSize: 28,
+        letterSpacing: 0.1,
+        textAlign: "center",
+        fontFamily: "inherit"
+      }}>
+        Importar Produtos
+      </h2>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 32, width: "100%" }}>
         <a
           href="/ARQUIVO%20EXEMPLO%20DE%20IMPORTAÇÃO.xlsx"
           download="ARQUIVO_EXEMPLO_DE_IMPORTACAO.xlsx"
-          style={{ textDecoration: "none" }}
+          style={{ textDecoration: "none", width: "100%" }}
         >
           <button
             type="button"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              background: "#7E4FFF",
+              gap: 14,
+              background: "linear-gradient(90deg,#20bbff 0%,#1898ff 100%)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
-              padding: "12px 16px",
-              fontSize: 16,
+              borderRadius: 15,
+              padding: "18px 0",
+              fontSize: 1.18 + "rem",
+              fontWeight: 900,
+              width: "100%",
               cursor: "pointer",
-              fontWeight: 600,
-              width: "100%"
+              boxShadow: "0 2px 16px #2196f33a",
+              justifyContent: "center",
+              transition: "filter .17s, background .17s"
             }}
           >
-            <FiDownload /> Baixar arquivo modelo
+            <FiDownload size={25} style={{ marginRight: 2 }} /> Baixar arquivo modelo
           </button>
         </a>
         <button
@@ -104,19 +125,22 @@ export default function ModalImportarProdutos({ isOpen, onRequestClose, onImport
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: "#ffe156",
-            color: "#1e1847",
+            gap: 14,
+            background: "linear-gradient(90deg,#ffe156 0%,#ffe066 100%)",
+            color: "#222",
             border: "none",
-            borderRadius: 8,
-            padding: "12px 16px",
-            fontSize: 16,
+            borderRadius: 15,
+            padding: "18px 0",
+            fontSize: 1.18 + "rem",
+            fontWeight: 900,
+            width: "100%",
             cursor: "pointer",
-            fontWeight: 600,
-            width: "100%"
+            boxShadow: "0 2px 16px #ffe06623",
+            justifyContent: "center",
+            transition: "filter .17s, background .17s"
           }}
         >
-          <FiUpload /> Importar arquivo
+          <FiUpload size={25} style={{ marginRight: 2 }} /> Importar arquivo
         </button>
         <input
           ref={inputFileRef}

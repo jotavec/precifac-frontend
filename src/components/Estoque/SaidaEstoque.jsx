@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
-import "./EntradaEstoque.css";
+import "./EntradaEstoque.css"; // Usa o mesmo CSS global do restante
 import Select from "react-select";
 
-// ====== ESTILO REACT-SELECT (100% igual ao input) ======
+// ====== ESTILO REACT-SELECT (azul/padrão do app) ======
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    backgroundColor: "#1b1332",
-    borderColor: state.isFocused ? "#ffe066" : "#b884fd",
-    color: "#fff",
+    backgroundColor: "#f8fafd",
+    borderColor: state.isFocused ? "#00cfff" : "#e1e9f7",
+    color: "#237be7",
     minHeight: 48,
     height: 48,
     borderRadius: 10,
     fontSize: "1.03rem",
-    borderWidth: "2px",
-    boxShadow: state.isFocused ? "0 0 0 2px #ffe06644" : "none",
-    "&:hover": { borderColor: "#ffe066" },
+    borderWidth: "1.7px",
+    boxShadow: state.isFocused ? "0 0 0 2px #00cfff22" : "none",
+    "&:hover": { borderColor: "#00cfff" },
     transition: "border 0.19s",
   }),
   valueContainer: (base) => ({
@@ -27,13 +27,13 @@ const selectStyles = {
   }),
   input: (base) => ({
     ...base,
-    color: "#fff",
+    color: "#237be7",
     margin: 0,
     padding: 0,
   }),
   singleValue: (base) => ({
     ...base,
-    color: "#fff",
+    color: "#237be7",
     display: "flex",
     alignItems: "center",
   }),
@@ -43,33 +43,35 @@ const selectStyles = {
   }),
   menu: (base) => ({
     ...base,
-    backgroundColor: "#231844",
-    color: "#eee",
+    backgroundColor: "#fff",
+    color: "#237be7",
     zIndex: 9999,
     borderRadius: 10,
     marginTop: 2,
+    border: "1.5px solid #e1e9f7",
+    boxShadow: "0 2px 14px #c1e6fc1c",
   }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isFocused ? "#381aa7" : "#231844",
-    color: "#eee",
+    backgroundColor: state.isFocused ? "#e3f3fc" : "#fff",
+    color: "#237be7",
     cursor: "pointer"
   }),
   placeholder: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#b4c7e8"
   }),
   dropdownIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#2196f3"
   }),
   indicatorSeparator: (base) => ({
     ...base,
-    backgroundColor: "#b884fd"
+    backgroundColor: "#e1e9f7"
   }),
   clearIndicator: (base) => ({
     ...base,
-    color: "#cfc6ff"
+    color: "#b4c7e8"
   }),
 };
 
@@ -179,102 +181,94 @@ export default function SaidaEstoque() {
   }
 
   return (
-    <div className="estoque-limpo-main">
-      <h2 className="estoque-limpo-titulo">Saída de Estoque</h2>
-      <section className="estoque-limpo-section">
-        <form onSubmit={handleSalvarTudo}>
-          <h3 style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            Produtos
-          </h3>
+    <div className="estoque-main-full">
+      <div className="estoque-container">
+        <h2 className="estoque-titulo">Saída de Estoque</h2>
+        <section className="estoque-section">
+          <form onSubmit={handleSalvarTudo}>
+            <h3 style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              Produtos
+            </h3>
 
-          {produtosList.map((produto, idx) => (
-            <div key={idx} style={{ border: "1px solid #38276b", borderRadius: 13, padding: 16, marginBottom: 22, background: "#21194a", position: "relative" }}>
-              <div style={{ fontWeight: 700, color: "#ffe066", marginBottom: 10 }}>
-                Produto #{idx + 1}
-                {produtosList.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoverProduto(idx)}
-                    style={{
-                      marginLeft: 16,
-                      background: "transparent",
-                      color: "#FF6666",
-                      border: "none",
-                      fontSize: 18,
-                      cursor: "pointer"
-                    }}
-                    title="Remover produto"
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-              {/* Primeira linha */}
-              <div className="produto-grid produto-grid-3">
-                <div>
-                  <label>Código Interno</label>
-                  <input
-                    value={produto.codigoInterno}
-                    onChange={e => handleChangeProduto(idx, "codigoInterno", e.target.value)}
-                    placeholder="(opcional)"
-                    onBlur={e => handleBuscaProdutoPorCodigo(idx, e.target.value)}
-                  />
+            {produtosList.map((produto, idx) => (
+              <div key={idx} className="produto-card">
+                <div className="produto-card-titulo">
+                  Produto #{idx + 1}
+                  {produtosList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverProduto(idx)}
+                      className="produto-card-remove"
+                      title="Remover produto"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label>Produto *</label>
-                  <Select
-                    classNamePrefix="input-form-brabo"
-                    options={produtos.map(prod => ({
-                      value: prod.id,
-                      label: prod.nome
-                    }))}
-                    value={
-                      produtos.find(p => p.id === produto.produtoId)
-                        ? { value: produto.produtoId, label: produtos.find(p => p.id === produto.produtoId).nome }
-                        : null
-                    }
-                    onChange={selected => handleSelecionarProduto(idx, selected ? selected.value : "")}
-                    placeholder="Selecione..."
-                    styles={selectStyles}
-                    isClearable
-                  />
-                </div>
-                <div>
-                  <label>Quantidade *</label>
-                  <input
-                    type="number"
-                    value={produto.quantidade}
-                    onChange={e => handleChangeProduto(idx, "quantidade", e.target.value)}
-                    min="1"
-                  />
+                {/* Primeira linha */}
+                <div className="produto-grid produto-grid-3">
+                  <div>
+                    <label>Código Interno</label>
+                    <input
+                      value={produto.codigoInterno}
+                      onChange={e => handleChangeProduto(idx, "codigoInterno", e.target.value)}
+                      placeholder="(opcional)"
+                      onBlur={e => handleBuscaProdutoPorCodigo(idx, e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label>Produto <span style={{ color: "#FF4848" }}>*</span></label>
+                    <Select
+                      classNamePrefix="input-form-brabo"
+                      options={produtos.map(prod => ({
+                        value: prod.id,
+                        label: prod.nome
+                      }))}
+                      value={
+                        produtos.find(p => p.id === produto.produtoId)
+                          ? { value: produto.produtoId, label: produtos.find(p => p.id === produto.produtoId).nome }
+                          : null
+                      }
+                      onChange={selected => handleSelecionarProduto(idx, selected ? selected.value : "")}
+                      placeholder="Selecione..."
+                      styles={selectStyles}
+                      isClearable
+                    />
+                  </div>
+                  <div>
+                    <label>Quantidade <span style={{ color: "#FF4848" }}>*</span></label>
+                    <input
+                      type="number"
+                      value={produto.quantidade}
+                      onChange={e => handleChangeProduto(idx, "quantidade", e.target.value)}
+                      min="1"
+                    />
+                  </div>
                 </div>
               </div>
+            ))}
+
+            <div className="botoes-produto-finalizar">
+              <button
+                type="button"
+                className="estoque-btn"
+                onClick={handleAdicionarProduto}
+              >
+                + Adicionar Produto
+              </button>
+              <button
+                className="estoque-btn"
+                type="submit"
+                disabled={carregando}
+              >
+                {carregando ? "Salvando..." : "Finalizar Saída"}
+              </button>
             </div>
-          ))}
 
-          <div className="botoes-produto-finalizar">
-            <button
-              type="button"
-              className="estoque-limpo-btn"
-              style={{ background: "linear-gradient(90deg, #7c3aed 60%, #c394fa 100%)" }}
-              onClick={handleAdicionarProduto}
-            >
-              + Adicionar Produto
-            </button>
-
-            <button
-              className="estoque-limpo-btn"
-              type="submit"
-              disabled={carregando}
-              style={{ background: "linear-gradient(90deg, #7c3aed 60%, #c394fa 100%)" }}
-            >
-              {carregando ? "Salvando..." : "Finalizar Saída"}
-            </button>
-          </div>
-
-          {msg && <div className="estoque-limpo-msg">{msg}</div>}
-        </form>
-      </section>
+            {msg && <div className="estoque-msg">{msg}</div>}
+          </form>
+        </section>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import "./EncargosSobreVenda.css";
 
 // SECTIONS dos blocos tradicionais:
 const SECTIONS = [
@@ -50,7 +51,7 @@ function maskValueBRLInput(v) {
   return reais.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + centavos;
 }
 
-// Máscara para percentuais: igual valor em reais, mas só para % (ex: digita 1500, vira 15,00)
+// Máscara para percentuais
 function maskPercentBRLInput(v) {
   v = (v ?? "").toString().replace(/[^\d]/g, "");
   if (v.length === 0) return "";
@@ -94,12 +95,10 @@ const INITIAL_DATA = {
 };
 
 export default function EncargosSobreVenda() {
-  // Estados principais
   const [data, setData] = useState(INITIAL_DATA);
   const [outros, setOutros] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // === 1. BUSCA DO BANCO AO ABRIR ===
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -119,35 +118,24 @@ export default function EncargosSobreVenda() {
       setLoading(false);
     }
     fetchData();
-    // eslint-disable-next-line
   }, []);
 
-  // === 2. SALVA NO BANCO AO ALTERAR ===
   useEffect(() => {
     if (loading) return;
     async function saveData() {
       try {
         await axios.post("http://localhost:3000/api/encargos-sobre-venda", { data, outros }, { withCredentials: true });
-      } catch (err) {
-        // Exibir erro? Só se quiser
-      }
+      } catch (err) { }
     }
     saveData();
-    // eslint-disable-next-line
   }, [data, outros]);
 
-  // ---------- CAMPOS PARCELAS (Cartão Parcelado) ----------
   const [parcelasArr, setParcelasArr] = useState([]);
-
-  // Só seta parcelasArr quando carrega o data
   useEffect(() => {
     if (Array.isArray(data.creditoParcelado)) {
       setParcelasArr(data.creditoParcelado);
     }
-    // eslint-disable-next-line
   }, [data]);
-
-  // Só atualiza o data se mudou de verdade (evita loop infinito)
   useEffect(() => {
     if (JSON.stringify(data.creditoParcelado) !== JSON.stringify(parcelasArr)) {
       setData(prev => ({
@@ -155,16 +143,13 @@ export default function EncargosSobreVenda() {
         creditoParcelado: parcelasArr
       }));
     }
-    // eslint-disable-next-line
   }, [parcelasArr]);
 
-  // Estados para edição dos percentuais
   const [editingPercent, setEditingPercent] = useState({});
   const [percentInput, setPercentInput] = useState({});
   const [editingPercentOutros, setEditingPercentOutros] = useState({});
   const [percentInputOutros, setPercentInputOutros] = useState({});
 
-  // ----------- HANDLERS PADRÃO ---------
   function handleChangePercent(e, key) {
     setPercentInput(prev => ({
       ...prev,
@@ -205,7 +190,6 @@ export default function EncargosSobreVenda() {
     }));
   }
 
-  // ----------- HANDLERS PARA PARCELAS -----------
   function handleChangeParcelaPercent(e, idx) {
     setParcelasArr(prev => {
       const clone = [...prev];
@@ -264,7 +248,6 @@ export default function EncargosSobreVenda() {
     setParcelasArr(prev => prev.slice(0, -1));
   }
 
-  // ----------- HANDLERS PARA PERCENTUAIS OUTROS -----------
   function handleChangeOutroPercent(e, idx) {
     setPercentInputOutros(prev => ({
       ...prev,
@@ -313,416 +296,257 @@ export default function EncargosSobreVenda() {
     setCriandoOutro(false);
   }
 
-  // -------- STYLES ----------
-  const inputBlock = {
-    background: "#22144c",
-    border: "2px solid #8c52ff",
-    borderRadius: 16,
-    color: "#fff",
-    fontWeight: 600,
-    fontSize: 18,
-    height: 40,
-    display: "flex",
-    alignItems: "center",
-    position: "relative",
-    marginRight: 22,
-    minWidth: 110,
-    marginBottom: 0,
-    transition: "border .2s"
-  };
-  const inputBlockMoney = {
-    ...inputBlock,
-    minWidth: 130,
-    fontWeight: 700,
-    marginRight: 0
-  };
-  const inputInnerPercent = {
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#fff",
-    width: 84,
-    fontWeight: 600,
-    fontSize: 18,
-    textAlign: "right",
-    padding: "0 18px 0 0"
-  };
-  const inputInnerMoney = {
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#fff",
-    width: 84,
-    fontWeight: 700,
-    fontSize: 18,
-    textAlign: "right",
-    padding: "0 10px 0 36px"
-  };
-  const prefixMoney = {
-    position: "absolute",
-    left: 13,
-    color: "#b388ff",
-    fontWeight: 600,
-    fontSize: 17
-  };
-  const suffixPercent = {
-    position: "absolute",
-    right: 8,
-    color: "#b388ff",
-    fontWeight: 600,
-    fontSize: 17
-  };
-  const labelStyle = {
-    fontSize: 17,
-    fontWeight: 500,
-    minWidth: 240,
-    color: "#e1d6fa"
-  };
-  const fieldRow = {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: 26,
-    marginTop: 0
-  };
-  const blocosWrapper = {
-    display: "flex",
-    alignItems: "center",
-    marginLeft: 32
-  };
-  const cardStyle = {
-    background: "#18122a",
-    borderRadius: 18,
-    border: "2px solid #32235e",
-    padding: "28px 32px 18px 32px",
-    marginBottom: 38,
-    boxShadow: "0 2px 12px #140c2a33",
-    maxWidth: 800,
-    marginLeft: 0,
-    marginRight: 0
-  };
-  const sectionTitleStyle = {
-    fontSize: 24,
-    color: "#ffe060",
-    marginBottom: 18,
-    fontWeight: 700,
-    letterSpacing: -1,
-    background: "transparent"
-  };
-  const addParcelaButtonStyle = {
-    background: "#8c52ff",
-    color: "#fff",
-    fontWeight: 700,
-    fontSize: 17,
-    borderRadius: 14,
-    border: "none",
-    padding: "0 28px",
-    height: 40,
-    cursor: "pointer",
-    marginLeft: 5,
-    letterSpacing: 0.5,
-    transition: "background .2s",
-    boxShadow: "0 1px 6px #0002"
-  };
-  const trashButtonStyle = {
-    background: "transparent",
-    border: "none",
-    marginLeft: 14,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    padding: 0,
-    outline: "none"
-  };
-
-  // LOADING
   if (loading) return (
     <div style={{ color: "#fff", margin: 60, fontSize: 22, fontWeight: 700 }}>
       Carregando encargos sobre venda...
     </div>
   );
 
-  // JSX
   return (
-    <div style={{
-      color: "#fff",
-      maxWidth: 800,
-      margin: "36px 0 32px 0",
-      marginLeft: 0,
-      padding: "0"
-    }}>
-      <div style={{
-        fontSize: 32,
-        fontWeight: 900,
-        color: "#ffe060",
-        marginBottom: 18,
-        letterSpacing: 0.3,
-        textShadow: "0 2px 10px #0005"
-      }}>
-        Encargos sobre venda
-      </div>
-      {SECTIONS.map(section => (
-        <section key={section.title} style={cardStyle}>
-          <h3 style={sectionTitleStyle}>{section.title}</h3>
-          <div>
-            {section.title === "4. Outros" ? (
-              <>
-                {outros.map((outro, idx) => (
-                  <div key={idx} style={fieldRow}>
-                    <span style={labelStyle}>{outro.nome}:</span>
-                    <div style={blocosWrapper}>
-                      <div style={inputBlock}>
-                        <input
-                          style={inputInnerPercent}
-                          type="text"
-                          placeholder="0,00"
-                          value={
-                            editingPercentOutros[idx]
-                              ? maskPercentBRLInput(percentInputOutros[idx] ?? "")
-                              : formatPercentDisplay(outros[idx]?.percent)
-                          }
-                          onChange={e => handleChangeOutroPercent(e, idx)}
-                          onFocus={() => handleFocusOutroPercent(idx)}
-                          onBlur={() => handleBlurOutroPercent(idx)}
-                          maxLength={13}
-                          inputMode="numeric"
-                          autoComplete="off"
-                        />
-                        <span style={suffixPercent}>%</span>
-                      </div>
-                      <div style={inputBlockMoney}>
-                        <span style={prefixMoney}>R$</span>
-                        <input
-                          style={inputInnerMoney}
-                          type="text"
-                          placeholder="0,00"
-                          value={maskValueBRLInput(outro.value)}
-                          onChange={e => handleChangeOutroValue(e, idx)}
-                          maxLength={12}
-                          inputMode="numeric"
-                          autoComplete="off"
-                        />
-                      </div>
-                      <button
-                        style={trashButtonStyle}
-                        aria-label="Excluir item"
-                        onClick={() => handleRemoveOutro(idx)}
-                        title="Excluir item"
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                          <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1zm-3 4h12m-1 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7m3 3v6m4-6v6"
-                            stroke="#ff6b6b"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {criandoOutro ? (
-                  <div style={{ ...fieldRow, justifyContent: "center" }}>
-                    <input
-                      style={{
-                        ...inputInnerMoney,
-                        minWidth: 160,
-                        marginRight: 12,
-                        background: "#22144c",
-                        border: "2px solid #8c52ff",
-                        borderRadius: 12,
-                        color: "#fff"
-                      }}
-                      type="text"
-                      autoFocus
-                      placeholder="Nome do item"
-                      value={nomeNovoOutro}
-                      onChange={e => setNomeNovoOutro(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") handleAddOutro();
-                        if (e.key === "Escape") {
-                          setCriandoOutro(false);
-                          setNomeNovoOutro("");
-                        }
-                      }}
-                    />
-                    <button
-                      style={{
-                        ...addParcelaButtonStyle,
-                        padding: "0 18px",
-                        fontSize: 15,
-                        height: 36
-                      }}
-                      onClick={handleAddOutro}
-                    >
-                      Adicionar
-                    </button>
-                    <button
-                      style={{
-                        ...addParcelaButtonStyle,
-                        background: "#333",
-                        marginLeft: 8,
-                        padding: "0 15px",
-                        fontSize: 15,
-                        height: 36
-                      }}
-                      onClick={() => {
-                        setCriandoOutro(false);
-                        setNomeNovoOutro("");
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-                    <button
-                      type="button"
-                      style={{
-                        ...addParcelaButtonStyle,
-                        marginTop: 0,
-                        padding: "0 22px",
-                        fontSize: 16
-                      }}
-                      onClick={() => setCriandoOutro(true)}
-                    >
-                      + Adicionar outro item
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              section.fields.map(field => (
-                <React.Fragment key={field.key}>
-                  {field.isParcela ? (
-                    <>
-                      <div style={fieldRow}>
-                        <span style={labelStyle}>{field.label}:</span>
-                        <div style={blocosWrapper}>
-                          <button
-                            type="button"
-                            style={addParcelaButtonStyle}
-                            onClick={handleAddParcela}
-                          >
-                            + Adicionar parcela
-                          </button>
-                          {parcelasArr.length > 0 && (
-                            <button
-                              style={trashButtonStyle}
-                              aria-label="Remover última parcela"
-                              onClick={handleRemoveLastParcela}
-                            >
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                                <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1zm-3 4h12m-1 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7m3 3v6m4-6v6"
-                                  stroke="#ff6b6b"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {parcelasArr.map((parcela, idx) => (
-                        <div key={"parcela-" + idx} style={{ ...fieldRow, marginLeft: 60 }}>
+    <div className="encargos-main">
+      <div className="encargos-title">Encargos sobre venda</div>
+      <div className="encargos-cards-row">
+        {SECTIONS.map(section => (
+          <section key={section.title} className="encargos-card">
+            <h3 className="encargos-section-title">{section.title}</h3>
+            <div>
+              {section.title === "4. Outros" ? (
+                <>
+                  {outros.map((outro, idx) => (
+                    <div key={idx} className="encargos-field-row">
+                      <span className="encargos-label">{outro.nome}:</span>
+                      <div className="encargos-blocos-wrapper">
+                        <div className="encargos-input-block">
                           <input
-                            style={{
-                              ...labelStyle,
-                              minWidth: 40,
-                              fontWeight: 700,
-                              color: "#ffe060",
-                              background: "transparent",
-                              border: "none",
-                              outline: "none",
-                              width: 40
-                            }}
-                            type="text"
-                            value={parcela.nome || `${idx + 2}x`}
-                            onChange={e => handleChangeParcelaNome(e, idx)}
-                            maxLength={20}
-                          />
-                          <div style={blocosWrapper}>
-                            <div style={inputBlock}>
-                              <input
-                                style={inputInnerPercent}
-                                type="text"
-                                placeholder="0,00"
-                                value={
-                                  typeof parcela.percent === "string"
-                                    ? maskPercentBRLInput(parcela.percent)
-                                    : formatPercentDisplay(parcela.percent)
-                                }
-                                onChange={e => handleChangeParcelaPercent(e, idx)}
-                                onFocus={() => handleFocusParcelaPercent(idx)}
-                                onBlur={() => handleBlurParcelaPercent(idx)}
-                                maxLength={13}
-                                inputMode="numeric"
-                                autoComplete="off"
-                              />
-                              <span style={suffixPercent}>%</span>
-                            </div>
-                            <div style={inputBlockMoney}>
-                              <span style={prefixMoney}>R$</span>
-                              <input
-                                style={inputInnerMoney}
-                                type="text"
-                                placeholder="0,00"
-                                value={maskValueBRLInput(parcela.value || "")}
-                                onChange={e => handleChangeParcelaValue(e, idx)}
-                                maxLength={12}
-                                inputMode="numeric"
-                                autoComplete="off"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div style={fieldRow}>
-                      <span style={labelStyle}>{field.label}:</span>
-                      <div style={blocosWrapper}>
-                        <div style={inputBlock}>
-                          <input
-                            style={inputInnerPercent}
+                            className="encargos-input-inner-percent"
                             type="text"
                             placeholder="0,00"
                             value={
-                              editingPercent[field.key]
-                                ? maskPercentBRLInput(percentInput[field.key] ?? "")
-                                : formatPercentDisplay(data[field.key]?.percent)
+                              editingPercentOutros[idx]
+                                ? maskPercentBRLInput(percentInputOutros[idx] ?? "")
+                                : formatPercentDisplay(outros[idx]?.percent)
                             }
-                            onChange={e => handleChangePercent(e, field.key)}
-                            onFocus={() => handleFocusPercent(field.key)}
-                            onBlur={() => handleBlurPercent(field.key)}
+                            onChange={e => handleChangeOutroPercent(e, idx)}
+                            onFocus={() => handleFocusOutroPercent(idx)}
+                            onBlur={() => handleBlurOutroPercent(idx)}
                             maxLength={13}
                             inputMode="numeric"
                             autoComplete="off"
                           />
-                          <span style={suffixPercent}>%</span>
+                          <span className="encargos-suffix-percent">%</span>
                         </div>
-                        <div style={inputBlockMoney}>
-                          <span style={prefixMoney}>R$</span>
+                        <div className="encargos-input-block-money">
+                          <span className="encargos-prefix-money">R$</span>
                           <input
-                            style={inputInnerMoney}
+                            className="encargos-input-inner-money"
                             type="text"
                             placeholder="0,00"
-                            value={maskValueBRLInput(data[field.key]?.value)}
-                            onChange={e => handleChangeValue(e, field.key)}
+                            value={maskValueBRLInput(outro.value)}
+                            onChange={e => handleChangeOutroValue(e, idx)}
+                            onFocus={e => e.target.select()}
                             maxLength={12}
                             inputMode="numeric"
                             autoComplete="off"
                           />
                         </div>
+                        <button
+                          className="encargos-trash-btn"
+                          aria-label="Excluir item"
+                          onClick={() => handleRemoveOutro(idx)}
+                          title="Excluir item"
+                        >
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1zm-3 4h12m-1 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7m3 3v6m4-6v6"
+                              stroke="#ff6b6b"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
                       </div>
                     </div>
+                  ))}
+                  {criandoOutro ? (
+                    <div className="encargos-field-row" style={{ justifyContent: "center" }}>
+                      <input
+                        className="encargos-input-inner-money"
+                        style={{
+                          minWidth: 160,
+                          marginRight: 12,
+                          background: "#22144c",
+                          border: "2px solid #8c52ff",
+                          borderRadius: 12,
+                          color: "#fff"
+                        }}
+                        type="text"
+                        autoFocus
+                        placeholder="Nome do item"
+                        value={nomeNovoOutro}
+                        onChange={e => setNomeNovoOutro(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleAddOutro();
+                          if (e.key === "Escape") {
+                            setCriandoOutro(false);
+                            setNomeNovoOutro("");
+                          }
+                        }}
+                      />
+                      <button
+                        className="encargos-add-parcela-btn"
+                        style={{ padding: "0 18px", fontSize: 15, height: 36 }}
+                        onClick={handleAddOutro}
+                      >
+                        Adicionar
+                      </button>
+                      <button
+                        className="encargos-add-parcela-btn"
+                        style={{ background: "#333", marginLeft: 8, padding: "0 15px", fontSize: 15, height: 36 }}
+                        onClick={() => {
+                          setCriandoOutro(false);
+                          setNomeNovoOutro("");
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                      <button
+                        type="button"
+                        className="encargos-add-parcela-btn"
+                        style={{ marginTop: 0, padding: "0 22px", fontSize: 16 }}
+                        onClick={() => setCriandoOutro(true)}
+                      >
+                        + Adicionar outro item
+                      </button>
+                    </div>
                   )}
-                </React.Fragment>
-              ))
-            )}
-          </div>
-        </section>
-      ))}
+                </>
+              ) : (
+                section.fields.map(field => (
+                  <React.Fragment key={field.key}>
+                    {field.isParcela ? (
+                      <>
+                        <div className="encargos-field-row">
+                          <span className="encargos-label">{field.label}:</span>
+                          <div className="encargos-blocos-wrapper">
+                            <button
+                              type="button"
+                              className="encargos-add-parcela-btn"
+                              onClick={handleAddParcela}
+                            >
+                              + Adicionar parcela
+                            </button>
+                            {parcelasArr.length > 0 && (
+                              <button
+                                className="encargos-trash-btn"
+                                aria-label="Remover última parcela"
+                                onClick={handleRemoveLastParcela}
+                              >
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                  <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1zm-3 4h12m-1 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7m3 3v6m4-6v6"
+                                    stroke="#ff6b6b"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {parcelasArr.map((parcela, idx) => (
+                          <div key={"parcela-" + idx} className="encargos-field-row" style={{ marginLeft: 60 }}>
+                            <div className="encargos-input-nome-parcela">
+  {parcela.nome || `${idx + 2}x`}
+</div>
+
+                            <div className="encargos-blocos-wrapper">
+                              <div className="encargos-input-block">
+                                <input
+                                  className="encargos-input-inner-percent"
+                                  type="text"
+                                  placeholder="0,00"
+                                  value={
+                                    typeof parcela.percent === "string"
+                                      ? maskPercentBRLInput(parcela.percent)
+                                      : formatPercentDisplay(parcela.percent)
+                                  }
+                                  onChange={e => handleChangeParcelaPercent(e, idx)}
+                                  onFocus={() => handleFocusParcelaPercent(idx)}
+                                  onBlur={() => handleBlurParcelaPercent(idx)}
+                                  maxLength={13}
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                />
+                                <span className="encargos-suffix-percent">%</span>
+                              </div>
+                              <div className="encargos-input-block-money">
+                                <span className="encargos-prefix-money">R$</span>
+                                <input
+                                  className="encargos-input-inner-money"
+                                  type="text"
+                                  placeholder="0,00"
+                                  value={maskValueBRLInput(parcela.value || "")}
+                                  onChange={e => handleChangeParcelaValue(e, idx)}
+                                  onFocus={e => e.target.select()}
+                                  maxLength={12}
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="encargos-field-row">
+                        <span className="encargos-label">{field.label}:</span>
+                        <div className="encargos-blocos-wrapper">
+                          <div className="encargos-input-block">
+                            <input
+                              className="encargos-input-inner-percent"
+                              type="text"
+                              placeholder="0,00"
+                              value={
+                                editingPercent[field.key]
+                                  ? maskPercentBRLInput(percentInput[field.key] ?? "")
+                                  : formatPercentDisplay(data[field.key]?.percent)
+                              }
+                              onChange={e => handleChangePercent(e, field.key)}
+                              onFocus={() => handleFocusPercent(field.key)}
+                              onBlur={() => handleBlurPercent(field.key)}
+                              maxLength={13}
+                              inputMode="numeric"
+                              autoComplete="off"
+                            />
+                            <span className="encargos-suffix-percent">%</span>
+                          </div>
+                          <div className="encargos-input-block-money">
+                            <span className="encargos-prefix-money">R$</span>
+                            <input
+                              className="encargos-input-inner-money"
+                              type="text"
+                              placeholder="0,00"
+                              value={maskValueBRLInput(data[field.key]?.value)}
+                              onChange={e => handleChangeValue(e, field.key)}
+                              onFocus={e => e.target.select()}
+                              maxLength={12}
+                              inputMode="numeric"
+                              autoComplete="off"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))
+              )}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

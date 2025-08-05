@@ -1,0 +1,205 @@
+.aba-comp-main {
+  width: 100%;
+  color: #2196f3;
+  padding: 36px 0 24px 0;
+}
+
+.aba-comp-bloco {
+  background: #fff;
+  border-radius: 18px;
+  margin-bottom: 36px;
+  padding: 24px 18px 20px 18px;
+  box-shadow: 0 2px 16px #00cfff18;
+}
+
+.aba-comp-bloco-embalagem {
+  margin-bottom: 8px;
+}
+
+.aba-comp-titulo {
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: #2196f3;
+  margin-bottom: 18px;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 9px #00cfff18;
+}
+
+.aba-comp-tabela {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.07rem;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 16px #b6e6ed0d;
+}
+
+.aba-comp-th {
+  background: #f8fafc;
+  color: #2196f3;
+  border: none;
+  padding: 13px 7px 11px 7px;
+  font-weight: 800;
+  text-align: center;
+  font-size: 1.07rem;
+  letter-spacing: .04em;
+  border-bottom: 2.5px solid #b6e6ed;
+}
+.aba-comp-th:first-child {
+  border-top-left-radius: 8px;
+}
+.aba-comp-th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.aba-comp-tabela tr {
+  transition: background .16s;
+}
+.aba-comp-td {
+  padding: 10px 6px;
+  color: #23244b;
+  font-weight: 600;
+  background: none;
+  text-align: center;
+  font-size: 1.02rem;
+  border-bottom: 2px solid #eaf4ff;
+}
+.aba-comp-tabela tr:last-child .aba-comp-td {
+  border-bottom: none;
+}
+
+.aba-comp-td-vazia {
+  color: #2196f3 !important;
+  padding: 26px 0;
+  font-size: 1.09rem;
+  background: #f8fafc;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.aba-comp-input {
+  width: 84px;
+  background: #f8fafc;
+  color: #2196f3;
+  border: 1.6px solid #e1e9f7;
+  border-radius: 7px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.01rem;
+  padding: 7px 3px;
+  transition: border .15s;
+}
+.aba-comp-input:focus {
+  border: 1.6px solid #00cfff;
+  outline: none;
+}
+
+/* Botão ADICIONAR à direita */
+.aba-comp-btn-add {
+  background: linear-gradient(90deg,#00cfff 0%,#2196f3 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.07rem;
+  border: none;
+  border-radius: 11px;
+  padding: 9px 36px;
+  box-shadow: 0 0 10px #00cfff33;
+  cursor: pointer;
+  margin-top: 17px;
+  margin-bottom: 3px;
+  float: right;
+  transition: filter .14s, background .16s;
+}
+.aba-comp-btn-add:hover {
+  background: linear-gradient(90deg, #2196f3 0%, #00cfff 100%);
+  filter: brightness(1.05);
+}
+@media (max-width: 950px) {
+  .aba-comp-btn-add {
+    float: none;
+    display: block;
+    margin: 15px auto 5px auto;
+  }
+}
+
+.aba-comp-btn-excluir {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #f16363;
+  font-size: 1.11rem;
+  border-radius: 7px;
+  padding: 6px 8px;
+  transition: background .13s, color .13s;
+}
+.aba-comp-btn-excluir:hover {
+  background: #ffeaea;
+  color: #d32f2f;
+}
+
+/* ============ ESTILO DO SELECT (react-select) ============ */
+.aba-comp-select__control {
+  min-height: 36px !important;
+  background: #f8fafc !important;
+  color: #2196f3 !important;
+  border-radius: 8px !important;
+  border: 1.6px solid #e1e9f7 !important;
+  font-size: 1.04rem !important;
+  box-shadow: none !important;
+  transition: border .15s;
+}
+.aba-comp-select__control--is-focused {
+  border-color: #00cfff !important;
+}
+.aba-comp-select__input,
+.aba-comp-select__single-value {
+  color: #2196f3 !important;
+}
+.aba-comp-select__option {
+  background: #fff !important;
+  color: #2196f3 !important;
+  cursor: pointer;
+}
+.aba-comp-select__option--is-focused {
+  background: #e3f3fc !important;
+}
+.aba-comp-select__indicator-separator {
+  background: #e1e9f7 !important;
+}
+.aba-comp-select__dropdown-indicator {
+  color: #2196f3 !important;
+}
+.aba-comp-select__clear-indicator {
+  color: #b4c7e8 !important;
+}
+/* FIX: faz o menu do select ficar por cima do modal */
+.aba-comp-select__menu {
+  z-index: 99999 !important;
+  position: absolute !important;
+}
+.aba-comp-select__menu-list {
+  z-index: 99999 !important;
+}
+
+/* Responsividade simples */
+@media (max-width: 950px) {
+  .aba-comp-main {
+    padding: 10px 0 14px 0;
+  }
+  .aba-comp-bloco {
+    padding: 12px 5vw 13px 5vw;
+    margin-bottom: 24px;
+  }
+  .aba-comp-titulo {
+    font-size: 1.11rem;
+    margin-bottom: 13px;
+  }
+  .aba-comp-th, .aba-comp-td {
+    font-size: 0.99rem;
+    padding: 8px 2px;
+  }
+}

@@ -12,16 +12,23 @@ import { listarCategorias, adicionarCategoria } from "../../services/categoriasA
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
+// Switch totalmente funcional para Chrome/Edge/Safari/Firefox
 function SwitchAtivo({ checked, onChange, loading }) {
   return (
-    <label className="switch-ativo" style={{ opacity: loading ? 0.5 : 1 }}>
+    <label className="switch-ativo" style={{ opacity: loading ? 0.5 : 1, position: "relative" }}>
       <input
         type="checkbox"
         checked={checked}
         disabled={loading}
         onChange={onChange}
+        tabIndex={0}
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          width: 1,
+          height: 1,
+        }}
       />
-      <span className="switch-slider" />
     </label>
   );
 }
@@ -41,9 +48,9 @@ function FotoCelula({ imagem, nome }) {
           height: 36,
           objectFit: "cover",
           borderRadius: 7,
-          background: "#231844",
-          border: "1.5px solid #a78bfa",
-          boxShadow: "0 2px 10px #160c3540",
+          background: "#eaf4ff",
+          border: "1.5px solid #237be7",
+          boxShadow: "0 2px 10px rgba(35, 123, 231, 0.15)",
         }}
       />
     );
@@ -56,17 +63,17 @@ function FotoCelula({ imagem, nome }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#21173A",
+        background: "#eaf4ff",
         borderRadius: 7,
-        border: "1.5px solid #b894ff",
-        boxShadow: "0 2px 10px #160c3540",
+        border: "1.5px solid #237be7",
+        boxShadow: "0 2px 10px rgba(35, 123, 231, 0.15)",
       }}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="2" y="4" width="20" height="16" rx="3" fill="#292053" />
-        <rect x="2" y="4" width="20" height="16" rx="3" stroke="#b894ff" strokeWidth="1.5" />
-        <path d="M6 16l4-4.5 3.5 4.5 3.5-5L20 16" stroke="#ffe066" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="8.5" cy="9" r="1.2" fill="#ffe066"/>
+        <rect x="2" y="4" width="20" height="16" rx="3" fill="#dbe9f7" />
+        <rect x="2" y="4" width="20" height="16" rx="3" stroke="#237be7" strokeWidth="1.5" />
+        <path d="M6 16l4-4.5 3.5 4.5 3.5-5L20 16" stroke="#00cfff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="8.5" cy="9" r="1.2" fill="#00cfff"/>
       </svg>
     </div>
   );
@@ -107,7 +114,6 @@ export default function Cadastro() {
   const [modalImportarOpen, setModalImportarOpen] = useState(false);
   const [modalConfigOpen, setModalConfigOpen] = useState(false);
 
-  // NOVO: preferências de colunas
   const [colunasPreferidas, setColunasPreferidas] = useState(null);
 
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function Cadastro() {
     const res = await fetch(`http://localhost:3000/api/preferencias/colunas-cadastro/${userId}`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) setColunasPreferidas(data);
-    else setColunasPreferidas(null); // fallback padrão
+    else setColunasPreferidas(null);
   }
 
   async function fetchProdutos() {
@@ -194,9 +200,8 @@ export default function Cadastro() {
     setManualModalOpen(true);
   }
 
-  // ====== AJUSTADO PARA CALCULAR E ENVIAR O CUSTO UNITÁRIO ======
   async function handleSalvarIngrediente(ingrediente) {
-    const { id, ...outros } = ingrediente;
+    const { id, rotuloNutricional = [], ...outros } = ingrediente;
     const custoUnitario =
       Number(ingrediente.totalEmbalagem) > 0 && Number(ingrediente.custoTotal) > 0
         ? (Number(ingrediente.custoTotal) / Number(ingrediente.totalEmbalagem))
@@ -204,6 +209,7 @@ export default function Cadastro() {
 
     const payload = {
       ...outros,
+      rotuloNutricional,
       estoque: Number(ingrediente.estoque || 0),
       custoTotal: Number(ingrediente.custoTotal || 0),
       custoUnitario: custoUnitario.toString(),
@@ -283,7 +289,6 @@ export default function Cadastro() {
     return `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
   }
 
-  // AJUSTADO: Importação criando Marcas/Categorias globalmente
   async function handleImportarDados(produtos) {
     try {
       const marcasExistentes = await listarMarcas();
@@ -328,7 +333,6 @@ export default function Cadastro() {
     }
   }
 
-  // ------- FUNÇÃO NOVA: EXPORTAR EXCEL --------
   function handleExportar() {
     if (!ingredientes || ingredientes.length === 0) {
       alert("Não há produtos para exportar!");
@@ -375,20 +379,50 @@ export default function Cadastro() {
     setAtivandoId(null);
   }
 
-  // ------ RENDER DA TABELA DINÂMICA -------
   const colunasTabela = (colunasPreferidas || COLUNAS_CADASTRO).filter(c => c.visivel !== false);
 
   function renderCelula(coluna, item) {
-    switch (coluna.key) {
-      case "imagem":
-        return <FotoCelula imagem={item.imagem} nome={item.nome} />;
-      case "custoTotal":
-        return renderCustoTotal(item);
-      case "custoUnitario":
-        return renderCustoUnitario(item);
-      default:
-        return item[coluna.key] || "";
+    if (coluna.key === "imagem") return <FotoCelula imagem={item.imagem} nome={item.nome} />;
+    if (coluna.key === "custoTotal") return renderCustoTotal(item);
+    if (coluna.key === "custoUnitario") return renderCustoUnitario(item);
+    if (coluna.key === "marca") {
+      // SUPORTA MULTI-MARCAS ARRAY ou string (retrocompatível)
+      let marcas = [];
+      if (Array.isArray(item.marca)) {
+        marcas = item.marca.filter(Boolean);
+      } else if (typeof item.marca === "string" && item.marca) {
+        marcas = item.marca.split(/[,;\n]+/).map(m => m.trim()).filter(Boolean);
+      }
+      if (marcas.length === 0) return null;
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start" }}>
+          {marcas.map((marca, idx) => (
+            <span key={idx} style={{
+              display: "flex",
+              alignItems: "center",
+              color: "#222", // preto
+              fontWeight: 500,
+              fontSize: 15,
+              lineHeight: "18px"
+            }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 7,
+                  height: 7,
+                  background: "#222", // preto
+                  borderRadius: "50%",
+                  marginRight: 8,
+                  marginBottom: 1
+                }}
+              />
+              {marca}
+            </span>
+          ))}
+        </div>
+      );
     }
+    return item[coluna.key] || "";
   }
 
   function renderCustoUnitario(item) {
@@ -430,19 +464,19 @@ export default function Cadastro() {
                 width: 44,
                 height: 44,
                 borderRadius: "50%",
-                background: "#21173A",
+                background: "#eaf4ff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 border: "none",
-                boxShadow: "0 1px 6px #190f3a33",
+                boxShadow: "0 2px 8px rgba(35, 123, 231, 0.1)",
                 cursor: "pointer",
                 transition: "background .2s",
               }}
               title="Importar produtos"
               onClick={() => setModalImportarOpen(true)}
             >
-              <FaDownload size={22} color="#a78bfa" />
+              <FaDownload size={22} color="#237be7" />
             </button>
             <button
               className="btn-icone-cadastro"
@@ -450,19 +484,19 @@ export default function Cadastro() {
                 width: 44,
                 height: 44,
                 borderRadius: "50%",
-                background: "#21173A",
+                background: "#eaf4ff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 border: "none",
-                boxShadow: "0 1px 6px #190f3a33",
+                boxShadow: "0 2px 8px rgba(35, 123, 231, 0.1)",
                 cursor: "pointer",
                 transition: "background .2s",
               }}
               title="Exportar produtos"
               onClick={handleExportar}
             >
-              <FaUpload size={22} color="#a78bfa" />
+              <FaUpload size={22} color="#237be7" />
             </button>
             <button
               className="cadastro-config-icon"
@@ -470,21 +504,22 @@ export default function Cadastro() {
               style={{
                 width: 44,
                 height: 44,
-                marginLeft: 0,
-                background: "none",
+                borderRadius: "50%",
+                background: "#eaf4ff",
                 border: "none",
                 padding: 0,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(35, 123, 231, 0.1)",
               }}
               onClick={() => {
                 setModalConfigOpen(true);
-                setTimeout(fetchColunasPreferidas, 800); // Delay pra garantir update pós-salvar
+                setTimeout(fetchColunasPreferidas, 800);
               }}
             >
-              <FaFilter size={24} color="#a78bfa" />
+              <FaFilter size={22} color="#237be7" />
             </button>
           </div>
         </div>
@@ -524,29 +559,38 @@ export default function Cadastro() {
                 </td>
               </tr>
             ) : (
-              ingredientesFiltrados.map((item) => (
-                <tr
-                  key={item.codigo}
-                  className={item.ativo ? "linha-ativo" : "linha-inativo"}
-                >
-                  {colunasTabela.map(coluna => (
-                    <td key={coluna.key}>{renderCelula(coluna, item)}</td>
-                  ))}
-                  {/* ATIVO */}
-                  <td className="td-ativo">
-                    <SwitchAtivo
-                      checked={!!item.ativo}
-                      onChange={() => handleToggleAtivo(item)}
-                      loading={ativandoId === item.id}
-                    />
-                  </td>
-                  {/* AÇÕES */}
-                  <td className="td-acoes">
-                    <button className="btn-editar" onClick={() => editarIngrediente(item)}>
-                      Editar
-                    </button>
-                  </td>
-                </tr>
+              ingredientesFiltrados.map((item, i) => (
+                <React.Fragment key={item.codigo}>
+                  <tr
+                    className={item.ativo ? "linha-ativo" : "linha-inativo"}
+                  >
+                    {colunasTabela.map(coluna => (
+                      <td key={coluna.key}>{renderCelula(coluna, item)}</td>
+                    ))}
+                    {/* ATIVO */}
+                    <td className="td-ativo">
+                      <SwitchAtivo
+                        checked={!!item.ativo}
+                        onChange={() => handleToggleAtivo(item)}
+                        loading={ativandoId === item.id}
+                      />
+                    </td>
+                    {/* AÇÕES */}
+                    <td className="td-acoes">
+                      <button className="btn-editar" onClick={() => editarIngrediente(item)}>
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                  {/* Linha separadora azul clarinho */}
+                  {i < ingredientesFiltrados.length - 1 && (
+                    <tr>
+                      <td colSpan={colunasTabela.length + 2}>
+                        <div className="tabela-linha-separadora" />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>

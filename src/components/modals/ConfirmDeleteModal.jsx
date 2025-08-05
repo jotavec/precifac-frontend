@@ -45,7 +45,7 @@ export default function ConfirmDeleteModal({
       }}
       shouldCloseOnOverlayClick={true}
     >
-      <div style={{display: "flex", alignItems: "center", gap: 12, marginBottom: 16}}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <FiTrash2 size={30} color="#ff5c5c" />
         <h2 style={{
           fontWeight: 900,
@@ -59,14 +59,14 @@ export default function ConfirmDeleteModal({
       </div>
       <div style={{
         fontSize: 16.5,
-        color: "#eee",
+        color: "#556072", // Mais legível!
         marginBottom: 18,
         lineHeight: 1.6
       }}>
         Tem certeza que deseja apagar esta {itemLabel}?<br />
-        <b>Essa ação não pode ser desfeita.</b> Todos os dados relacionados serão removidos permanentemente e não será possível recuperá-los depois.
+        <b style={{ color: "#ff5c5c" }}>Essa ação não pode ser desfeita.</b> Todos os dados relacionados serão removidos permanentemente e não será possível recuperá-los depois.
       </div>
-      <div style={{display: "flex", gap: 16, justifyContent: "flex-end"}}>
+      <div style={{ display: "flex", gap: 16, justifyContent: "flex-end" }}>
         <button
           onClick={onRequestClose}
           style={{

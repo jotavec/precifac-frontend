@@ -1,7 +1,79 @@
-/* =========== TELA PRINCIPAL DE CADASTRO =========== */
+/* ============================================== */
+/* = ESTILOS ADICIONADOS DO PRIMEIRO TRECHO = */
+/* ============================================== */
+
+/* Estilo de botão genérico com efeito de hover */
+.button {
+  display: inline-block;
+  padding: .75rem 1.25rem;
+  border-radius: 10rem;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: .15rem;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.button:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0cf;
+  border-radius: 10rem;
+  z-index: -2;
+}
+
+.button:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background-color: #00a3cc;
+  transition: all .3s;
+  border-radius: 10rem;
+  z-index: -1;
+}
+
+.button:hover {
+  color: #fff;
+}
+
+.button:hover:before {
+  width: 100%;
+}
+
+/* Reset opcional para apresentação */
+* {
+  font-family: Arial;
+  text-decoration: none;
+}
+
+.container {
+  padding-top: 50px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+
+/* ================================== */
+/* = INÍCIO DO CÓDIGO DO APLICATIVO = */
+/* ================================== */
+
+body {
+  background: #f8fafc !important;
+}
 .cadastro-main {
   padding: 40px;
 }
+
 .cadastro-header {
   display: flex;
   align-items: center;
@@ -10,200 +82,225 @@
 .cadastro-header h2 {
   flex: 1;
   margin: 0;
-  color: #ffe066;
-  font-size: 1.6rem;
-  font-weight: 700;
+  margin-left: 40px;
+  color: #2196f3;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 14px #00cfff23;
 }
+
 .cadastro-header-actions {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
 .btn-novo-cadastro {
-  background: #7c3aed;
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-weight: 600;
-  font-size: 16px;
+  border-radius: 14px;
+  padding: 13px 32px;
+  font-weight: 800;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: filter 0.16s;
+  box-shadow: 0 2px 8px #00cfff33;
+  letter-spacing: .3px;
+  transition: filter .18s, background .18s, box-shadow .17s;
 }
 .btn-novo-cadastro:hover {
-  filter: brightness(1.2);
+  background: linear-gradient(90deg, #237be7 0%, #00cfff 100%);
+  filter: brightness(1.06);
+  box-shadow: 0 0 22px 6px #00cfff44;
 }
-.cadastro-config-icon {
+
+.cadastro-config-icon,
+.btn-icone-cadastro {
   width: 38px;
   height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: none !important;
-  cursor: pointer;
-}
-.btn-icone-cadastro {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   padding: 0;
+  border-radius: 50%;
 }
 
 .cadastro-filtro {
   margin-bottom: 18px;
-}
-.cadastro-filtro input {
-  width: 320px;
-  padding: 7px 12px;
-  border-radius: 6px;
-  border: 1px solid #4c358b;
-  background: #18122a;
-  color: #fff;
-  font-size: 15px;
-  margin-right: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
+.cadastro-filtro input {
+  width: 320px;
+  padding: 15px 14px;
+  border-radius: 9px;
+  border: 1.7px solid #e1e9f7;
+  background: #f8fafc;
+  color: #2196f3;
+  font-size: 16px;
+  font-weight: 600;
+  margin-left: 40px;
+  box-shadow: 0 2px 9px #eaf4ff11 inset;
+  transition: border 0.16s;
+}
+.cadastro-filtro input:focus {
+  border: 1.7px solid #2196f3;
+}
+
+/* =========== TABELA =========== */
 .cadastro-tabela-wrap {
   overflow-x: auto;
-  background: #231b39;
-  border-radius: 10px;
-  box-shadow: 0 2px 14px #0006;
-  border: 1px solid #332657;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 24px #237be710;
+  padding: 22px 16px;
+  margin: 0 0 40px 40px;
 }
 .cadastro-tabela {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 920px;
 }
 
-/* CENTRALIZAÇÃO GERAL: tudo no meio! */
 .cadastro-tabela th,
 .cadastro-tabela td {
+  text-align: center;
   vertical-align: middle !important;
-  text-align: center !important;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-right: 1px solid #31224b;
-  box-sizing: border-box;
+  padding: 12px 8px;
+  border-right: 1px solid #e1e9f7;
+  height: 56px;
+  display: table-cell !important;
 }
-
 .cadastro-tabela th:last-child,
 .cadastro-tabela td:last-child {
   border-right: none;
 }
 
 .cadastro-tabela th {
-  font-weight: 700;
-  letter-spacing: 1px;
-  background: #4c358b;
-  color: #fff;
-  padding: 10px 6px;
-}
-.cadastro-tabela td {
-  padding: 10px 6px;
-  font-size: 15px;
-  color: #fff;
-}
-.cadastro-tabela td > div,
-.cadastro-tabela td > svg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: #f8fafc;
+  color: #2196f3;
+  border-bottom: 2.5px solid #b6e6ed;
+  font-weight: 800;
+  font-size: 1.13rem;
+  letter-spacing: 0.7px;
 }
 
-/* Linhas divisórias suaves na horizontal */
+.cadastro-tabela td {
+  font-size: 16px;
+  color: #23244b;
+  vertical-align: middle !important;
+  height: 56px;
+  display: table-cell !important;
+}
+
+/* LINHA HORIZONTAL AZUL CLARINHA ENTRE PRODUTOS */
 .cadastro-tabela tbody tr {
-  border-bottom: 1.5px solid #3e3161;
+  border-bottom: 2.5px solid #eaf4ff !important;
+  transition: background .18s;
 }
 .cadastro-tabela tbody tr:last-child {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
-.linha-ativo {
-  background: #241c38;
+/* Marca (lista vertical) — centralizar conteúdo vertical */
+.cadastro-tabela td:nth-child(7) > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100%;
+  min-height: 56px;
+  margin: 0 auto;
 }
-.linha-inativo {
-  background: #18122a;
-  color: #aaa;
-}
-.btn-editar {
-  background: #6246ea22;
-  color: #b388ff;
-  border: none;
-  border-radius: 6px;
-  padding: 5px 14px;
-  font-weight: 500;
+
+/* ===== SWITCH ATIVO (ESTILO BOTÃO PADRONIZADO) ===== */
+.switch-ativo {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  padding: .6rem 1rem;
+  border-radius: 10rem;
+  color: #237be7;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: .1rem;
+  background-color: #eaf4ff;
   cursor: pointer;
-  transition: filter 0.18s;
+  width: 100px;
+  height: 34px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(35, 123, 231, 0.1);
+  position: relative;
+  transition: all .3s;
+  user-select: none;
+}
+
+.switch-ativo input {
+  position: absolute;
+  left: -9999px;
+}
+
+.switch-slider {
+  display: none;
+}
+
+.switch-ativo::after {
+  content: 'Inativo';
+  transition: color 0.3s;
+}
+
+.switch-ativo:has(input:checked) {
+  background: linear-gradient(90deg, #00cfff, #237be7);
+  color: #fff;
+  box-shadow: 0 0 12px #00cfff44;
+}
+
+.switch-ativo:has(input:checked)::after {
+  content: 'Ativo';
+}
+
+.switch-ativo:hover {
+  filter: brightness(1.05);
+}
+
+/* Centraliza o botão Ativo/Ações na célula sempre */
+.cadastro-tabela td.td-ativo,
+.cadastro-tabela td.td-acoes {
+  text-align: center;
+  vertical-align: middle !important;
+  /* Não usar flex, pra não quebrar o alinhamento */
+}
+
+.btn-editar {
+  display: inline-block;
+  margin: 0 auto;
+  background: linear-gradient(90deg, #00cfff22 0%, #237be733 100%);
+  color: #237be7;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: filter 0.18s, background 0.16s;
   vertical-align: middle;
 }
 .btn-editar:hover {
-  filter: brightness(1.2);
+  background: linear-gradient(90deg, #237be7 0%, #00cfff 100%);
+  color: #fff;
+  filter: brightness(1.05);
 }
 
-/* ===== SWITCH ATIVO MODERNO E BONITO ===== */
-.switch-ativo {
-  display: inline-block;
-  width: 77px;
-  height: 28px;
-  border-radius: 14px;
-  background: #39305d;
-  position: relative;
-  transition: background 0.22s;
-  box-shadow: 0 2px 10px #1a143022;
-  vertical-align: middle;
-  cursor: pointer;
-}
-.switch-ativo input {
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  left: 0; top: 0;
-  margin: 0;
-  cursor: pointer;
-  z-index: 2;
-}
-.switch-slider {
-  position: absolute;
-  left: 40px;
-  top: 3px;
-  width: 22px;
-  height: 22px;
-  border-radius: 100%;
-  background: #fff;
-  box-shadow: 0 2px 8px #22d3ee33;
-  transition: left 0.22s, background 0.22s, box-shadow 0.16s;
-  z-index: 1;
-}
-.switch-ativo input:checked + .switch-slider {
-  left: 40px !important;
-  background: #fff;
-  box-shadow: 0 2px 16px #38bdf855;
-}
-.switch-ativo:has(input:checked) {
-  background: linear-gradient(90deg, #17e6fd 0%, #1fffa1 100%);
-  box-shadow: 0 0 12px #38bdf877;
-}
-@supports not (selector(:has(input:checked))) {
-  .switch-ativo input:checked + .switch-slider,
-  .switch-ativo input:checked ~ .switch-slider {
-    left: 35px !important;
-    background: #fff;
-    box-shadow: 0 2px 16px #38bdf855;
-  }
-}
-
-/* Foto sempre centralizada e ajustada */
-.cadastro-tabela td:nth-child(1) {
-  height: 52px;
-  vertical-align: middle;
-  padding: 0;
-}
 .cadastro-tabela td:nth-child(1) > div {
   display: flex;
   align-items: center;
@@ -219,19 +316,8 @@
   height: 22px;
 }
 
-.cadastro-tabela .td-ativo,
-.cadastro-tabela .td-acoes {
-  text-align: center !important;
-  vertical-align: middle !important;
-  height: 52px;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-.cadastro-tabela .td-acoes {
-  min-width: 90px;
-}
+/* =========== MODAIS =========== */
 
-/* =========== MODAL GERAL (FUNDO) =========== */
 .modal-backdrop {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -242,7 +328,6 @@
   z-index: 99;
 }
 
-/* =========== MODAL ESCOLHA (AUTOMÁTICO/MANUAL) =========== */
 .modal-escolha-cadastro-bg {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -256,14 +341,13 @@
 }
 
 .modal-escolha-cadastro {
-  background: #231b39;
-  color: #fff;
+  background: #fff;
+  color: #23244b;
   border-radius: 18px;
   padding: 36px 36px 30px 36px;
   min-width: 520px;
   max-width: 600px;
-  min-height: 280px;
-  box-shadow: 0 10px 40px #000a;
+  box-shadow: 0 10px 40px #00cfff1a;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -283,7 +367,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.8rem;
-  color: #fff;
+  color: #2196f3;
   cursor: pointer;
   z-index: 10;
   transition: background 0.15s, color 0.12s;
@@ -293,149 +377,25 @@
 }
 .modal-fechar-btn:hover,
 .modal-fechar-btn:focus {
-  background: #382c5770;
-  color: #ffe066;
+  background: #eaf4ff70;
+  color: #2196f3;
 }
 
-.modal-cadastro-cols {
-  display: flex;
-  justify-content: center;
-  gap: 44px;
-  align-items: flex-start;
-  padding: 6px 0 4px 0;
-  position: relative;
-}
-
-.modal-cadastro-cols::before {
-  content: "";
-  display: block;
-  position: absolute;
-  left: 50%;
-  top: 15px;
-  height: calc(100% - 30px);
-  width: 2px;
-  background: #31224b;
-  border-radius: 2px;
-  transform: translateX(-50%);
-  z-index: 0;
-}
-
-@media (max-width: 820px) {
-  .modal-cadastro-cols::before {
-    display: none;
-  }
-}
-
-.modal-cadastro-col {
-  background: none;
-  border-radius: 18px;
-  min-width: 220px;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 5px;
-  padding: 0 5px;
-  position: relative;
-  z-index: 1;
-}
-
-.modal-cadastro-icon {
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-cadastro-icon svg {
-  width: 70px !important;
-  height: 44px !important;
-}
-.modal-cadastro-title {
-  font-size: 1.12rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: #ffe066;
-  text-align: center;
-  letter-spacing: 0.5px;
-}
-
-.modal-cadastro-desc {
-  font-size: 1.01rem;
-  color: #fff;
-  opacity: 0.89;
-  text-align: center;
-  margin-bottom: 17px;
-  min-height: 34px;
-  max-width: 230px;
-  line-height: 1.5;
-}
-
-.btn-auto, .btn-manual {
-  border: none;
-  outline: none;
-  font-weight: 600;
-  font-size: 1.05rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.16s;
-  padding: 12px 22px;
-  min-width: 145px;
-  margin-top: 2px;
-}
-
-.btn-auto {
-  background: #5be0b3;
-  color: #222;
-  margin-bottom: 10px;
-}
-.btn-manual {
-  background: #22d3ee;
-  color: #fff;
-}
-.amarelo { color: #ffe066 !important; }
-
-.modal-cadastro-icon svg,
-.modal-cadastro-icon .icon-manual,
-.modal-cadastro-icon .icon-barcode {
-  width: 70px;
-  height: 44px;
-}
-.amarelo { color: #ffe066 !important; }
-
-@media (max-width: 820px) {
-  .modal-escolha-cadastro {
-    min-width: 97vw;
-    max-width: 100vw;
-    padding: 14px 3vw 20px 3vw;
-  }
-  .modal-cadastro-cols {
-    gap: 14px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .modal-cadastro-col {
-    min-width: 0;
-    max-width: none;
-    margin-bottom: 20px;
-  }
-}
-
-/* =========== MODAL MANUAL (FORMULÁRIO) =========== */
 .modal-cadastro-manual {
-  background: #231b39;
-  color: #fff;
+  background: #fff;
+  color: #23244b;
   border-radius: 18px;
   padding: 32px 32px 24px 32px;
   min-width: 520px;
   position: relative;
-  box-shadow: 0 8px 40px #000a;
+  box-shadow: 0 8px 40px #00cfff1a;
   display: flex;
   flex-direction: column;
 }
 .modal-cadastro-manual h2 {
-  color: #c4b5fd;
-  margin-bottom: 0;
-  font-size: 1.4rem;
+  color: #2196f3;
+  margin-bottom: 20px;
+  font-size: 1.35rem;
 }
 .modal-cadastro-row {
   display: flex;
@@ -448,88 +408,67 @@
   flex-direction: column;
 }
 .modal-cadastro-row label {
-  font-size: 0.97rem;
-  color: #ddd;
-  margin-bottom: 5px;
+  font-size: 1.01rem;
+  color: #2196f3;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
 }
 .modal-cadastro-row input {
-  background: #18122a;
-  border: 1px solid #3f316c;
-  border-radius: 6px;
-  color: #fff;
-  padding: 7px 10px;
+  background: #f8fafc;
+  border: 1.7px solid #e1e9f7;
+  border-radius: 10px;
+  color: #23244b;
+  padding: 11px 15px;
   font-size: 1rem;
   outline: none;
-  transition: border 0.14s;
+  transition: border 0.16s;
+  font-weight: 600;
+  box-shadow: 0 2px 9px #eaf4ff15 inset;
 }
 .modal-cadastro-row input:focus {
-  border: 1.5px solid #a78bfa;
-}
-.btn-cancelar {
-  background: #37303f;
-  color: #eee;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-weight: 500;
-  font-size: 15px;
-  margin-right: 12px;
-  cursor: pointer;
-}
-.btn-excluir {
-  background: #f87171;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-weight: 500;
-  font-size: 15px;
-  margin-right: 12px;
-  cursor: pointer;
-}
-.btn-salvar {
-  background: #22d3ee;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 24px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
+  border: 1.7px solid #2196f3;
 }
 
-.icon-manual, .icon-barcode {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 18px auto;
+/* BOTÕES DO MODAL */
+.btn-cancelar, .btn-excluir, .btn-salvar {
+  border-radius: 10px;
+  padding: 12px 32px;
+  font-weight: 900;
+  font-size: 1.13rem;
+  cursor: pointer;
+  transition: all 0.16s;
 }
-.modal-escolha-cadastro-desc {
-  margin-bottom: 30px;
+
+.btn-cancelar {
+  background: #fff;
+  color: #2196f3;
+  border: 2px solid #2196f3;
+  margin-right: 12px;
+}
+.btn-cancelar:hover {
+  background: #f8fafc;
+  color: #237be7;
+  border: 2px solid #237be7;
+}
+.btn-excluir {
+  background: #f16363;
   color: #fff;
-  font-size: 1.04rem;
-  opacity: 0.85;
-  min-height: 44px;
-  text-align: center;
+  border: none;
+  margin-right: auto; /* Empurra o salvar para a direita */
 }
-.cadastro-tabela td:nth-child(1) {
-  height: 52px;
-  vertical-align: middle;
-  padding: 0;
+.btn-excluir:hover {
+  background: #e74c3c;
 }
-.cadastro-tabela td:nth-child(1) > div {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  width: 36px;
-  margin: 0 auto;
+.btn-salvar {
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 14px #00cfff1a;
+  padding-left: 38px;
+  padding-right: 38px;
 }
-.cadastro-tabela td:nth-child(1) svg {
-  display: block;
-  margin: 0 auto;
-  width: 22px;
-  height: 22px;
+.btn-salvar:hover {
+  background: linear-gradient(90deg, #237be7 0%, #00cfff 100%);
+  box-shadow: 0 0 22px 7px #00cfff44;
 }

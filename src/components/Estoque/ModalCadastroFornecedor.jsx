@@ -4,12 +4,10 @@ import React, { useState } from "react";
 function formatarCpfCnpj(valor) {
   valor = valor.replace(/\D/g, "");
   if (valor.length <= 11) {
-    // CPF: 000.000.000-00
     valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
     valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
     valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   } else {
-    // CNPJ: 00.000.000/0000-00
     valor = valor.replace(/^(\d{2})(\d)/, "$1.$2");
     valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
     valor = valor.replace(/\.(\d{3})(\d)/, ".$1/$2");
@@ -23,10 +21,8 @@ function formatarTelefone(valor) {
   valor = valor.replace(/\D/g, "");
   if (valor.length > 11) valor = valor.slice(0, 11);
   if (valor.length > 10) {
-    // (99) 99999-9999
     valor = valor.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
   } else if (valor.length > 5) {
-    // (99) 9999-9999
     valor = valor.replace(/^(\d{2})(\d{4,5})(\d{0,4}).*/, "($1) $2-$3");
   } else if (valor.length > 2) {
     valor = valor.replace(/^(\d{2})(\d{0,5})/, "($1) $2");
@@ -36,7 +32,6 @@ function formatarTelefone(valor) {
   return valor.trim();
 }
 
-// ==== FORMULÁRIO DE FORNECEDOR (CRUD) ====
 export default function ModalCadastroFornecedor({
   onSave, onClose, dadosIniciais = {}, editando
 }) {
@@ -63,105 +58,118 @@ export default function ModalCadastroFornecedor({
     onClose();
   }
 
-  // --- ESTILOS INLINE DO FORM ---
+  // ===== NOVOS ESTILOS =====
   const modalForm = {
-    padding: "30px 28px 12px 28px",
+    background: "#fff",
+    padding: "36px 36px 16px 36px",
     borderRadius: 22,
-    background: "none",
-    maxWidth: 560,
-    minWidth: 240,
+    boxShadow: "0 8px 38px 0 #00cfff18",
+    maxWidth: 540,
+    minWidth: 260,
+    fontFamily: "inherit"
   };
   const modalHeader = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 22,
   };
   const modalTitle = {
-    fontSize: "1.38rem",
-    fontWeight: 800,
-    color: "#ffe066",
-    letterSpacing: "0.02em",
+    fontSize: "1.65rem",
+    fontWeight: 900,
+    color: "#32a6ff",
+    letterSpacing: "0.04em",
     margin: 0,
+    textAlign: "left",
   };
   const modalClose = {
     background: "none",
     border: "none",
     fontSize: "2.1rem",
-    color: "#a09eec",
+    color: "#a0b4d7",
     cursor: "pointer",
     lineHeight: 1,
     fontWeight: 500,
-    opacity: 0.76,
+    opacity: 0.80,
     transition: "color 0.18s, opacity 0.14s",
   };
   const row = { display: "flex", gap: 16, marginBottom: 0 };
-  const col = { flex: 1 };
+  const col = { flex: 1, display: "flex", flexDirection: "column" };
   const formLabel = {
     display: "block",
-    fontSize: "1.01rem",
-    fontWeight: 600,
-    color: "#a09eec",
+    fontSize: "1.03rem",
+    fontWeight: 700,
+    color: "#2196f3",
     marginBottom: 4,
-    marginTop: 7,
+    marginTop: 9,
     letterSpacing: "0.01em",
   };
   const formLabelRequired = {
-    color: "#ffe066",
-    marginLeft: 2,
+    color: "#ff1744",
+    marginLeft: 3,
     fontSize: "1em",
+    fontWeight: 800,
   };
   const formInput = {
     width: "100%",
     boxSizing: "border-box",
-    borderRadius: 9,
-    border: "1.5px solid #7c3aed99",
-    background: "rgba(40, 31, 61, 0.95)",
-    color: "#ffe066",
-    fontSize: "1.04rem",
-    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1.7px solid #e1e9f7",
+    background: "#f8fafc",
+    color: "#23244b",
+    fontSize: "1.05rem",
+    padding: "13px 16px",
     outline: "none",
-    fontWeight: 500,
-    transition: "border-color 0.18s, box-shadow 0.18s",
+    fontWeight: 600,
+    transition: "border-color 0.16s, box-shadow 0.16s",
     marginBottom: 2,
     fontFamily: "inherit",
+    boxShadow: "0 2px 9px #eaf4ff15 inset",
   };
   const formTextarea = {
     ...formInput,
-    minHeight: 52,
+    minHeight: 54,
     resize: "vertical",
   };
   const modalActions = {
     display: "flex",
     gap: 14,
-    marginTop: 20,
+    marginTop: 30,
     justifyContent: "flex-end",
   };
   const btnPrimary = {
-    background: "linear-gradient(90deg, #7c3aed 60%, #ffe066 130%)",
+    background: "linear-gradient(90deg, #00cfff 0%, #237be7 100%)",
     color: "#fff",
     border: "none",
-    borderRadius: 11,
-    padding: "12px 28px",
-    fontWeight: 800,
-    fontSize: "1.08rem",
+    borderRadius: 12,
+    padding: "14px 38px",
+    fontWeight: 900,
+    fontSize: "1.13rem",
     cursor: "pointer",
-    letterSpacing: ".2px",
-    boxShadow: "0 2px 9px #7c3aed33",
-    transition: "filter .18s",
+    letterSpacing: ".3px",
+    boxShadow: "0 2px 14px #00cfff1a",
+    transition: "background 0.18s, box-shadow 0.17s",
   };
+  const btnPrimaryHover = {
+    background: "linear-gradient(90deg, #237be7 0%, #00cfff 100%)"
+  }
   const btnOutline = {
-    background: "#25184b",
-    color: "#ffe066",
-    border: "1.5px solid #7c3aed99",
-    borderRadius: 11,
-    padding: "12px 28px",
-    fontWeight: 800,
-    fontSize: "1.08rem",
+    background: "#fff",
+    color: "#2196f3",
+    border: "2px solid #2196f3",
+    borderRadius: 12,
+    padding: "14px 38px",
+    fontWeight: 900,
+    fontSize: "1.13rem",
     cursor: "pointer",
     letterSpacing: ".2px",
-    transition: "filter .18s",
+    transition: "background 0.18s, color 0.18s, border 0.18s",
+    marginLeft: 4,
   };
+
+  // Hover states (gambiarra pois é inline)
+  const [hoverSalvar, setHoverSalvar] = useState(false);
+  const [hoverCancelar, setHoverCancelar] = useState(false);
 
   return (
     <form onSubmit={handleSubmit} style={modalForm}>
@@ -174,8 +182,8 @@ export default function ModalCadastroFornecedor({
           onClick={onClose}
           aria-label="Fechar"
           style={modalClose}
-          onMouseOver={e => e.currentTarget.style.color = "#ff4d8b"}
-          onMouseOut={e => e.currentTarget.style.color = "#a09eec"}
+          onMouseOver={e => e.currentTarget.style.color = "#2196f3"}
+          onMouseOut={e => e.currentTarget.style.color = "#a0b4d7"}
         >×</button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -286,10 +294,30 @@ export default function ModalCadastroFornecedor({
         </div>
       </div>
       <div style={modalActions}>
-        <button type="submit" style={btnPrimary} disabled={loading}>
+        <button
+          type="submit"
+          style={{
+            ...btnPrimary,
+            ...(hoverSalvar ? btnPrimaryHover : {})
+          }}
+          disabled={loading}
+          onMouseOver={() => setHoverSalvar(true)}
+          onMouseOut={() => setHoverSalvar(false)}
+        >
           {loading ? "Salvando..." : (editando ? "Salvar edição" : "Salvar fornecedor")}
         </button>
-        <button type="button" onClick={onClose} style={btnOutline}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            ...btnOutline,
+            background: hoverCancelar ? "#f8fafc" : "#fff",
+            color: hoverCancelar ? "#237be7" : "#2196f3",
+            borderColor: hoverCancelar ? "#237be7" : "#2196f3"
+          }}
+          onMouseOver={() => setHoverCancelar(true)}
+          onMouseOut={() => setHoverCancelar(false)}
+        >
           Cancelar
         </button>
       </div>

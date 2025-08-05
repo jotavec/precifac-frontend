@@ -1,273 +1,315 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
+import imageCompression from "browser-image-compression";
+import { FaUpload, FaCamera, FaPlus, FaTrash } from "react-icons/fa";
+import "./AbaGeralReceita.css";
 
-const defaultConservacao = [
-  { descricao: "Congelado", temp: "-18", unidade: "°C", tempoNum: "6", tempoUnidade: "meses" },
-  { descricao: "Refrigerado", temp: "4", unidade: "°C", tempoNum: "3", tempoUnidade: "dias" },
-  { descricao: "Ambiente", temp: "20", unidade: "°C", tempoNum: "2", tempoUnidade: "horas" }
-];
-
-export default function AbaGeralReceita() {
-  // IMAGEM
-  const [imgPreview, setImgPreview] = useState(null);
-  const inputImgRef = useRef(null);
+// ========== COMPONENTE UPLOADER ============= //
+function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
+  const [imagemFonte, setImagemFonte] = useState(null);
+  const [imagemCortada, setImagemCortada] = useState(imagemInicial);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [showCrop, setShowCrop] = useState(false);
+  const inputImgRef = useRef(null);
 
-  // CONSERVAÇÃO
-  const [conservacao, setConservacao] = useState(defaultConservacao);
+  useEffect(() => {
+    setImagemCortada(imagemInicial);
+  }, [imagemInicial]);
 
-  // Funções imagem/cropper
-  function handleImgChange(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImgPreview(ev.target.result);
-        setShowCrop(true);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-  function handleClickUpload() {
-    inputImgRef.current && inputImgRef.current.click();
-  }
   const onCropComplete = useCallback((_, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
-  async function showCroppedImage() {
-    if (!imgPreview || !croppedAreaPixels) return;
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // --- compressão antes de tudo ---
+      let compressed = file;
+      try {
+        compressed = await imageCompression(file, {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 800, // Limite para 800px
+          useWebWorker: true,
+        });
+      } catch (err) {
+        alert("Erro ao comprimir imagem.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setImagemFonte(ev.target.result);
+        setShowCrop(true);
+      };
+      reader.readAsDataURL(compressed);
+    }
+  };
+
+  const aplicarCorte = async () => {
+    if (!imagemFonte || !croppedAreaPixels) return;
     const image = new window.Image();
-    image.src = imgPreview;
+    image.src = imagemFonte;
     await new Promise(r => image.onload = r);
     const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
+    canvas.width = 800;
+    canvas.height = 800;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(
       image,
-      croppedAreaPixels.x, croppedAreaPixels.y, croppedAreaPixels.width, croppedAreaPixels.height,
-      0, 0, 400, 400
+      croppedAreaPixels.x, croppedAreaPixels.y,
+      croppedAreaPixels.width, croppedAreaPixels.height,
+      0, 0, 800, 800
     );
-    setImgPreview(canvas.toDataURL("image/jpeg"));
-    setShowCrop(false);
-  }
+    // Envia para backend usando FormData
+    canvas.toBlob(async (blob) => {
+      const formData = new FormData();
+      formData.append("file", blob, "imagem-receita.jpg");
+      try {
+        const res = await fetch("/api/uploads/receita", {
+          method: "POST",
+          body: formData,
+          credentials: "include"
+        });
+        const data = await res.json();
+        setImagemCortada(data.url); // url já pronta pro banco
+        onImagemFinalAlterada(data.url);
+      } catch (err) {
+        alert("Erro ao enviar imagem.");
+      }
+      setShowCrop(false);
+      setImagemFonte(null);
+    }, "image/jpeg", 0.92);
+  };
 
-  // Função para editar valor
-  function handleEdit(idx, campo, valor) {
-    setConservacao(arr =>
-      arr.map((item, i) => i === idx ? { ...item, [campo]: valor } : item)
-    );
-  }
+  const removerImagem = (e) => {
+    e.stopPropagation();
+    setImagemCortada(null);
+    setImagemFonte(null);
+    onImagemFinalAlterada(null);
+    if(inputImgRef.current) {
+      inputImgRef.current.value = "";
+    }
+  };
+
+  // Sempre mostra preview se imagemCortada existe
+  const isPreviewValida = !!imagemCortada;
 
   return (
-    <div style={{
-      display: "flex",
-      gap: 32,
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
-      width: "100%",
-      maxWidth: 1000,
-      margin: "0 auto",
-      padding: "18px 0 18px 0"
-    }}>
-      {/* BLOCO IMAGEM */}
+    <>
       <div
-        onClick={handleClickUpload}
-        style={{
-          minWidth: 210,
-          minHeight: 210,
-          borderRadius: 16,
-          border: "2px dashed #ffe06688",
-          background: "#261954",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#cbb165",
-          fontWeight: 800,
-          fontSize: 22,
-          textAlign: "center",
-          cursor: "pointer",
-          boxSizing: "border-box",
-          position: "relative"
-        }}
-        title="Clique para adicionar/editar imagem"
+        className="receita-uploader-imagem"
+        onClick={() => inputImgRef.current && inputImgRef.current.click()}
+        title="Clique para adicionar ou alterar a imagem"
       >
-        <input
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          ref={inputImgRef}
-          onChange={handleImgChange}
-        />
-        {showCrop && (
-          <div style={{
-            position: "fixed",
-            left: 0, top: 0, width: "100vw", height: "100vh",
-            zIndex: 99,
-            background: "rgba(10,8,24,0.88)",
-            display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
-            <div style={{
-              background: "#231a34",
-              borderRadius: 22,
-              boxShadow: "0 8px 60px #1b0c4888",
-              padding: "24px",
-              minWidth: 350
-            }}>
+        <input type="file" accept="image/*" style={{ display: "none" }} ref={inputImgRef} onChange={handleFileChange} />
+        {isPreviewValida ? (
+          <>
+            <img src={imagemCortada} alt="Preview da Receita" className="receita-uploader-preview" />
+            <button onClick={removerImagem} title="Remover imagem" className="receita-uploader-remove">
+              ×
+            </button>
+          </>
+        ) : (
+          <div className="receita-uploader-placeholder">
+            <FaUpload size={50} />
+            Clique para adicionar uma imagem
+          </div>
+        )}
+      </div>
+      {showCrop && (
+        <div className="receita-cropper-bg">
+          <div className="receita-cropper-modal">
+            <div className="receita-cropper-content">
               <Cropper
-                image={imgPreview}
+                image={imagemFonte}
                 crop={crop}
                 zoom={zoom}
-                aspect={1}
-                cropShape="rect"
-                showGrid={false}
+                aspect={1} // 1:1 para garantir 800x800 quadrado
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
               />
-              <div style={{ marginTop: 16, display: "flex", gap: 16 }}>
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.01}
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  style={{ width: 120 }}
-                />
-                <button onClick={showCroppedImage}>Salvar corte</button>
-                <button onClick={() => setShowCrop(false)}>Cancelar</button>
+            </div>
+            <div className="receita-cropper-footer">
+              <input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="receita-cropper-zoom" />
+              <div className="receita-cropper-actions">
+                <button onClick={aplicarCorte} className="receita-cropper-btn">Salvar Corte</button>
+                <button onClick={() => setShowCrop(false)} className="receita-cropper-btn cancelar">Cancelar</button>
               </div>
             </div>
           </div>
-        )}
-        {imgPreview
-          ? <img src={imgPreview} alt="Imagem" style={{
-              maxWidth: "95%", maxHeight: "95%", objectFit: "cover", borderRadius: 12
-            }} />
-          : <>Clique para<br />adicionar<br />uma imagem</>
-        }
-      </div>
-
-      {/* BLOCO CONSERVAÇÃO */}
-      <div style={{
-        flex: 1,
-        background: "#24154a",
-        borderRadius: 16,
-        padding: "20px 24px 18px 24px",
-        minWidth: 350,
-        boxSizing: "border-box",
-        border: "none"
-      }}>
-        <div style={{
-          fontWeight: 900,
-          fontSize: 24,
-          color: "#ffe066",
-          marginBottom: 10,
-          letterSpacing: 1
-        }}>
-          Conservação:
         </div>
-        <table style={{
-          width: "100%",
-          borderCollapse: "collapse",
-        }}>
-          <thead>
-            <tr style={{ background: "#24154a" }}>
-              <th style={thCons}>Descrição</th>
-              <th style={thCons}>Temp. °C</th>
-              <th style={thCons}>Tempo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {conservacao.map((item, idx) => (
-              <tr key={idx} style={{ borderBottom: "1px solid #37276a33" }}>
-                <td style={tdCons}>{item.descricao}</td>
-                <td style={tdCons}>
-                  <span style={pillInput}>
-                    <input
-                      type="text"
-                      value={item.temp + item.unidade}
-                      onChange={e => {
-                        let v = e.target.value.replace(/[^\d\-]/g, "");
-                        handleEdit(idx, "temp", v);
-                      }}
-                      style={{
-                        ...inputNoBg,
-                        width: 44,
-                        color: "#fff",
-                        textAlign: "center"
-                      }}
-                    />
-                  </span>
-                </td>
-                <td style={tdCons}>
-                  <span style={pillInput}>
-                    <input
-                      type="text"
-                      value={item.tempoNum}
-                      onChange={e => handleEdit(idx, "tempoNum", e.target.value.replace(/[^\d]/g, ""))}
-                      style={{
-                        ...inputNoBg,
-                        width: 28,
-                        color: "#fff",
-                        textAlign: "center"
-                      }}
-                    />
-                  </span>
-                  <span style={{
-                    color: "#ffe066",
-                    marginLeft: 12,
-                    fontWeight: 700,
-                    fontSize: 17,
-                  }}>
-                    {item.tempoUnidade}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      )}
+    </>
+  );
+}
+
+// ========== COMPONENTE PASSO DE PREPARO ========== //
+function PassoPreparo({ passo, index, onDescricaoChange, onImagemChange, onRemove }) {
+  const inputImagemRef = useRef(null);
+  const handleImagemClick = () => { inputImagemRef.current.click(); };
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => { onImagemChange(passo.id, event.target.result); };
+      reader.readAsDataURL(file);
+    }
+  };
+  return (
+    <div className="receita-passo-row">
+      <span className="receita-passo-label">Passo {index + 1}</span>
+      <textarea
+        value={passo.descricao}
+        onChange={(e) => onDescricaoChange(passo.id, e.target.value)}
+        placeholder="Descreva o passo..."
+        className="receita-passo-textarea"
+      />
+      <input type="file" accept="image/*" ref={inputImagemRef} style={{display: 'none'}} onChange={handleFileChange} />
+      <button title="Adicionar imagem ao passo" className="receita-passo-img-btn" onClick={handleImagemClick}>
+        {passo.imagem ? <img src={passo.imagem} alt={`Passo ${index+1}`} className="receita-passo-img-thumb"/> : <FaCamera />}
+      </button>
+      <button
+        title="Remover passo"
+        onClick={() => onRemove(passo.id)}
+        className="receita-passo-remove-btn"
+      >
+        <FaTrash size={22} color="#d32f2f" />
+      </button>
     </div>
   );
 }
 
-// ======= ESTILOS =======
-const thCons = {
-  color: "#ffe066",
-  fontWeight: 900,
-  fontSize: 18,
-  background: "#170e27",
-  padding: "10px 8px",
-  textAlign: "center",
-  border: "none"
-};
-const tdCons = {
-  color: "#fff",
-  fontWeight: 600,
-  fontSize: 17,
-  padding: "13px 8px",
-  background: "none",
-  textAlign: "center",
-  border: "none"
-};
-const pillInput = {
-  display: "inline-block",
-  borderRadius: 12,
-  background: "rgba(44,255,255,0.13)",
-  boxShadow: "0 0 10px #00f6ff99",
-  padding: "2px 13px",
-  margin: "0 1px"
-};
-const inputNoBg = {
-  background: "transparent",
-  border: "none",
-  outline: "none",
-  fontWeight: 800,
-  fontSize: 17,
-  letterSpacing: 1
-};
+const unidades = [ { singular: "dia", plural: "dias" }, { singular: "mês", plural: "meses" }, { singular: "hora", plural: "horas" }, { singular: "ano", plural: "anos" } ];
+
+export default function AbaGeralReceita({
+  nome, setNome,
+  imagemFinal, setImagemFinal,
+  conservacaoData, setConservacaoData,
+  observacoes, setObservacoes,
+  passosPreparo, setPassosPreparo,
+}) {
+  const [tempFocusIndex, setTempFocusIndex] = useState(null);
+
+  function handleConservacaoChange(index, field, value) {
+    const newData = [...conservacaoData];
+    const finalValue = field === 'tempoUnidade' ? Number(value) : value;
+    newData[index][field] = finalValue;
+    setConservacaoData(newData);
+  }
+
+  function getTempDisplay(item, index) {
+    if (tempFocusIndex === index) return item.temp || "";
+    if (item.temp && item.temp !== "") return `${item.temp}°C`;
+    return "";
+  }
+
+  const adicionarPasso = () => { setPassosPreparo([...passosPreparo, { id: Date.now(), descricao: "", imagem: null }]); };
+  const removerPasso = (id) => { setPassosPreparo(passosPreparo.filter(passo => passo.id !== id)); };
+  const atualizarDescricaoPasso = (id, descricao) => { setPassosPreparo(passosPreparo.map(passo => passo.id === id ? { ...passo, descricao } : passo)); };
+  const atualizarImagemPasso = (id, imagem) => { setPassosPreparo(passosPreparo.map(passo => passo.id === id ? { ...passo, imagem } : passo)); };
+
+  return (
+    <>
+      <div className="receita-geral-main">
+        <UploaderDeImagem imagemInicial={imagemFinal} onImagemFinalAlterada={setImagemFinal} />
+        <div className="receita-geral-formcol">
+          {/* NOME DA RECEITA */}
+          <div className="receita-geral-nome-box">
+            <input
+              type="text"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              placeholder="Digite o nome da receita..."
+              className="receita-geral-nome"
+              autoFocus
+              maxLength={140}
+            />
+          </div>
+          <div className="receita-geral-row">
+            <div className="receita-geral-bloco">
+              <div className="receita-geral-bloco-titulo">Conservação:</div>
+              <table className="receita-geral-tabela-cons">
+                <thead>
+                  <tr>
+                    <th className="receita-geral-th-cons">Descrição</th>
+                    <th className="receita-geral-th-cons">Temp. °C</th>
+                    <th className="receita-geral-th-cons">Tempo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conservacaoData.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="receita-geral-td-cons">{item.descricao}</td>
+                      <td className="receita-geral-td-cons">
+                        <input
+                          type="text"
+                          value={getTempDisplay(item, idx)}
+                          onFocus={(e) => { setTempFocusIndex(idx); setTimeout(() => e.target.select(), 0); }}
+                          onBlur={() => setTempFocusIndex(null)}
+                          onChange={e => handleConservacaoChange(idx, "temp", e.target.value.replace(/[^\d\-]/g, ""))}
+                          className="receita-geral-input-cons"
+                          style={{ width: 55 }}
+                        />
+                      </td>
+                      <td className="receita-geral-td-cons">
+                        <div className="receita-geral-td-flex">
+                          <input
+                            type="text"
+                            value={item.tempoNum}
+                            onFocus={e => e.target.select()}
+                            onChange={e => handleConservacaoChange(idx, "tempoNum", e.target.value.replace(/[^\d]/g, ""))}
+                            className="receita-geral-input-cons"
+                            style={{ width: 45 }}
+                          />
+                          <select
+                            className="receita-geral-input-cons"
+                            style={{ width: 90, padding: '4px 8px', textAlign: 'left' }}
+                            value={item.tempoUnidade}
+                            onChange={e => handleConservacaoChange(idx, 'tempoUnidade', e.target.value)}
+                          >
+                            {unidades.map((u, i) => (
+                              <option key={i} value={i}>{parseInt(item.tempoNum, 10) === 1 ? u.singular : u.plural}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="receita-geral-bloco">
+              <div className="receita-geral-bloco-titulo">Observações:</div>
+              <textarea
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Adicione observações importantes sobre a receita..."
+                className="receita-geral-textarea"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloco do modo de preparo ocupando a largura TOTAL */}
+      <div className="receita-geral-bloco modo-preparo">
+        <div className="receita-geral-bloco-titulo">Modo de Preparo:</div>
+        <div className="receita-geral-preparo-list">
+          {passosPreparo.map((passo, index) => (
+            <PassoPreparo
+              key={passo.id}
+              passo={passo}
+              index={index}
+              onDescricaoChange={atualizarDescricaoPasso}
+              onImagemChange={atualizarImagemPasso}
+              onRemove={removerPasso}
+            />
+          ))}
+        </div>
+        <button onClick={adicionarPasso} className="receita-geral-btn-addpasso"><FaPlus size={12} /> Adicionar Passo</button>
+      </div>
+    </>
+  );
+}

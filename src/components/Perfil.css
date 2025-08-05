@@ -1,5 +1,17 @@
 body {
-  background: #f8f8f8;
+  background: #B0E0E6 !important;
+}
+
+/* Header grande igual Despesas Fixas */
+.perfil-titulo-header {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #32a6ff;
+  margin-left: 70px;
+  margin-top: 16px;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+  text-align: left;
 }
 
 /* Layout principal */
@@ -7,7 +19,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: row;
-  padding: 0 0 0 0;
+  padding: 0 40px;
   box-sizing: border-box;
 }
 
@@ -48,34 +60,49 @@ body {
   margin-bottom: 18px;
   text-align: center;
 }
+
+/* TODOS os botões da sidebar padronizados no azul gradiente */
 .perfil-branco-btn-info {
   width: 92%;
-  margin: 0 auto 6px auto;
+  margin: 0 auto 10px auto;
   padding: 13px 0;
   border-radius: 14px;
   font-size: 1.06rem;
   color: #fff;
-  background: #ff9100;
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
   border: none;
   font-weight: 600;
   cursor: pointer;
-  transition: filter 0.18s;
-  box-shadow: 0 2px 8px #fdd59699;
+  box-shadow: 0 2px 8px #00cfff55;
+  transition: opacity 0.18s, background 0.18s, box-shadow 0.16s;
+  outline: none;
 }
-.perfil-branco-btn-info:hover {
-  filter: brightness(0.97);
+.perfil-branco-btn-info:hover:enabled {
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
+  opacity: 0.92;
+  box-shadow: 0 0 22px 6px #00cfff55;
 }
-.perfil-branco-btn-outro {
-  width: 92%;
-  padding: 13px 0;
-  border-radius: 14px;
-  font-size: 1.03rem;
-  color: #888;
-  background: #f7f7f7;
-  border: none;
-  font-weight: 500;
-  margin-bottom: 4px;
+.perfil-branco-btn-info:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  background: linear-gradient(90deg, #6adcf3 0%, #b7e6fb 100%);
+  color: #fff;
+}
+.perfil-branco-btn-info.ativo {
+  background: linear-gradient(90deg, #237be7 0%, #00cfff 100%);
+  color: #fff;
+  box-shadow: 0 0 0 2px #00cfff99;
+}
+
+/* Tira todo glow/contorno de foco dos botões */
+.perfil-branco-btn-info:focus,
+.perfil-branco-btn-info:focus-visible,
+.perfil-branco-btn-buscar:focus,
+.perfil-branco-btn-buscar:focus-visible,
+.perfil-branco-btn-save:focus,
+.perfil-branco-btn-save:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Área do formulário */
@@ -86,10 +113,14 @@ body {
   margin: 24px 24px 24px 0;
   padding: 38px 48px 34px 48px;
   box-shadow: 0 2px 28px #e4e4e5a8;
-  min-width: 480px;
+  min-width: 400px;
+  max-width: 1375px;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-self: stretch;
 }
+
 .perfil-branco-titulo {
   font-size: 1.54rem;
   font-weight: 800;
@@ -134,35 +165,67 @@ body {
   transition: box-shadow 0.18s;
   box-shadow: 0 2px 9px #f0f0f0aa inset;
 }
+.perfil-branco-form-row input[type="password"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: #f6f6f7;
+  border: none;
+  border-radius: 11px;
+  font-size: 1.05rem;
+  color: #363636;
+  margin-bottom: 0;
+  outline: none;
+  transition: box-shadow 0.18s;
+  box-shadow: 0 2px 9px #f0f0f0aa inset;
+}
 .perfil-branco-form-row input[disabled] {
   background: #f3f3f3;
   color: #aaa;
   cursor: not-allowed;
 }
-.perfil-branco-form-row input:focus:not([disabled]) {
-  box-shadow: 0 0 0 2px #ff9100bb;
+.perfil-branco-form-row input:focus:not([disabled]),
+.perfil-branco-form-row input[type="password"]:focus:not([disabled]) {
+  box-shadow: 0 0 0 2px #00cfff55;
 }
-
-.perfil-branco-btn-buscar {
-  margin-top: 20px;
-  background: #fff3e0;
-  color: #ff9100;
-  border: 1.5px solid #ff9100;
-  border-radius: 9px;
-  font-weight: 600;
-  font-size: 1.01rem;
-  padding: 12px 18px;
-  transition: filter 0.17s;
-  cursor: pointer;
-}
-.perfil-branco-btn-buscar:disabled {
-  background: #fafafa;
-  color: #ccc;
-  border: 1.5px solid #eee;
+.perfil-branco-form-row input[type="password"][disabled] {
+  background: #f3f3f3;
+  color: #aaa;
   cursor: not-allowed;
 }
 
-/* Botões finais */
+/* Botão Buscar CEP no mesmo azul gradiente */
+.perfil-branco-btn-buscar {
+  background: linear-gradient(90deg, #00cfff 0%, #c0e8fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 12px 16px;
+  height: 44px;
+  margin: 0;
+  box-shadow: 0 0 22px 0 #13ccff50;
+  cursor: pointer;
+  transition: filter 0.17s, background 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+.perfil-branco-btn-buscar:hover:enabled {
+  background: linear-gradient(90deg, #00e9ff 0%, #237be7 100%);
+  filter: brightness(1.07);
+  box-shadow: 0 0 36px 6px #13ccff78;
+}
+.perfil-branco-btn-buscar:disabled {
+  opacity: 0.5;
+  background: linear-gradient(90deg, #6adcf3 0%, #b7e6fb 100%);
+  color: #fff;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Botões finais todos azuis */
 .perfil-branco-actions {
   display: flex;
   gap: 22px;
@@ -171,17 +234,17 @@ body {
 }
 .perfil-branco-btn-discard {
   background: #fff;
-  color: #ff9100;
-  border: 2px solid #ff9100;
+  color: #00b5e6;
+  border: 2px solid #00b5e6;
   border-radius: 11px;
   font-size: 1.09rem;
   font-weight: 700;
   padding: 14px 32px;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.18s, color 0.18s, border 0.18s;
 }
 .perfil-branco-btn-save {
-  background: #ff9100;
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
   color: #fff;
   border: none;
   border-radius: 11px;
@@ -189,19 +252,42 @@ body {
   font-weight: 700;
   padding: 14px 32px;
   cursor: pointer;
-  transition: filter 0.17s;
-  box-shadow: 0 4px 14px #ffe6ba44;
+  transition: box-shadow 0.2s, background 0.18s;
+  box-shadow: none;
 }
-.perfil-branco-btn-save:hover,
-.perfil-branco-btn-discard:hover {
-  filter: brightness(0.96);
+.perfil-branco-btn-save:hover {
+  background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);
+  color: #fff;
+  box-shadow: 0 0 28px 6px #00eaff88;
+  opacity: 1;
 }
 
+/* Responsivo */
 @media (max-width: 980px) {
+  .perfil-titulo-header {
+    font-size: 2rem;
+    margin-top: 24px;
+    margin-bottom: 18px;
+  }
   .perfil-branco-main {
     flex-direction: column;
+    padding: 0 10px;
   }
   .perfil-branco-content, .perfil-branco-side {
     margin: 22px 6px;
+    min-width: unset;
+    max-width: 100vw;
+    padding: 22px 10px;
   }
+}
+.perfil-branco-btn-discard:focus,
+.perfil-branco-btn-discard:focus-visible,
+.perfil-branco-btn-discard:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #00b5e6 !important;
+}
+.perfil-branco-btn-discard {
+  border: 2px solid #00b5e6 !important;
+  box-shadow: none !important;
 }

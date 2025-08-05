@@ -41,7 +41,7 @@ export default function ModalLeitorCodigoBarras({ open, onClose, onEncontrado })
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          border: "1.5px solid #b894ff"
+          border: "1.5px solid #00cfff"
         }}
       >
         <button
@@ -85,7 +85,7 @@ export default function ModalLeitorCodigoBarras({ open, onClose, onEncontrado })
             fontSize: 26,
             padding: "18px 16px",
             borderRadius: 12,
-            border: "2.5px solid #b894ff",
+            border: "2.5px solid #00cfff",
             marginTop: 22,
             background: "#1e1933",
             color: "#ffe066",

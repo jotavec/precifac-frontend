@@ -1,211 +1,625 @@
-import React, { useState } from "react";
-import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaEdit, FaPlus, FaCog } from "react-icons/fa";
 import AbaGeralReceita from "./AbaGeralReceita";
 import AbaComposicaoReceita from "./AbaComposicaoReceita";
-// Se quiser mais abas, só importar e adicionar no array ABAS
+import AbaProjecaoReceita from "./AbaProjecaoReceita";
+import AbaMarkupReceita from "./AbaMarkupReceita";
+import AbaImpressaoReceita from "./AbaImpressaoReceita";
+import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
+import ModalConfiguracoes from "./ModalConfiguracoes";
+import ModalPreviewImpressao from "./ModalPreviewImpressao";
+import "./CentralReceitas.css";
 
-const receitasFake = [
-  {
-    id: 1,
-    nomeProduto: "Bolo de Cenoura",
-    tipoProduto: "Artesanal",
-    categoriaMarkup: "Bolos",
-    maoObraDireta: "R$ 8,50",
-    custoMateriaPrima: "R$ 12,00",
-    margemContribuicaoReais: "R$ 10,00",
-    margemContribuicaoPorcent: "30%",
-    lucroLiquido: "R$ 7,00",
-    precoVenda: "R$ 29,99",
-    numeroFicha: "001"
-  }
-];
-
-// Array das abas do modal
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
-  // Exemplo: { label: "Conservação", componente: AbaConservacaoReceita },
   { label: "Geral", componente: AbaGeralReceita },
+  { label: "Projeção", componente: AbaProjecaoReceita },
+  { label: "Markup", componente: AbaMarkupReceita },
+  { label: "Impressão", componente: AbaImpressaoReceita },
 ];
 
+const defaultConservacao = [
+  { descricao: "Congelado", temp: "-18", tempoNum: "6", tempoUnidade: 1 },
+  { descricao: "Refrigerado", temp: "4", tempoNum: "3", tempoUnidade: 0 },
+  { descricao: "Ambiente", temp: "20", tempoNum: "2", tempoUnidade: 2 }
+];
+
+function normalizeBlocoAtivo(valor) {
+  if (valor === undefined || valor === null || valor === "") return "subreceita";
+  if (typeof valor === "number") return String(valor);
+  return String(valor);
+}
+
+function formatarBRL(valor) {
+  if (valor === null || valor === undefined || valor === "" || valor === "-") return "-";
+  let num = Number(
+    String(valor)
+      .replace("R$", "")
+      .replace(/\./g, "")
+      .replace(",", ".")
+      .trim()
+  );
+  if (isNaN(num)) return "-";
+  const valCorrigido = Math.abs(num) < 0.005 ? 0 : num;
+  return valCorrigido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function gerarNumeroFicha(receitas) {
+  const usados = receitas
+    .map(r => parseInt(r.numeroFicha))
+    .filter(n => !isNaN(n));
+  const maior = usados.length > 0 ? Math.max(...usados) : 0;
+  return String(maior + 1).padStart(4, "0");
+}
+
+function parseBRL(valor) {
+  if (typeof valor === "number") return valor;
+  if (!valor) return 0;
+  let valorLimpo = String(valor).replace(/[^0-9,.-]/g, "");
+  if ((valorLimpo.match(/,/g) || []).length > 1) {
+    const partes = valorLimpo.split(",");
+    valorLimpo = partes.slice(0, -1).join("") + "." + partes[partes.length - 1];
+  } else {
+    valorLimpo = valorLimpo.replace(",", ".");
+  }
+  if (valorLimpo === "" || isNaN(valorLimpo)) return 0;
+  return Number(valorLimpo);
+}
+
+// === FUNÇÃO NOVA: Upload imagem da receita ===
+async function uploadImagemReceita(base64) {
+  if (!base64 || !base64.startsWith("data:image")) return base64;
+  const formData = new FormData();
+  formData.append("imagem", base64);
+  try {
+    const res = await fetch("/api/uploads/receita", {
+      method: "POST",
+      body: formData,
+      credentials: "include"
+    });
+    if (!res.ok) throw new Error("Erro ao enviar imagem.");
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    alert("Erro ao enviar imagem.");
+    return null;
+  }
+}
+
 export default function CentralReceitas() {
-  const [receitas, setReceitas] = useState(receitasFake);
+  const [receitas, setReceitas] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState(0);
-  const [nome, setNome] = useState("");
+  const [editandoId, setEditandoId] = useState(null);
 
-  function handleEditar(receita) {
-    alert(`Editar receita: ${receita.nomeProduto}`);
+  const [nome, setNome] = useState("");
+  const [imagemFinal, setImagemFinal] = useState(null);
+  const [conservacaoData, setConservacaoData] = useState(defaultConservacao);
+  const [observacoes, setObservacoes] = useState("");
+  const [passosPreparo, setPassosPreparo] = useState([{ id: 1, descricao: "", imagem: null }]);
+  const [ingredientes, setIngredientes] = useState([]);
+  const [subReceitas, setSubReceitas] = useState([]);
+  const [embalagens, setEmbalagens] = useState([]);
+  const [maoDeObra, setMaoDeObra] = useState([]);
+  const [tipoSelecionado, setTipoSelecionado] = useState(null);
+  const [rendimentoNumero, setRendimentoNumero] = useState('');
+  const [rendimentoUnidade, setRendimentoUnidade] = useState("unidade");
+  const [tempoTotal, setTempoTotal] = useState('');
+  const [tempoUnidade, setTempoUnidade] = useState("minutos");
+  const [precoVenda, setPrecoVenda] = useState("");
+  const [pesoUnitario, setPesoUnitario] = useState("");
+  const [descontoReais, setDescontoReais] = useState("");
+  const [descontoPercentual, setDescontoPercentual] = useState("");
+  const [blocosMarkup, setBlocosMarkup] = useState([]);
+  const [dataUltimaAtualizacao, setDataUltimaAtualizacao] = useState("");
+  const [numeroFicha, setNumeroFicha] = useState("");
+  const [filtro, setFiltro] = useState("");
+
+  const [blocoMarkupAtivo, setBlocoMarkupAtivo] = useState("subreceita");
+
+  // MODAIS
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [receitaPraDeletar, setReceitaPraDeletar] = useState(null);
+  const [selecionados, setSelecionados] = useState([]);
+  const [allSelected, setAllSelected] = useState(false);
+  const [modalConfigOpen, setModalConfigOpen] = useState(false);
+  const [deleteSelecionadosModalOpen, setDeleteSelecionadosModalOpen] = useState(false);
+  const [previewImpressaoOpen, setPreviewImpressaoOpen] = useState(false);
+
+  // PERFIL DA EMPRESA/USUÁRIO (PARA FICHA TÉCNICA)
+  const [perfil, setPerfil] = useState(null);
+
+  useEffect(() => {
+    fetchReceitas();
+    fetchBlocosMarkup();
+    fetchPerfil();
+  }, []);
+
+  useEffect(() => {
+    setAllSelected(false);
+  }, [filtro]);
+
+  async function fetchReceitas() {
+    try {
+      const res = await fetch("/api/receitas", { credentials: "include" });
+      if (res.ok) {
+        setReceitas(await res.json());
+      }
+    } catch (err) { }
   }
-  function handleApagar(id) {
-    if (window.confirm("Tem certeza que deseja apagar esta receita?")) {
-      setReceitas(receitas.filter(r => r.id !== id));
+
+  async function fetchBlocosMarkup() {
+    try {
+      const res = await fetch("/api/markup-ideal", { credentials: "include" });
+      if (res.ok) {
+        setBlocosMarkup(await res.json());
+      }
+    } catch (err) {
+      setBlocosMarkup([]);
     }
   }
-  function handleCadastrar() {
-    setModalOpen(true);
-    setAbaAtiva(0);
-    setNome("");
-  }
-  function handleSalvarNova() {
-    if (!nome.trim()) return;
-    const nova = {
-      id: Date.now(),
-      nomeProduto: nome,
-      tipoProduto: "Artesanal",
-      categoriaMarkup: "Bolos",
-      maoObraDireta: "R$ 0,00",
-      custoMateriaPrima: "R$ 0,00",
-      margemContribuicaoReais: "R$ 0,00",
-      margemContribuicaoPorcent: "0%",
-      lucroLiquido: "R$ 0,00",
-      precoVenda: "R$ 0,00",
-      numeroFicha: "??"
-    };
-    setReceitas([nova, ...receitas]);
-    setModalOpen(false);
+
+  async function fetchPerfil() {
+    try {
+      const resUser = await fetch('/api/users/me', { credentials: "include" });
+      const user = resUser.ok ? await resUser.json() : {};
+
+      const resConfig = await fetch('/api/company-config', { credentials: "include" });
+      const empresa = resConfig.ok ? await resConfig.json() : {};
+
+      setPerfil({
+        avatarUrl: user.avatarUrl,
+        empresaNome: empresa.companyName,
+        cnpj: empresa.cnpj,
+        rua: empresa.rua,
+        numero: empresa.numero,
+        bairro: empresa.bairro,
+        cidade: empresa.cidade,
+        estado: empresa.estado,
+        cep: empresa.cep,
+      });
+    } catch (err) {
+      setPerfil({});
+    }
   }
 
-  // Renderizar componente da aba ativa:
+  function handleEditar(receita) {
+    setEditandoId(receita.id);
+    setNome(receita.nomeProduto || receita.name || "");
+    setImagemFinal(receita.imagemFinal || null);
+    setConservacaoData(receita.conservacaoData || defaultConservacao);
+    setObservacoes(receita.observacoes || receita.notes || "");
+    setPassosPreparo(receita.passosPreparo || [{ id: 1, descricao: "", imagem: null }]);
+    setIngredientes(receita.ingredientes || []);
+    setSubReceitas(receita.subReceitas || []);
+    setEmbalagens(receita.embalagens || []);
+    setMaoDeObra(receita.maoDeObra || []);
+    setTipoSelecionado(receita.tipoSelecionado || null);
+    setRendimentoNumero(receita.rendimentoNumero || receita.yieldQty || "");
+    setRendimentoUnidade(receita.rendimentoUnidade || receita.yieldUnit || "unidade");
+    setTempoTotal(receita.tempoTotal || "");
+    setTempoUnidade(receita.tempoUnidade || "minutos");
+    setPrecoVenda(
+      receita.precoVenda !== undefined && receita.precoVenda !== null
+        ? parseBRL(receita.precoVenda)
+        : ""
+    );
+    setPesoUnitario(receita.pesoUnitario || "");
+    setDescontoReais(receita.descontoReais || "");
+    setDescontoPercentual(receita.descontoPercentual || "");
+    setDataUltimaAtualizacao(receita.dataUltimaAtualizacao || "");
+    setBlocoMarkupAtivo(normalizeBlocoAtivo(receita.blocoMarkupAtivo));
+    setNumeroFicha(receita.numeroFicha || "");
+    setAbaAtiva(0);
+    setModalOpen(true);
+  }
+
+  function handleApagar(id) {
+    const receita = receitas.find(r => r.id === id);
+    setReceitaPraDeletar(receita);
+    setDeleteModalOpen(true);
+  }
+
+  async function confirmarDelete() {
+    if (!receitaPraDeletar) return;
+    try {
+      const res = await fetch(`/api/receitas/${receitaPraDeletar.id}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        fetchReceitas();
+      }
+      setDeleteModalOpen(false);
+      setReceitaPraDeletar(null);
+    } catch (error) {
+      setDeleteModalOpen(false);
+      setReceitaPraDeletar(null);
+    }
+  }
+
+  function handleCadastrar() {
+    setEditandoId(null);
+    setNome("");
+    setImagemFinal(null);
+    setConservacaoData(defaultConservacao);
+    setObservacoes("");
+    setPassosPreparo([{ id: 1, descricao: "", imagem: null }]);
+    setIngredientes([]);
+    setSubReceitas([]);
+    setEmbalagens([]);
+    setMaoDeObra([]);
+    setTipoSelecionado(null);
+    setRendimentoNumero('');
+    setRendimentoUnidade('unidade');
+    setTempoTotal('');
+    setTempoUnidade('minutos');
+    setPrecoVenda("");
+    setPesoUnitario("");
+    setDescontoReais("");
+    setDescontoPercentual("");
+    setDataUltimaAtualizacao("");
+    setBlocoMarkupAtivo("subreceita");
+    setNumeroFicha(gerarNumeroFicha(receitas));
+    setAbaAtiva(0);
+    setModalOpen(true);
+  }
+
+  function getNomeBlocoMarkup(blocoAtivo) {
+    if (!blocoAtivo || blocoAtivo === "subreceita") return "SubReceita";
+    const bloco = blocosMarkup.find(
+      (b, idx) => String(b.id || b.nome || idx) === String(blocoAtivo)
+    );
+    return bloco ? (bloco.nome || bloco.label || bloco.categoria || "-") : "-";
+  }
+
+  function getNumeroFichaVisual(receita, idx) {
+    if (receita.numeroFicha) {
+      return String(receita.numeroFicha).padStart(4, "0");
+    }
+    return String(idx + 1).padStart(4, "0");
+  }
+
+  function calcularCustoUnitario(receita) {
+    const ing = receita.ingredientes || [];
+    const sub = receita.subReceitas || [];
+    const emb = receita.embalagens || [];
+    const mao = receita.maoDeObra || [];
+    const rend = receita.rendimentoNumero || receita.yieldQty || "";
+    const custoTotal =
+      ing.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      sub.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      emb.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      mao.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0);
+    return rend && custoTotal > 0
+      ? (custoTotal / Number(rend)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+      : "-";
+  }
+
+  function getBlocoMarkupDaReceita(receita) {
+    if (!receita || !receita.blocoMarkupAtivo || receita.blocoMarkupAtivo === "subreceita") {
+      return {
+        markupIdeal: 1,
+        gastosFaturamento: 0,
+        impostos: 0,
+        taxasPagamento: 0,
+        comissoes: 0,
+        outros: 0,
+        totalEncargosReais: 0
+      };
+    }
+    const bloco = blocosMarkup.find(
+      (b, idx) => String(b.id || b.nome || idx) === String(receita.blocoMarkupAtivo)
+    );
+    return bloco || {
+      markupIdeal: 1,
+      gastosFaturamento: 0,
+      impostos: 0,
+      taxasPagamento: 0,
+      comissoes: 0,
+      outros: 0,
+      totalEncargosReais: 0
+    };
+  }
+
+  function calcularLucroLiquido(receita) {
+    const bloco = getBlocoMarkupDaReceita(receita);
+    const custo = calcularCustoUnitarioNum(receita);
+    const preco = parseBRL(receita.precoVenda);
+    if (!preco || !custo) return "-";
+    const descontoTotalPercent =
+      parseBRL(bloco.gastosFaturamento) +
+      parseBRL(bloco.impostos) +
+      parseBRL(bloco.taxasPagamento) +
+      parseBRL(bloco.comissoes) +
+      parseBRL(bloco.outros);
+    const descontoEmReais = preco * (descontoTotalPercent / 100);
+    const lucroLiquido = preco - descontoEmReais - custo - parseBRL(bloco.totalEncargosReais);
+    const valCorrigido = Math.abs(lucroLiquido) < 0.005 ? 0 : lucroLiquido;
+    return valCorrigido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function calcularCustoUnitarioNum(receita) {
+    const ing = receita.ingredientes || [];
+    const sub = receita.subReceitas || [];
+    const emb = receita.embalagens || [];
+    const mao = receita.maoDeObra || [];
+    const rend = receita.rendimentoNumero || receita.yieldQty || "";
+    const custoTotal =
+      ing.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      sub.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      emb.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+      mao.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0);
+    return rend && custoTotal > 0 ? (custoTotal / Number(rend)) : 0;
+  }
+
+  function calcularMargemContribuicao(receita) {
+    return calcularLucroLiquido(receita);
+  }
+
+  function autoSaveAbaAtual() { }
+
+  function handleTrocarAba(idx) {
+    autoSaveAbaAtual();
+    setAbaAtiva(idx);
+  }
+
+  function handleSelectCheckbox(id) {
+    setSelecionados(prev => {
+      const already = prev.includes(id);
+      let novaSelecao;
+      if (already) {
+        novaSelecao = prev.filter(sid => sid !== id);
+      } else {
+        novaSelecao = [...prev, id];
+      }
+      setAllSelected(
+        novaSelecao.length === receitasFiltradas.length && receitasFiltradas.length > 0
+      );
+      return novaSelecao;
+    });
+  }
+
+  function handleSelectAll() {
+    if (!allSelected) {
+      setSelecionados(receitasFiltradas.map(r => r.id));
+      setAllSelected(true);
+    } else {
+      setSelecionados([]);
+      setAllSelected(false);
+    }
+  }
+
+  function handleDeleteSelecionados() {
+    setDeleteSelecionadosModalOpen(true);
+  }
+
+  async function confirmarDeleteSelecionados() {
+    if (selecionados.length === 0) return;
+    for (const id of selecionados) {
+      try {
+        await fetch(`/api/receitas/${id}`, { method: "DELETE", credentials: "include" });
+      } catch (err) { }
+    }
+    await fetchReceitas();
+    setSelecionados([]);
+    setAllSelected(false);
+    setModalConfigOpen(false);
+    setDeleteSelecionadosModalOpen(false);
+  }
+
+  function handlePrintSelecionados() {
+    if (selecionados.length === 0) return;
+    setPreviewImpressaoOpen(true);
+    setModalConfigOpen(false);
+  }
+
+  // --------- ALTERADO PARA USAR UPLOAD IMAGEM ---------
+  async function handleSalvar() {
+    if (!nome.trim()) {
+      alert("Preencha o nome da receita antes de salvar!");
+      return;
+    }
+
+    let imagemUrlFinal = imagemFinal;
+    if (imagemFinal && imagemFinal.startsWith("data:image")) {
+      imagemUrlFinal = await uploadImagemReceita(imagemFinal);
+      if (!imagemUrlFinal) return;
+    }
+
+    const safeBlocoAtivo = normalizeBlocoAtivo(blocoMarkupAtivo);
+
+    const fichaParaSalvar = editandoId
+      ? numeroFicha
+      : gerarNumeroFicha(receitas);
+
+    const dadosReceita = {
+      nome: nome,
+      ingredientes,
+      subReceitas,
+      embalagens,
+      maoDeObra,
+      tipoSelecionado,
+      rendimentoNumero,
+      rendimentoUnidade,
+      tempoTotal,
+      tempoUnidade,
+      precoVenda: Number(parseBRL(precoVenda)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      pesoUnitario,
+      descontoReais,
+      descontoPercentual,
+      imagemFinal: imagemUrlFinal, // <-- usa url
+      conservacaoData,
+      observacoes,
+      passosPreparo,
+      dataUltimaAtualizacao,
+      blocoMarkupAtivo: safeBlocoAtivo,
+      numeroFicha: fichaParaSalvar
+    };
+    try {
+      let res;
+      if (editandoId) {
+        res = await fetch(`/api/receitas/${editandoId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(dadosReceita),
+        });
+      } else {
+        res = await fetch(`/api/receitas`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(dadosReceita),
+        });
+      }
+      if (res.ok) {
+        await fetchReceitas();
+        setModalOpen(false);
+        setEditandoId(null);
+        setNumeroFicha("");
+      } else {
+        alert("Erro ao salvar receita!");
+      }
+    } catch (error) {
+      alert("Erro de rede ao salvar receita.");
+    }
+  }
+
+  const custoTotalReceita =
+    ingredientes.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+    subReceitas.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+    embalagens.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
+    maoDeObra.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0);
+
+  const rendimento = Number(rendimentoNumero) || 1;
+  const custoUnitario = custoTotalReceita > 0 ? custoTotalReceita / rendimento : 0;
+
+  const receitasFiltradas = receitas.filter(r => {
+    const texto = filtro.trim().toLowerCase();
+    if (!texto) return true;
+    return (
+      (r.nomeProduto || r.name || "").toLowerCase().includes(texto) ||
+      (r.tipoProduto || (r.tipoSelecionado && r.tipoSelecionado.label) || "").toLowerCase().includes(texto) ||
+      (getNomeBlocoMarkup(normalizeBlocoAtivo(r.blocoMarkupAtivo)) || "").toLowerCase().includes(texto)
+    );
+  });
+
   const AbaComp = ABAS[abaAtiva].componente;
 
-  return (
-    <div style={{
-      padding: "42px 0 0 0",
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      background: "none"
-    }}>
-      <h1 style={{
-        color: "#ffe066",
-        fontWeight: 900,
-        fontSize: "2.5rem",
-        marginBottom: 8,
-        letterSpacing: 1,
-        textAlign: "left",
-        width: "90%",
-        maxWidth: 1700
-      }}>
-        Central de Receitas
-      </h1>
-      <p style={{
-        color: "#ffe066cc",
-        marginBottom: 32,
-        width: "90%",
-        maxWidth: 1700,
-        textAlign: "left"
-      }}>
-        Aqui ficará a listagem, edição e consulta das receitas cadastradas.
-      </p>
+  function getImpressaoProps() {
+    return {
+      perfil,
+      nomeReceita: nome,
+      imagemFinal,
+      conservacaoData,
+      observacoes,
+      passosPreparo,
+      ingredientes,
+      subReceitas,
+      embalagens,
+      maoDeObra,
+      tipoSelecionado,
+      rendimentoNumero,
+      rendimentoUnidade,
+      tempoTotal,
+      tempoUnidade,
+      precoVenda,
+      pesoUnitario,
+      descontoReais,
+      descontoPercentual,
+      blocosMarkup,
+      dataUltimaAtualizacao,
+      blocoMarkupAtivo,
+      numeroFicha,
+    };
+  }
 
-      {/* Botão de cadastrar */}
-      <div style={{
-        width: "100%",
-        maxWidth: 1700,
-        display: "flex",
-        justifyContent: "flex-end",
-        marginBottom: 18
-      }}>
-        <button
-          onClick={handleCadastrar}
-          style={{
-            background: "linear-gradient(90deg, #a17ff5 60%, #73f7ff 100%)",
-            color: "#fff",
-            fontWeight: 800,
-            fontSize: "1.13rem",
-            border: "none",
-            borderRadius: 14,
-            padding: "13px 34px 13px 22px",
-            boxShadow: "0 0 20px #00f5ff55, 0 2px 16px #14083244",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            transition: "filter .16s"
-          }}
-        >
-          <FaPlus /> Nova Receita
-        </button>
+  return (
+    <div className="central-receitas-main">
+      <div className="central-receitas-header">
+        <h1 className="central-receitas-titulo">Central de Receitas</h1>
+        <div className="central-receitas-header-row" style={{ alignItems: "center" }}>
+          <input
+            className="central-receitas-filtro-input"
+            type="text"
+            placeholder="Filtrar por nome, tipo, categoria, etc..."
+            value={filtro}
+            onChange={e => setFiltro(e.target.value)}
+            autoComplete="off"
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button onClick={handleCadastrar} className="btn-nova-receita">
+              <FaPlus /> Nova Receita
+            </button>
+            <button
+              className="btn-configuracoes"
+              title="Configurações"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "9px",
+                borderRadius: "11px",
+                marginLeft: "3px",
+                fontSize: "1.38rem",
+                color: "#00cfff",
+                transition: "background 0.16s"
+              }}
+              onClick={() => setModalConfigOpen(true)}
+            >
+              <FaCog />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* TABELA */}
-      <div style={{
-        width: "100%",
-        maxWidth: 1700,
-        background: "#1b1530",
-        borderRadius: 18,
-        boxShadow: "0 8px 40px #0008, 0 1.5px 1.5px #160d3866",
-        padding: "0 0 6px 0",
-        marginTop: 6
-      }}>
-        <table style={{
-          width: "100%",
-          borderCollapse: "separate",
-          borderSpacing: 0,
-          fontSize: "1.09rem",
-          margin: 0
-        }}>
-          <thead>
+      <div className="central-receitas-tabela-wrap">
+        <table className="central-receitas-tabela">
+          <thead className="central-receitas-thead">
             <tr>
-              <th style={thEstilo}>Nome do Produto</th>
-              <th style={thEstilo}>Tipo do Produto</th>
-              <th style={thEstilo}>Categoria Markup</th>
-              <th style={thEstilo}>Mão de Obra Direta</th>
-              <th style={thEstilo}>Custo de Matéria-Prima</th>
-              <th style={thEstilo}>R$ Margem de Contribuição</th>
-              <th style={thEstilo}>% Margem de Contribuição</th>
-              <th style={thEstilo}>Lucro Líquido Esperado (un.)</th>
-              <th style={thEstilo}>Preço de Venda (un.)</th>
-              <th style={thEstilo}>Nº Ficha</th>
-              <th style={thEstiloAcoes}>Editar</th>
-              <th style={thEstiloAcoes}>Apagar</th>
+              <th className="central-receitas-th">Nº Ficha</th>
+              <th className="central-receitas-th">Nome do Produto</th>
+              <th className="central-receitas-th">Tipo do Produto</th>
+              <th className="central-receitas-th">Categoria Markup</th>
+              <th className="central-receitas-th">Custo (un.)</th>
+              <th className="central-receitas-th">Margem de Contribuição (un.)</th>
+              <th className="central-receitas-th">Lucro Líquido Esperado (un.)</th>
+              <th className="central-receitas-th">Preço de Venda (un.)</th>
+              <th className="central-receitas-th central-receitas-th-acoes">Editar</th>
+              <th className="central-receitas-th central-receitas-th-acoes">Selecionar</th>
             </tr>
           </thead>
           <tbody>
-            {receitas.length === 0 ? (
+            {receitasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={12} style={{
-                  color: "#fff",
-                  textAlign: "center",
-                  padding: "38px 0",
-                  fontSize: "1.19rem"
-                }}>
-                  Nenhuma receita cadastrada.
-                </td>
+                <td colSpan={10} className="central-receitas-td-centralizada central-receitas-td-vazia">Nenhuma receita cadastrada.</td>
               </tr>
-            ) : receitas.map(receita => (
-              <tr key={receita.id} style={{
-                borderBottom: "1.5px solid #342154",
-                transition: "background .18s"
-              }}>
-                <td style={tdEstilo}>{receita.nomeProduto}</td>
-                <td style={tdEstilo}>{receita.tipoProduto}</td>
-                <td style={tdEstilo}>{receita.categoriaMarkup}</td>
-                <td style={tdEstilo}>{receita.maoObraDireta}</td>
-                <td style={tdEstilo}>{receita.custoMateriaPrima}</td>
-                <td style={tdEstilo}>{receita.margemContribuicaoReais}</td>
-                <td style={tdEstilo}>{receita.margemContribuicaoPorcent}</td>
-                <td style={tdEstilo}>{receita.lucroLiquido}</td>
-                <td style={tdEstilo}>{receita.precoVenda}</td>
-                <td style={tdEstilo}>{receita.numeroFicha}</td>
-                <td style={{ ...tdEstilo, textAlign: "center" }}>
-                  <button
-                    onClick={() => handleEditar(receita)}
-                    style={btnAcaoEstilo}
-                    title="Editar"
-                  >
-                    <FaEdit />
-                  </button>
+            ) : receitasFiltradas.map((receita, idx) => (
+              <tr key={receita.id} className="central-receitas-tabela-linha">
+                <td className="central-receitas-td">
+                  {getNumeroFichaVisual(receita, idx)}
                 </td>
-                <td style={{ ...tdEstilo, textAlign: "center" }}>
-                  <button
-                    onClick={() => handleApagar(receita.id)}
-                    style={{ ...btnAcaoEstilo, color: "#ff5e5e" }}
-                    title="Apagar"
-                  >
-                    <FaTrash />
-                  </button>
+                <td className="central-receitas-td">{receita.nomeProduto || receita.name || "-"}</td>
+                <td className="central-receitas-td">{receita.tipoProduto || (receita.tipoSelecionado && receita.tipoSelecionado.label) || "-"}</td>
+                <td className="central-receitas-td">
+                  {getNomeBlocoMarkup(normalizeBlocoAtivo(receita.blocoMarkupAtivo))}
+                </td>
+                <td className="central-receitas-td">
+                  {calcularCustoUnitario(receita)}
+                </td>
+                <td className="central-receitas-td">{calcularMargemContribuicao(receita)}</td>
+                <td className="central-receitas-td">{calcularLucroLiquido(receita)}</td>
+                <td className="central-receitas-td">{formatarBRL(receita.precoVenda)}</td>
+                <td className="central-receitas-td central-receitas-td-acao">
+                  <button onClick={() => handleEditar(receita)} className="central-receitas-btn-acao" title="Editar"><FaEdit /></button>
+                </td>
+                <td className="central-receitas-td central-receitas-td-acao" style={{ textAlign: 'center' }}>
+                  <label className="checkbox-custom">
+                    <input
+                      type="checkbox"
+                      checked={selecionados.includes(receita.id)}
+                      onChange={() => handleSelectCheckbox(receita.id)}
+                    />
+                    <span className="checkmark"></span>
+                  </label>
                 </td>
               </tr>
             ))}
@@ -213,148 +627,97 @@ export default function CentralReceitas() {
         </table>
       </div>
 
-      {/* MODAL COM ABAS */}
       {modalOpen && (
-        <div style={{
-          position: "fixed",
-          zIndex: 99,
-          left: 0, top: 0, width: "100vw", height: "100vh",
-          background: "rgba(10,8,24,0.88)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}>
-          <div
-            style={{
-              width: "92vw",
-              maxWidth: 1700,
-              height: "850px", // <-- Altura fixa! Troque esse valor se quiser mais ou menos altura
-              background: "#21163b",
-              borderRadius: 22,
-              padding: "0 0 24px 0",
-              boxShadow: "0 8px 60px #1b0c4888",
-              display: "flex",
-              flexDirection: "column"
-            }}
-          >
-            {/* ABAS NO TOPO */}
-            <div style={{
-              display: "flex", flexDirection: "row", alignItems: "center",
-              height: 58, borderTopLeftRadius: 22, borderTopRightRadius: 22,
-              background: "#170e27"
-            }}>
+        <div className="central-receitas-modal-bg">
+          <div className="central-receitas-modal">
+            <div className="central-receitas-modal-abas">
               {ABAS.map((aba, idx) => (
                 <div
                   key={aba.label}
-                  onClick={() => setAbaAtiva(idx)}
-                  style={{
-                    padding: "0 38px",
-                    height: 58,
-                    display: "flex",
-                    alignItems: "center",
-                    fontWeight: 900,
-                    fontSize: 20,
-                    color: abaAtiva === idx ? "#ffe066" : "#aaa",
-                    cursor: "pointer",
-                    borderTopLeftRadius: idx === 0 ? 18 : 0,
-                    borderTopRightRadius: idx === ABAS.length - 1 ? 18 : 0,
-                    background: abaAtiva === idx ? "#21163b" : "#170e27",
-                    boxShadow: abaAtiva === idx ? "0 2px 12px #0007" : "none",
-                    borderBottom: abaAtiva === idx ? "4px solid #ffe066" : "4px solid transparent",
-                    transition: "all .13s"
-                  }}
+                  onClick={() => handleTrocarAba(idx)}
+                  className={`central-receitas-aba${abaAtiva === idx ? " central-receitas-aba-ativa" : ""}`}
                 >
                   {aba.label}
                 </div>
               ))}
             </div>
-
-            {/* CONTEÚDO DA ABA ATIVA */}
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "32px 38px 12px 38px",
-                minHeight: 0,
-                height: "100%"
-              }}
-              className="custom-scrollbar"
-            >
-              <AbaComp nome={nome} setNome={setNome} />
+            <div className="central-receitas-modal-content custom-scrollbar">
+              {ABAS[abaAtiva].label === "Impressão" ? (
+                <AbaImpressaoReceita {...getImpressaoProps()} />
+              ) : (
+                <AbaComp
+                  nome={nome} setNome={setNome}
+                  imagemFinal={imagemFinal} setImagemFinal={setImagemFinal}
+                  conservacaoData={conservacaoData} setConservacaoData={setConservacaoData}
+                  observacoes={observacoes} setObservacoes={setObservacoes}
+                  passosPreparo={passosPreparo} setPassosPreparo={setPassosPreparo}
+                  ingredientes={ingredientes} setIngredientes={setIngredientes}
+                  subReceitas={subReceitas} setSubReceitas={setSubReceitas}
+                  embalagens={embalagens} setEmbalagens={setEmbalagens}
+                  maoDeObra={maoDeObra} setMaoDeObra={setMaoDeObra}
+                  tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado}
+                  rendimentoNumero={rendimentoNumero} setRendimentoNumero={setRendimentoNumero}
+                  rendimentoUnidade={rendimentoUnidade} setRendimentoUnidade={setRendimentoUnidade}
+                  tempoTotal={tempoTotal} setTempoTotal={setTempoTotal}
+                  tempoUnidade={tempoUnidade} setTempoUnidade={setTempoUnidade}
+                  precoVenda={precoVenda} setPrecoVenda={setPrecoVenda}
+                  pesoUnitario={pesoUnitario} setPesoUnitario={setPesoUnitario}
+                  descontoReais={descontoReais} setDescontoReais={setDescontoReais}
+                  descontoPercentual={descontoPercentual} setDescontoPercentual={setDescontoPercentual}
+                  blocosMarkup={blocosMarkup}
+                  custoTotalReceita={custoTotalReceita}
+                  custoUnitario={custoUnitario}
+                  dataUltimaAtualizacao={dataUltimaAtualizacao} setDataUltimaAtualizacao={setDataUltimaAtualizacao}
+                  blocoMarkupAtivo={blocoMarkupAtivo} setBlocoMarkupAtivo={setBlocoMarkupAtivo}
+                  numeroFicha={numeroFicha} setNumeroFicha={setNumeroFicha}
+                />
+              )}
             </div>
-
-            {/* BOTÕES */}
-            <div style={{ display: "flex", gap: 24, justifyContent: "flex-end", margin: "0 40px" }}>
-              <button
-                onClick={() => setModalOpen(false)}
-                style={{
-                  background: "#27213f",
-                  color: "#ffe066",
-                  fontWeight: 700,
-                  fontSize: "1.08rem",
-                  border: "none",
-                  borderRadius: 9,
-                  padding: "12px 28px",
-                  cursor: "pointer"
-                }}
-              >Cancelar</button>
-              <button
-                onClick={handleSalvarNova}
-                style={{
-                  background: "linear-gradient(90deg,#a17ff5 60%,#73f7ff 100%)",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: "1.11rem",
-                  border: "none",
-                  borderRadius: 9,
-                  padding: "12px 38px",
-                  cursor: "pointer"
-                }}
-              >Salvar</button>
+            <div className="central-receitas-modal-footer">
+              <button onClick={() => { setModalOpen(false); setEditandoId(null); }} className="btn-cancelar-modal-receita">Cancelar</button>
+              <button onClick={handleSalvar} className="btn-salvar-modal-receita">Salvar</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* MODAL DE CONFIGURAÇÕES */}
+      <ModalConfiguracoes
+        open={modalConfigOpen}
+        onClose={() => setModalConfigOpen(false)}
+        selecionados={selecionados}
+        onDeleteSelecionados={handleDeleteSelecionados}
+        onPrintSelecionados={handlePrintSelecionados}
+        totalReceitas={receitasFiltradas.length}
+        onSelectAll={handleSelectAll}
+        allSelected={allSelected}
+      />
+
+      {/* MODAL DE PREVIEW DE IMPRESSÃO */}
+      <ModalPreviewImpressao
+        open={previewImpressaoOpen}
+        onClose={() => setPreviewImpressaoOpen(false)}
+        receitasSelecionadas={receitas.filter(r => selecionados.includes(r.id))}
+        perfil={perfil}
+      />
+
+      {/* MODAL DE CONFIRMAR DELETE INDIVIDUAL */}
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        onRequestClose={() => { setDeleteModalOpen(false); setReceitaPraDeletar(null); }}
+        onConfirm={confirmarDelete}
+        itemLabel={receitaPraDeletar?.nomeProduto || receitaPraDeletar?.name || "receita"}
+      />
+
+      {/* MODAL DE CONFIRMAR DELETE DE SELECIONADOS */}
+      <ConfirmDeleteModal
+        isOpen={deleteSelecionadosModalOpen}
+        onRequestClose={() => setDeleteSelecionadosModalOpen(false)}
+        onConfirm={confirmarDeleteSelecionados}
+        itemLabel={selecionados.length > 1
+          ? `${selecionados.length} receitas selecionadas`
+          : "1 receita selecionada"}
+      />
     </div>
   );
 }
-
-const thEstilo = {
-  padding: "16px 10px 14px 10px",
-  fontWeight: 800,
-  color: "#2c1a3b",
-  background: "#b59ef9",
-  textAlign: "center",
-  fontSize: "1.12rem",
-  border: "none",
-  borderTopLeftRadius: 13,
-  borderTopRightRadius: 13,
-  letterSpacing: ".04em"
-};
-const thEstiloAcoes = {
-  ...thEstilo,
-  minWidth: 64,
-  width: 64,
-  textAlign: "center",
-  borderTopLeftRadius: 0,
-  borderTopRightRadius: 0
-};
-const tdEstilo = {
-  padding: "15px 10px",
-  color: "#fff",
-  fontWeight: 500,
-  background: "none",
-  textAlign: "center",
-  fontSize: "1.08rem"
-};
-const btnAcaoEstilo = {
-  background: "none",
-  border: "none",
-  color: "#ffe066",
-  fontSize: "1.24rem",
-  cursor: "pointer",
-  padding: 6,
-  borderRadius: 8,
-  transition: "filter .14s, background .14s",
-  filter: "brightness(0.92)"
-};

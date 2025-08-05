@@ -24,7 +24,7 @@ export default function DespesasFixasModal({
         subcategorias.map((subcat, i) => (
           <div key={i} style={{ marginBottom: 24 }}>
             <div style={{
-              color: "#ffe060",
+              color: "#97a7c3",                // Cinza azulado
               fontWeight: 800,
               fontSize: "1.08rem",
               marginBottom: 3,
@@ -56,9 +56,9 @@ export default function DespesasFixasModal({
               })
             ) : (
               <div style={{
-                color: "#ffe060",
-                fontWeight: 400,
-                opacity: 0.65,
+                color: "#97a7c3",            // Cinza azulado
+                fontWeight: 700,
+                opacity: 1,
                 fontSize: "1rem",
                 marginLeft: 2,
                 marginBottom: 4
@@ -70,9 +70,9 @@ export default function DespesasFixasModal({
         ))
       ) : (
         <div style={{
-          color: "#ffe060",
-          fontWeight: 400,
-          opacity: 0.7,
+          color: "#97a7c3",                // Cinza azulado
+          fontWeight: 700,
+          opacity: 1,
           fontSize: "1rem",
           marginLeft: 2
         }}>

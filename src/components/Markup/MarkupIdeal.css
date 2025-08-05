@@ -1,4 +1,50 @@
 /* =================== */
+/* HEADER GRID: TÍTULO + NOVO CARD */
+/* =================== */
+.markup-ideal-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  width: 100%;
+  padding: 0 70px 32px 48px;
+  gap: 24px;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+/* =================== */
+/* TÍTULO SUPERIOR     */
+/* =================== */
+.markup-ideal-top-title {
+  font-family: 'Poppins', 'Montserrat', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #2196f3;
+  margin-left: 70px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  margin-right: 70px;
+  text-align: left;
+  letter-spacing: 0.6px;
+}
+@media (max-width: 700px) {
+  .markup-ideal-header {
+    padding: 0 12px 18px 12px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .markup-ideal-top-title {
+    font-size: 1.6rem;
+    margin-left: 12px;
+  }
+  .markup-ideal-input-row {
+    justify-content: flex-start !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* =================== */
 /* CONTAINER PRINCIPAL */
 /* =================== */
 
@@ -6,11 +52,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding-left: 88px;
-  padding-top: 32px;
+  padding: 0 24px 32px 80px;
   width: 100vw;
   min-height: 100vh;
-  background: #18132a;
+  background: #f6fafd;
   box-sizing: border-box;
 }
 
@@ -19,9 +64,42 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 0 32px 0;
   width: 100%;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  padding-right: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* ===== LINHA DE BLOCOS COM SCROLL HORIZONTAL ===== */
+.markup-ideal-row-cards {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 34px;
+  width: 100%;
+  margin-top: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 18px;
+  padding-left: 48px;
+  padding-right: 48px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #2196f3 #f6fafd;
+}
+.markup-ideal-row-cards::-webkit-scrollbar {
+  height: 11px;
+  background: #f6fafd;
+  border-radius: 7px;
+}
+.markup-ideal-row-cards::-webkit-scrollbar-thumb {
+  background: #2196f3bb;
+  border-radius: 7px;
+  transition: background 0.2s;
+}
+.markup-ideal-row-cards::-webkit-scrollbar-thumb:hover {
+  background: #1976d2;
 }
 
 /* =================== */
@@ -29,34 +107,46 @@
 /* =================== */
 
 .markup-ideal-outer {
-  background: #2b2147;
-  border: 2.5px solid #a780ff;
+  background: #fff;
+  border: 2.5px solid #e1e9f7;
   border-radius: 22px;
-  box-shadow: 0 10px 36px 0 #a780ff33, 0 2px 8px #0002;
-  margin: 30px 0 0 0;
+  box-shadow: 0 8px 38px #2196f322, 0 2px 8px #b5e1fa11;
+  margin: 0;
   padding: 0;
   max-width: 580px;
   min-width: 350px;
   width: 100%;
+  height: 660px; /* <-- Altura fixa padronizada para TODOS os cards */
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
   box-sizing: border-box;
   position: relative;
-  transition: box-shadow 0.2s, border 0.2s;
+  transition: box-shadow 0.18s, border 0.17s;
+  flex-shrink: 0;
 }
 .markup-ideal-outer:hover {
-  box-shadow: 0 16px 48px 0 #a780ff66, 0 4px 18px #0002;
-  border-color: #ffe060;
+  box-shadow: 0 16px 52px #2196f344, 0 4px 18px #b5e1fa22;
+  border-color: #2196f3;
 }
 
 .markup-ideal-inner {
-  background: linear-gradient(135deg, #31244e 85%, #372b5c 100%);
-  border: 2px solid #a780ff;
+  background: #fff;
   border-radius: 18px;
-  box-shadow: 0 4px 16px #0002;
+  box-shadow: none;
   padding: 34px 32px 24px 32px;
   margin: 0 auto;
   width: 100%;
+  height: 100%; /* ocupa toda a altura do card pai */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   box-sizing: border-box;
 }
+
+/* =================== */
+/* TÍTULOS E EDIÇÃO    */
+/* =================== */
 
 .markup-ideal-title-row {
   display: flex;
@@ -66,44 +156,39 @@
   justify-content: space-between;
 }
 
-/* =================== */
-/* TÍTULOS E EDIÇÃO    */
-/* =================== */
-
 .markup-ideal-title {
   font-family: 'Poppins', 'Montserrat', sans-serif;
   font-size: 2rem;
-  font-weight: 800;
-  color: #fff;
+  font-weight: 900;
+  color: #2196f3;
   background: none;
   border-radius: 12px;
   padding: 0 14px;
-  letter-spacing: 1px;
-  border: 2px solid #a780ff;
+  letter-spacing: 0.6px;
+  border: 2.2px solid #e1e9f7;
   margin: 0;
   display: flex;
   align-items: center;
   min-width: 0;
   max-width: 320px;
   width: auto;
-  /* ATENÇÃO: Aqui tirei o text-transform! */
-  /* text-transform: lowercase; */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   box-sizing: border-box;
+  transition: border-color 0.18s;
 }
 
 .markup-ideal-title-input-edit {
   font-family: 'Poppins', 'Montserrat', sans-serif;
   font-size: 2rem;
-  font-weight: 800;
-  color: #fff;
-  background: none;
+  font-weight: 900;
+  color: #2196f3;
+  background: #f7fbff;
   border-radius: 12px;
   padding: 0 14px;
   letter-spacing: 1px;
-  border: 2px solid #ffe060;
+  border: 2px solid #2196f3;
   margin: 0;
   height: 48px;
   outline: none;
@@ -118,7 +203,7 @@
   text-overflow: ellipsis;
 }
 .markup-ideal-title-input-edit:focus {
-  border-color: #ffe060;
+  border-color: #1976d2;
 }
 .markup-ideal-title-editbox {
   display: flex;
@@ -138,7 +223,7 @@
   font-size: 1.35em;
   background: none;
   border: none;
-  color: #ff8c4b;
+  color: #2196f3;
   cursor: pointer;
   transition: color 0.18s, background 0.18s;
   outline: none;
@@ -148,17 +233,25 @@
   position: static;
   padding: 0 2px;
   border-radius: 7px;
+  box-shadow: none !important;
 }
 .markup-ideal-edit-btn:hover {
-  color: #ffe060;
-  background: #a780ff33;
+  color: #fff;
+  background: #2196f3;
+}
+.markup-ideal-edit-btn img,
+.markup-ideal-edit-btn svg {
+  box-shadow: none !important;
+  filter: none !important;
+  background: none !important;
 }
 
+/* Confirm Button */
 .markup-ideal-confirm-btn {
   font-size: 1.7rem;
   background: none;
   border: none;
-  color: #ffe060;
+  color: #2196f3;
   cursor: pointer;
   margin-left: 4px;
   padding: 0 4px;
@@ -171,8 +264,21 @@
 }
 .markup-ideal-confirm-btn:hover,
 .markup-ideal-confirm-btn:focus {
-  background: #ffe06011;
-  color: #fff;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* =================== */
+/* MEDIA DE FATURAMENTO (LABEL CINZA) */
+/* =================== */
+
+.markup-ideal-media-faturamento-label {
+  color: #97a7c3;
+  font-size: 1.24rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+  display: block;
 }
 
 /* =================== */
@@ -187,9 +293,9 @@
 }
 
 .markup-ideal-row-label {
-  color: #fff;
+  color: #1976d2;
   font-weight: 700;
-  font-size: 1.11rem;
+  font-size: 1.09rem;
   padding-left: 4px;
   text-align: left;
   vertical-align: middle;
@@ -203,12 +309,12 @@
 }
 
 .markup-ideal-box {
-  background: #261e3e;
-  color: #fff;
-  border: 2px solid #a780ff;
+  background: #f7fbff;
+  color: #1976d2;
+  border: 2px solid #e1e9f7;
   border-radius: 10px;
   font-weight: 700;
-  font-size: 1.13rem;
+  font-size: 1.09rem;
   min-width: 125px;
   min-height: 44px;
   padding: 0 16px;
@@ -217,15 +323,16 @@
   justify-content: flex-end;
   letter-spacing: 1px;
   box-sizing: border-box;
+  box-shadow: none !important;
 }
 
 .markup-ideal-lucro-input {
   background: transparent;
   border: none;
   outline: none;
-  color: #fff;
+  color: #1565c0;
   font-weight: 700;
-  font-size: 1.13rem;
+  font-size: 1.09rem;
   width: 60px;
   text-align: right;
   padding: 0;
@@ -233,7 +340,7 @@
 }
 
 .markup-ideal-box-percent {
-  color: #b388ff;
+  color: #1976d2;
   font-weight: 600;
   font-size: 18px;
   margin-left: 2px;
@@ -241,11 +348,11 @@
 
 .markup-ideal-row-markup-value,
 .markup-ideal-row-value-set .markup-ideal-row-markup-value {
-  background: #ffe060;
-  color: #34205a;
+  background: #2196f3;
+  color: #fff;
   font-weight: 900;
-  font-size: 1.7rem;
-  border: 2.5px solid #a780ff;
+  font-size: 1.6rem;
+  border: 2.5px solid #e1e9f7;
   border-radius: 13px;
   padding: 0 32px;
   display: flex;
@@ -254,24 +361,76 @@
   min-width: 110px;
   min-height: 48px;
   letter-spacing: 1px;
-  box-shadow: 0 2px 16px 0 #ffe06033;
+  box-shadow: none !important;
 }
 
 /* =================== */
-/* DICA/TIP            */
+/* DICA/TIP - AZUL COM TOOLTIP CENTRALIZADO EMBAIXO */
 /* =================== */
 
-.markup-ideal-tip {
-  margin-top: 16px;
-  background: #312955;
-  border: 1.5px dashed #a780ff;
-  border-radius: 8px;
+.markup-ideal-tip-tooltip {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  min-height: 32px;
+  margin-top: 28px;
+  width: 100%;
+}
+
+.markup-ideal-tip-icon {
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2196f3;
   color: #fff;
-  font-size: 0.97rem;
-  padding: 13px 13px 9px 13px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
+  box-shadow: 0 2px 12px #2196f322;
+  outline: none;
 }
-.markup-ideal-tip b {
-  color: #ffe060;
+.markup-ideal-tip-icon:focus {
+  outline: 2px solid #1976d2;
+}
+.markup-ideal-tip-tooltip-text {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1.5px dashed #2196f3;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 400;
+  padding: 14px 16px 10px 16px;
+  z-index: 100;
+  max-width: 420px;
+  min-width: 240px;
+  box-shadow: 0 8px 24px #2196f311;
+  line-height: 1.48;
+  white-space: normal;
+  pointer-events: none;
+}
+.markup-ideal-tip-tooltip:hover .markup-ideal-tip-tooltip-text,
+.markup-ideal-tip-tooltip:focus-within .markup-ideal-tip-tooltip-text {
+  display: block;
+  pointer-events: auto;
+}
+.markup-ideal-tip-tooltip .markup-ideal-tip-tooltip-text b {
+  color: #2196f3;
+  font-weight: 700;
+  margin-right: 2px;
 }
 
 /* =================== */
@@ -280,10 +439,10 @@
 
 .markup-ideal-input-edit {
   font-weight: 800;
-  font-size: 1.21rem;
-  color: #adadff;
-  background: #261e3e;
-  border: 2px solid #a780ff;
+  font-size: 1.14rem;
+  color: #2196f3;
+  background: #f7fbff;
+  border: 2px solid #e1e9f7;
   border-radius: 9px;
   padding: 13px 18px;
   width: 260px;
@@ -293,11 +452,11 @@
   box-sizing: border-box;
 }
 .markup-ideal-input-edit:focus {
-  border-color: #ffe060;
-  box-shadow: 0 2px 12px #ffe06022;
+  border-color: #2196f3;
+  box-shadow: 0 2px 12px #2196f322;
 }
 .markup-ideal-input-edit::placeholder {
-  color: #8686a7;
+  color: #a0b5cc;
   opacity: 1;
 }
 
@@ -306,40 +465,47 @@
 /* =================== */
 
 .markup-ideal-add-btn {
-  color: #ffe060;
+  color: #fff;
   font-weight: 800;
   font-size: 22px;
-  border: 2px solid #fff;
+  border: none;
   border-radius: 10px;
   padding: 12px 26px;
   margin-left: 8px;
-  background: #18132a;
-  box-shadow: 0 3px 20px #0007;
+  background: linear-gradient(90deg, #2196f3 40%, #6bc1fc 100%);
+  box-shadow: 0 3px 20px #2196f322;
   opacity: 1;
   cursor: pointer;
-  transition: background 0.16s, opacity 0.16s, color 0.16s, box-shadow 0.16s;
+  transition: background 0.15s, opacity 0.14s, color 0.15s, box-shadow 0.13s;
 }
 .markup-ideal-add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 .markup-ideal-add-btn:hover:not(:disabled) {
-  background: #ffe06022;
+  background: linear-gradient(90deg, #1976d2 40%, #2196f3 100%);
   color: #fff;
-  border-color: #ffe060;
+  box-shadow: 0 4px 22px #2196f355;
 }
 
 /* =================== */
-/* TOTAL EM R$         */
+/* TOTAL EM R$ CINZA, MENOR E CENTRALIZADO */
 /* =================== */
 
-.markup-ideal-total-rs {
-  font-size: 0.97rem;
-  margin-top: 5px;
-  color: #ffe060;
-  opacity: 0.88;
+.markup-ideal-total-rs-cinza {
+  font-size: 1.08rem;
+  margin-top: 18px;
+  color: #97a7c3;
+  font-weight: 800;
   text-align: center;
-  font-weight: 600;
+  letter-spacing: 0.2px;
+  width: 100%;
+  display: block;
+}
+.markup-ideal-total-rs-cinza span {
+  color: #97a7c3 !important;
+  font-weight: 900;
+  letter-spacing: 0.3px;
 }
 
 /* =================== */
@@ -349,7 +515,7 @@
 .markup-ideal-modal-bg {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(19, 9, 33, 0.81);
+  background: rgba(16,11,40,0.35);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -357,26 +523,27 @@
 }
 
 .markup-ideal-modal {
-  background: #21143a;
+  background: #fff;
   padding: 30px 36px 22px 36px;
   border-radius: 22px;
   min-width: 400px;
   min-height: 280px;
-  box-shadow: 0 6px 32px #271d3c99;
+  box-shadow: 0 10px 38px #2196f355, 0 2px 10px #e1e9f7;
   position: relative;
-  color: #fff;
+  color: #2196f3;
   max-width: 98vw;
   max-height: 96vh;
   overflow: auto;
+  border: 2px solid #e1e9f7;
 }
 
 .markup-ideal-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 1.24rem;
-  font-weight: 700;
-  color: #ffe060;
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: #2196f3;
   margin-bottom: 18px;
 }
 
@@ -384,13 +551,13 @@
   background: none;
   border: none;
   font-size: 1.6rem;
-  color: #ff6b6b;
+  color: #e15c5c;
   cursor: pointer;
   margin-left: 10px;
   transition: color 0.2s;
 }
 .markup-ideal-modal-close:hover {
-  color: #fff;
+  color: #1565c0;
 }
 
 .markup-ideal-modal-content {
@@ -401,15 +568,23 @@
 /* RESPONSIVO          */
 /* =================== */
 
-@media (max-width: 800px) {
+@media (max-width: 1100px) {
   .markup-ideal-main {
     padding-left: 0;
     padding-right: 0;
   }
+  .markup-ideal-row-cards {
+    flex-direction: row;
+    gap: 28px;
+    overflow-x: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
   .markup-ideal-outer {
-    min-width: 0;
+    min-width: 320px;
     max-width: 99vw;
     padding: 8px 0;
+    height: 640px;
   }
   .markup-ideal-inner {
     padding: 16px 4px 10px 4px;
@@ -425,7 +600,7 @@
 }
 
 /* =================== */
-/* SWITCH ROXO E LINHA SUTIL */
+/* SWITCH AZUL E LINHA SUTIL */
 /* =================== */
 
 .markupideal-switch {
@@ -444,10 +619,10 @@
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #e5e0f9;
+  background: #e1e9f7;
   border-radius: 26px;
   transition: background 0.3s;
-  box-shadow: 0 2px 8px #0001;
+  box-shadow: none !important;
 }
 .markupideal-slider:before {
   position: absolute;
@@ -459,10 +634,10 @@
   background: #fff;
   border-radius: 50%;
   transition: transform 0.3s;
-  box-shadow: 0 2px 8px #0002;
+  box-shadow: none !important;
 }
 .markupideal-switch input:checked + .markupideal-slider {
-  background: #a780ff;
+  background: #2196f3;
 }
 .markupideal-switch input:checked + .markupideal-slider:before {
   transform: translateX(20px);
@@ -478,20 +653,20 @@
   align-items: center;
   gap: 16px;
   padding: 8px 0;
-  border-bottom: 1px solid #34255a44;
+  border-bottom: 1px solid #e1e9f7;
 }
 .markupideal-listitem:last-child {
   border-bottom: none;
 }
 .markupideal-listitem-nome {
   font-weight: 700;
-  color: #fff;
+  color: #2196f3;
   font-size: 1.04rem;
   margin-left: 2px;
 }
 .markupideal-listitem-valor {
   font-weight: 700;
-  color: #b088ff;
+  color: #1976d2;
   font-size: 1.08rem;
   min-width: 110px;
   text-align: right;
