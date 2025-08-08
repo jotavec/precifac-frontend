@@ -3,13 +3,12 @@ import axios from "axios";
 import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
 import Cropper from "react-easy-crop";
+import TabelaPlanos from "./TabelaPlanos";
 import './Perfil.css';
 
 const API_URL = "/api";
-// Usar variável de ambiente para produção ou localhost para dev
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
-// ===== Máscaras =====
 function formatCNPJ(value) {
   value = value.replace(/\D/g, '');
   if (value.length > 14) value = value.slice(0, 14);
@@ -45,15 +44,12 @@ function formatCEP(value) {
   return value;
 }
 
-// Utilitário para montar o caminho do avatar corretamente
 function getFullAvatarUrl(avatarUrl) {
   if (!avatarUrl) return null;
   if (avatarUrl.startsWith("http")) return avatarUrl;
-  // remove qualquer barra dupla
   return BACKEND_URL.replace(/\/$/, "") + "/" + avatarUrl.replace(/^\//, "");
 }
 
-// AvatarSidebar universal
 function AvatarSidebar({ avatarUrl }) {
   return (
     <div className="perfil-avatar-branco" style={{ position: 'relative', width: 120, height: 120 }}>
@@ -106,7 +102,6 @@ function EditIcon() {
   );
 }
 
-// Crop utilitário
 function getCroppedImg(imageSrc, crop, zoom, aspect) {
   return new Promise((resolve, reject) => {
     const image = new window.Image();
@@ -119,12 +114,10 @@ function getCroppedImg(imageSrc, crop, zoom, aspect) {
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Cálculo igual ao react-easy-crop
       const cropX = (crop.x / 100) * image.width;
       const cropY = (crop.y / 100) * image.height;
       const side = Math.min(image.width, image.height) / zoom;
 
-      // Centralizado sempre
       const sx = (image.width - side) / 2 + cropX;
       const sy = (image.height - side) / 2 + cropY;
 
@@ -159,13 +152,13 @@ async function uploadAvatar(blob) {
     withCredentials: true,
     headers: { 'Content-Type': 'multipart/form-data' }
   });
-  return data.avatarUrl; // /uploads/avatars/xxxx.png
+  return data.avatarUrl;
 }
 
-export default function Perfil({ onLogout }) {
+export default function Perfil({ onLogout, abaInicial }) {
   const [editando, setEditando] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [aba, setAba] = useState("dados");
+  const [aba, setAba] = useState(abaInicial || "dados");
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -196,6 +189,14 @@ export default function Perfil({ onLogout }) {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
+
+  useEffect(() => {
+    if (abaInicial && abaInicial !== aba) {
+      setAba(abaInicial);
+      console.log("Perfil.jsx - Recebeu abaInicial:", abaInicial);
+    }
+    // eslint-disable-next-line
+  }, [abaInicial]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -249,7 +250,6 @@ export default function Perfil({ onLogout }) {
   async function onCropConfirm() {
     const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
     const avatarUrl = await uploadAvatar(cropped.blob);
-    // Coloca timestamp para forçar refresh do cache do navegador
     const avatarUrlCacheBusted = avatarUrl + "?t=" + Date.now();
     setAvatarPreview(avatarUrlCacheBusted);
     setUser((prev) => ({ ...prev, avatarUrl: avatarUrlCacheBusted }));
@@ -368,9 +368,11 @@ export default function Perfil({ onLogout }) {
 
   if (loading) return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
 
+  // DEBUG ABA ATUAL
+  console.log("Perfil.jsx - aba atual:", aba, "| abaInicial prop:", abaInicial);
+
   return (
     <>
-      {/* CROP MODAL */}
       {showCrop && (
         <div
           style={{
@@ -514,6 +516,16 @@ export default function Perfil({ onLogout }) {
             Login & Senha
           </button>
           <button
+            className={`perfil-branco-btn-info${aba === "planos" ? " ativo" : ""}`}
+            onClick={() => {
+              console.log("Perfil.jsx - Clique em Planos, setAba('planos')");
+              setAba("planos");
+            }}
+            style={{ marginBottom: 10, fontWeight: 700 }}
+          >
+            Planos
+          </button>
+          <button
             className="perfil-branco-btn-info"
             onClick={onLogout}
             style={{ fontWeight: 700 }}
@@ -523,6 +535,7 @@ export default function Perfil({ onLogout }) {
         </div>
 
         <div className="perfil-branco-content">
+          {console.log("Perfil.jsx - Renderizando aba:", aba)}
           {aba === "dados" && (
             <form
               autoComplete="off"
@@ -530,7 +543,6 @@ export default function Perfil({ onLogout }) {
             >
               <h2 className="perfil-branco-titulo">Dados Pessoais</h2>
               <div className="perfil-branco-form">
-                {/* Nome */}
                 <div className="perfil-branco-form-row">
                   <div>
                     <label>Nome</label>
@@ -555,7 +567,6 @@ export default function Perfil({ onLogout }) {
                     />
                   </div>
                 </div>
-                {/* Telefone */}
                 <div className="perfil-branco-form-row">
                   <div style={{ flex: 1 }}>
                     <label>Telefone</label>
@@ -722,6 +733,7 @@ export default function Perfil({ onLogout }) {
           {aba === "login" && (
             <PerfilLoginSenha email={form.email} />
           )}
+          {aba === "planos" && <TabelaPlanos />}
         </div>
       </div>
     </>

@@ -176,11 +176,33 @@ export default function DespesasFixas() {
 
   if (!subcategorias.length) {
     return (
-      <div className="painel-empty">
-        Nenhuma categoria cadastrada.<br />
-        <button className="btn-azul-grad" onClick={handleAddSubcat}>
-          + Adicionar categoria
-        </button>
+      <div className="painel-root">
+        <div className="painel-header">
+          <div>
+            <div className="painel-titulo-pagina">
+              Despesas Fixas
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", width: "100%" }}>
+          <div className="painel-menu">
+            <button className="btn-azul-grad" onClick={handleAddSubcat}>
+              + Adicionar categoria
+            </button>
+            <div style={{
+              marginTop: 18,
+              color: "#425276",
+              background: "#fff",
+              borderRadius: 13,
+              padding: "18px 16px",
+              fontWeight: 700,
+              boxShadow: "0 2px 18px #00cfff10"
+            }}>
+              Nenhuma categoria cadastrada.
+            </div>
+          </div>
+          <div className="painel-content" />
+        </div>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -16,10 +16,15 @@ import QuadroReceitas from "./components/QuadroReceitas";
 import PlanejamentoVendas from "./components/PlanejamentoVendas";
 import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
-// import CadastroReceita from "./components/QuadroDeReceitas/Cadastro";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import "./App.css";
 import "./AppContainer.css";
+
+// ===== AuthContext para toda a aplicação =====
+export const AuthContext = createContext();
+export function useAuth() {
+  return useContext(AuthContext);
+}
 
 const CAMPOS_PERCENTUAIS = [
   { key: "fgts", label: "FGTS (%)" },
@@ -126,6 +131,9 @@ export default function App() {
   const [outrosEncargos, setOutrosEncargos] = useState([]);
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
+
+  // >>>> AJUSTE AQUI: DEFINE O COMPONENTE ATIVO <<<<
+  const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
   useEffect(() => {
     if (!user) return;
@@ -320,16 +328,19 @@ export default function App() {
     if (aba === "movimentacoes") {
       return "Estoque:Movimentações";
     }
-    // if (aba === "cadastro_receita") {
-    //   return "Quadro de Receitas:Cadastro";
-    // }
-    if (aba === "central_receitas") { // <-- NOVO
+    if (aba === "central_receitas") {
       return "Quadro de Receitas:Central de Receitas";
+    }
+    // Adicionado: se aba for especial de perfil/planos
+    if (aba === "perfil_planos") {
+      return "Perfil:Planos";
     }
     return abasPrincipais[aba]?.label || "";
   }
 
   function handleSidebarSelect(label) {
+    console.log("App.jsx - handleSidebarSelect label:", label);
+    console.log("SidebarSelect label:", label); // <-- Coloque aqui, só dentro da função!
     if (label.startsWith("Custos:")) {
       setAba(2);
       const sub = label.split(":")[1];
@@ -350,10 +361,10 @@ export default function App() {
       setAba("saida");
     } else if (label === "Estoque:Movimentações") {
       setAba("movimentacoes");
-    // } else if (label === "Quadro de Receitas:Cadastro") {
-    //   setAba("cadastro_receita");
-    } else if (label === "Quadro de Receitas:Central de Receitas") { // <-- NOVO
+    } else if (label === "Quadro de Receitas:Central de Receitas") {
       setAba("central_receitas");
+    } else if (label === "Perfil:Planos") {
+      setAba("perfil_planos");
     } else {
       const idx = abasPrincipais.findIndex(x => x.label === label);
       setAba(idx >= 0 ? idx : 0);
@@ -365,159 +376,159 @@ export default function App() {
   const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
   const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
 
-  if (user) {
-    const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
-    return (
-      <div className={`app-container${sidebarExpanded ? " sidebar-expanded" : ""}`}>
-        <SidebarMenu
-          selected={getSelectedLabel(aba, catIdx, subCatMarkup)}
-          onSelect={handleSidebarSelect}
-          onLogout={handleLogout}
-          subCategoriasPrincipais={subCategoriasPrincipais}
-          subCategoriasMarkup={subCategoriasMarkup}
-          sidebarExpanded={sidebarExpanded}
-          setSidebarExpanded={setSidebarExpanded}
-        />
-        <main className="main-content">
-          {aba === 0 ? (
-            <Perfil onLogout={handleLogout} />
-          ) : aba === 2 ? (
-            catIdx === 2 ? (
-              <EncargosSobreVenda
-                data={encargosData}
-                setData={setEncargosData}
-                outros={outrosEncargos}
-                setOutros={setOutrosEncargos}
-                user={user}
-              />
-            ) : catIdx === 1 ? (
-              <FolhaDePagamento
-                funcionarios={categoriasCustos[1].funcionarios}
-                setFuncionarios={funcs =>
-                  setCategoriasCustos(cats => {
-                    const novas = [...cats];
-                    novas[1].funcionarios = funcs;
-                    return novas;
-                  })
-                }
-                handleAddFuncionario={handleAddFuncionario}
-                handleEditarFuncionario={handleEditarFuncionario}
-                handleExcluirFuncionario={handleExcluirFuncionario}
-                totalFolha={categoriasCustos[1].funcionarios.reduce(
-                  (acc, f) => acc + calcularTotalFuncionarioObj(f),
-                  0
-                )}
-                calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
-                CAMPOS_PERCENTUAIS={CAMPOS_PERCENTUAIS}
-              />
-            ) : (
-              <Custos
-                catIdx={catIdx}
-                categorias={categoriasCustos}
-                setCategorias={setCategoriasCustos}
-                user={user}
-              />
-            )
-          ) : aba === 3 ? (
-            subCatMarkup === 0 ? (
-              <FaturamentoRealizado
-                user={user}
-                setGastoSobreFaturamento={setGastoSobreFaturamento}
-              />
-            ) : subCatMarkup === 1 ? (
-              <MarkupIdeal
-                user={user}
-                encargosData={encargosData}
-                outrosEncargos={outrosEncargos}
-                gastoSobreFaturamento={gastoSobreFaturamento}
-                despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
-                funcionarios={categoriasCustos[1]?.funcionarios || []}
-                calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
-              />
-            ) : null
-          ) : aba === "cadastros" ? (
-            <Cadastro />
-          ) : aba === "entrada" ? (
-            <EntradaEstoque />
-          ) : aba === "fornecedores" ? (
-            <Fornecedores />
-          ) : aba === "saida" ? (
-            <SaidaEstoque />
-          ) : aba === "movimentacoes" ? (
-            <Movimentacoes />
-          // ) : aba === "cadastro_receita" ? (
-          //   <CadastroReceita />   // REMOVIDO
-          ) : aba === "central_receitas" ? ( // <-- NOVO
-            <CentralReceitas />
-          ) : AbaComponent ? (
-            <AbaComponent user={user} />
-          ) : null}
-        </main>
-      </div>
-    );
-  }
-
+  // === COMPONENTE FINAL (usa AuthContext)
   return (
-    <div
-      style={{
-        maxWidth: 360,
-        margin: "2rem auto",
-        padding: 32,
-        border: "1px solid #ccc",
-        borderRadius: 16
-      }}
-    >
-      <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
-      <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
-        {screen === "register" && (
-          <input
-            name="name"
-            placeholder="Nome"
-            value={form.name}
-            onChange={handleChange}
-            style={{ display: "block", width: "100%", marginBottom: 8 }}
-            required
+    <AuthContext.Provider value={{ user, setUser, setAba }}>
+      {user ? (
+        <div className={`app-container${sidebarExpanded ? " sidebar-expanded" : ""}`}>
+          <SidebarMenu
+            selected={getSelectedLabel(aba, catIdx, subCatMarkup)}
+            onSelect={handleSidebarSelect}
+            onLogout={handleLogout}
+            subCategoriasPrincipais={subCategoriasPrincipais}
+            subCategoriasMarkup={subCategoriasMarkup}
+            sidebarExpanded={sidebarExpanded}
+            setSidebarExpanded={setSidebarExpanded}
           />
-        )}
-        <input
-          name="email"
-          type="email"
-          placeholder="E-mail"
-          value={form.email}
-          onChange={handleChange}
-          style={{ display: "block", width: "100%", marginBottom: 8 }}
-          required
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Senha"
-          value={form.password}
-          onChange={handleChange}
-          style={{ display: "block", width: "100%", marginBottom: 8 }}
-          required
-        />
-        <button type="submit" style={{ width: "100%", marginBottom: 8 }}>
-          {screen === "login" ? "Entrar" : "Cadastrar"}
-        </button>
-      </form>
-      <button
-        onClick={() => {
-          setScreen(screen === "login" ? "register" : "login");
-          setMsg("");
-        }}
-        style={{
-          width: "100%",
-          background: "#eee",
-          border: "none",
-          color: "#222"
-        }}
-      >
-        {screen === "login"
-          ? "Não tem conta? Cadastre-se"
-          : "Já tem conta? Faça login"}
-      </button>
-      <div style={{ color: "#900", marginTop: 8 }}>{msg}</div>
-    </div>
+          <main className="main-content">
+            {aba === 0 ? (
+              <Perfil onLogout={handleLogout} />
+            ) : aba === 2 ? (
+              catIdx === 2 ? (
+                <EncargosSobreVenda
+                  data={encargosData}
+                  setData={setEncargosData}
+                  outros={outrosEncargos}
+                  setOutros={setOutrosEncargos}
+                  user={user}
+                />
+              ) : catIdx === 1 ? (
+                <FolhaDePagamento
+                  funcionarios={categoriasCustos[1].funcionarios}
+                  setFuncionarios={funcs =>
+                    setCategoriasCustos(cats => {
+                      const novas = [...cats];
+                      novas[1].funcionarios = funcs;
+                      return novas;
+                    })
+                  }
+                  handleAddFuncionario={handleAddFuncionario}
+                  handleEditarFuncionario={handleEditarFuncionario}
+                  handleExcluirFuncionario={handleExcluirFuncionario}
+                  totalFolha={categoriasCustos[1].funcionarios.reduce(
+                    (acc, f) => acc + calcularTotalFuncionarioObj(f),
+                    0
+                  )}
+                  calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+                  CAMPOS_PERCENTUAIS={CAMPOS_PERCENTUAIS}
+                />
+              ) : (
+                <Custos
+                  catIdx={catIdx}
+                  categorias={categoriasCustos}
+                  setCategorias={setCategoriasCustos}
+                  user={user}
+                />
+              )
+            ) : aba === 3 ? (
+              subCatMarkup === 0 ? (
+                <FaturamentoRealizado
+                  user={user}
+                  setGastoSobreFaturamento={setGastoSobreFaturamento}
+                />
+              ) : subCatMarkup === 1 ? (
+                <MarkupIdeal
+                  user={user}
+                  encargosData={encargosData}
+                  outrosEncargos={outrosEncargos}
+                  gastoSobreFaturamento={gastoSobreFaturamento}
+                  despesasFixasSubcats={categoriasCustos[0]?.subcategorias || []}
+                  funcionarios={categoriasCustos[1]?.funcionarios || []}
+                  calcularTotalFuncionarioObj={calcularTotalFuncionarioObj}
+                />
+              ) : null
+            ) : aba === "cadastros" ? (
+              <Cadastro />
+            ) : aba === "entrada" ? (
+              <EntradaEstoque />
+            ) : aba === "fornecedores" ? (
+              <Fornecedores />
+            ) : aba === "saida" ? (
+              <SaidaEstoque />
+            ) : aba === "movimentacoes" ? (
+              <Movimentacoes />
+            ) : aba === "central_receitas" ? (
+              <CentralReceitas />
+            ) : aba === "perfil_planos" ? (
+              <Perfil abaInicial="planos" onLogout={handleLogout} />
+            ) : AbaComponent ? (
+              <AbaComponent user={user} />
+            ) : null}
+          </main>
+        </div>
+      ) : (
+        <div
+          style={{
+            maxWidth: 360,
+            margin: "2rem auto",
+            padding: 32,
+            border: "1px solid #ccc",
+            borderRadius: 16
+          }}
+        >
+          <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
+          <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
+            {screen === "register" && (
+              <input
+                name="name"
+                placeholder="Nome"
+                value={form.name}
+                onChange={handleChange}
+                style={{ display: "block", width: "100%", marginBottom: 8 }}
+                required
+              />
+            )}
+            <input
+              name="email"
+              type="email"
+              placeholder="E-mail"
+              value={form.email}
+              onChange={handleChange}
+              style={{ display: "block", width: "100%", marginBottom: 8 }}
+              required
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="Senha"
+              value={form.password}
+              onChange={handleChange}
+              style={{ display: "block", width: "100%", marginBottom: 8 }}
+              required
+            />
+            <button type="submit" style={{ width: "100%", marginBottom: 8 }}>
+              {screen === "login" ? "Entrar" : "Cadastrar"}
+            </button>
+          </form>
+          <button
+            onClick={() => {
+              setScreen(screen === "login" ? "register" : "login");
+              setMsg("");
+            }}
+            style={{
+              width: "100%",
+              background: "#eee",
+              border: "none",
+              color: "#222"
+            }}
+          >
+            {screen === "login"
+              ? "Não tem conta? Cadastre-se"
+              : "Já tem conta? Faça login"}
+          </button>
+          <div style={{ color: "#900", marginTop: 8 }}>{msg}</div>
+        </div>
+      )}
+    </AuthContext.Provider>
   );
 }

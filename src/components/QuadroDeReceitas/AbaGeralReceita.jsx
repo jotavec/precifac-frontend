@@ -13,6 +13,7 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [showCrop, setShowCrop] = useState(false);
   const inputImgRef = useRef(null);
+  console.log("imagemCortada (preview):", imagemCortada);
 
   useEffect(() => {
     setImagemCortada(imagemInicial);
@@ -25,12 +26,11 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // --- compressão antes de tudo ---
       let compressed = file;
       try {
         compressed = await imageCompression(file, {
           maxSizeMB: 0.2,
-          maxWidthOrHeight: 800, // Limite para 800px
+          maxWidthOrHeight: 800,
           useWebWorker: true,
         });
       } catch (err) {
@@ -87,13 +87,33 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
     setImagemCortada(null);
     setImagemFonte(null);
     onImagemFinalAlterada(null);
-    if(inputImgRef.current) {
+    if (inputImgRef.current) {
       inputImgRef.current.value = "";
     }
   };
 
-  // Sempre mostra preview se imagemCortada existe
-  const isPreviewValida = !!imagemCortada;
+  // Monta o src correto para preview
+  const getPreviewSrc = () => {
+    if (!imagemCortada) return null;
+    if (
+      imagemCortada.startsWith("http://") ||
+      imagemCortada.startsWith("https://")
+    ) {
+      return imagemCortada;
+    }
+    // Se for /uploads/..., monta a url completa
+    if (imagemCortada.startsWith("/uploads/")) {
+      return `http://localhost:3000${imagemCortada}`;
+    }
+    // fallback
+    return imagemCortada;
+  };
+
+  const isPreviewValida =
+    typeof imagemCortada === "string" &&
+    imagemCortada.length > 4 &&
+    !imagemCortada.startsWith("data:image") &&
+    (imagemCortada.startsWith("/") || imagemCortada.startsWith("http"));
 
   return (
     <>
@@ -105,7 +125,11 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
         <input type="file" accept="image/*" style={{ display: "none" }} ref={inputImgRef} onChange={handleFileChange} />
         {isPreviewValida ? (
           <>
-            <img src={imagemCortada} alt="Preview da Receita" className="receita-uploader-preview" />
+            <img
+              src={getPreviewSrc()}
+              alt="Preview da Receita"
+              className="receita-uploader-preview"
+            />
             <button onClick={removerImagem} title="Remover imagem" className="receita-uploader-remove">
               ×
             </button>
@@ -125,7 +149,7 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
                 image={imagemFonte}
                 crop={crop}
                 zoom={zoom}
-                aspect={1} // 1:1 para garantir 800x800 quadrado
+                aspect={1}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
@@ -166,9 +190,9 @@ function PassoPreparo({ passo, index, onDescricaoChange, onImagemChange, onRemov
         placeholder="Descreva o passo..."
         className="receita-passo-textarea"
       />
-      <input type="file" accept="image/*" ref={inputImagemRef} style={{display: 'none'}} onChange={handleFileChange} />
+      <input type="file" accept="image/*" ref={inputImagemRef} style={{ display: 'none' }} onChange={handleFileChange} />
       <button title="Adicionar imagem ao passo" className="receita-passo-img-btn" onClick={handleImagemClick}>
-        {passo.imagem ? <img src={passo.imagem} alt={`Passo ${index+1}`} className="receita-passo-img-thumb"/> : <FaCamera />}
+        {passo.imagem ? <img src={passo.imagem} alt={`Passo ${index + 1}`} className="receita-passo-img-thumb" /> : <FaCamera />}
       </button>
       <button
         title="Remover passo"
@@ -181,7 +205,12 @@ function PassoPreparo({ passo, index, onDescricaoChange, onImagemChange, onRemov
   );
 }
 
-const unidades = [ { singular: "dia", plural: "dias" }, { singular: "mês", plural: "meses" }, { singular: "hora", plural: "horas" }, { singular: "ano", plural: "anos" } ];
+const unidades = [
+  { singular: "dia", plural: "dias" },
+  { singular: "mês", plural: "meses" },
+  { singular: "hora", plural: "horas" },
+  { singular: "ano", plural: "anos" }
+];
 
 export default function AbaGeralReceita({
   nome, setNome,

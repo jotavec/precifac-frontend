@@ -6,6 +6,8 @@ import ModalLeitorCodigoBarras from "./ModalLeitorCodigoBarras";
 import ModalImportarProdutos from "./ModalImportarProdutos";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import ModalConfiguracoesCadastro from "./ModalConfiguracoesCadastro";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App"; // Ajuste o caminho se precisar
 import "./Cadastro.css";
 import { listarMarcas, adicionarMarca } from "../../services/marcasApi";
 import { listarCategorias, adicionarCategoria } from "../../services/categoriasApi";
@@ -95,6 +97,20 @@ const COLUNAS_CADASTRO = [
 ];
 
 export default function Cadastro() {
+  // BLOQUEIO DE PLANO GRATUITO
+  const { user } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
+
+  if (isPlanoGratuito) {
+    return (
+      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+    );
+  }
+
+  // ====== NORMAL DOS PLANOS PAGOS ======
+
   const [refreshCategorias, setRefreshCategorias] = useState(0);
   const [refreshMarcas, setRefreshMarcas] = useState(0);
 

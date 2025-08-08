@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
 import "./Movimentacoes.css";
 
 // Estilo dos selects igual aos inputs do sistema
@@ -109,6 +111,21 @@ const selectEstilo = {
 };
 
 export default function Movimentacoes() {
+  // ===== LIMITE DE PLANO =====
+  const { user } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
+
+  // BLOQUEIA ACESSO NO PLANO GRATUITO
+  if (isPlanoGratuito) {
+    return (
+      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+    );
+  }
+
+  // =========== ACESSO LIBERADO PARA PLANOS PAGOS =============
+
   const [movs, setMovs] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [filtroProduto, setFiltroProduto] = useState(null);

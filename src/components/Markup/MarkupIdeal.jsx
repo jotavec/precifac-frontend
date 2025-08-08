@@ -830,9 +830,24 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     );
     salvarMarkupBloco(idx);
   };
-  const handleChangeNome = (idx, novoNome) => {
-    setBlocos(blocos => blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b));
+
+  const handleChangeNome = async (idx, novoNome) => {
+    setBlocos(blocos =>
+      blocos.map((b, i) => i === idx ? { ...b, nome: novoNome } : b)
+    );
+    try {
+      const bloco = blocos[idx];
+      if (!bloco?.id) return;
+      await axios.put(
+        `/api/markup-ideal/${bloco.id}`,
+        { nome: novoNome },
+        { withCredentials: true }
+      );
+    } catch (err) {
+      alert("Erro ao salvar nome do bloco: " + err.message);
+    }
   };
+
   function pedirConfirmacaoDelete(idx) {
     setIdxParaDeletar(idx);
     setShowConfirmModal(true);

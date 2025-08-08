@@ -138,6 +138,7 @@ const selectStyles = {
     marginTop: 2,
     boxShadow: "0 2px 12px #a0cef540"
   }),
+  menuPortal: base => ({ ...base, zIndex: 99999 }),
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isFocused
@@ -233,12 +234,32 @@ export default function ModalCadastroManual({
 }) {
   const [abaBloco, setAbaBloco] = useState("estoque");
   const [rotuloConfigOpen, setRotuloConfigOpen] = useState(false);
-  const [descricoesNutricionais, setDescricoesNutricionais] = useState([
-    "Calorias", "Proteínas", "Carboidratos", "Gorduras"
-  ]);
-  const [unidadesNutricionais, setUnidadesNutricionais] = useState([
-    "kcal", "g", "mg", "mcg"
-  ]);
+
+  // ======= ESTADO NOVO: puxa do backend SEMPRE =======
+  const [categoriasNutricionais, setCategoriasNutricionais] = useState([]);
+
+  // Busca as opções SEMPRE que abrir o modal OU trocar para aba de rótulo
+  useEffect(() => {
+    if (open && abaBloco === "rotulo") {
+      fetch("/api/categorias-nutricionais", { credentials: "include" })
+        .then(res => res.json())
+        .then(data => setCategoriasNutricionais(Array.isArray(data) ? data : []));
+    }
+  }, [open, abaBloco]);
+
+  // Gera as opções para os selects do rótulo
+  const descricoesNutricionaisOptions = categoriasNutricionais.map(cat => ({
+    value: cat.descricao,
+    label: cat.descricao
+  }));
+  const unidadesNutricionaisOptions = [
+    ...new Set(categoriasNutricionais.map(cat => cat.unidade))
+  ].map(unidade => ({
+    value: unidade,
+    label: unidade
+  }));
+
+  // --- Demais estados originais (não precisa mexer) ---
   const [editIdx, setEditIdx] = useState(null);
   const [formRotulo, setFormRotulo] = useState({
     descricao: "", quantidade: "", unidade: "", vd: ""
@@ -413,15 +434,6 @@ export default function ModalCadastroManual({
   const unidadeOption = ingrediente.unidade
     ? unidadeMedidaOptions.find(opt => opt.value === ingrediente.unidade)
     : null;
-
-  const descricoesNutricionaisOptions = descricoesNutricionais.map(desc => ({
-    value: desc,
-    label: desc
-  }));
-  const unidadesNutricionaisOptions = unidadesNutricionais.map(unid => ({
-    value: unid,
-    label: unid
-  }));
 
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
@@ -831,7 +843,11 @@ export default function ModalCadastroManual({
                 <Select
                   inputId="input-unidade"
                   classNamePrefix="input-form-brabo"
-                  styles={selectStyles}
+                  styles={{
+                    ...selectStyles,
+                    menuPortal: base => ({ ...base, zIndex: 99999 }),
+                  }}
+                  menuPortalTarget={document.body}
                   theme={theme => ({
                     ...theme,
                     colors: {
@@ -853,6 +869,7 @@ export default function ModalCadastroManual({
                   }
                   placeholder="Selecione"
                   isClearable
+                  menuPlacement="auto"
                 />
               </div>
               <div>
@@ -978,7 +995,11 @@ export default function ModalCadastroManual({
                     <td>
                       <Select
                         classNamePrefix="input-form-brabo"
-                        styles={selectStylesRotulo}
+                        styles={{
+                          ...selectStylesRotulo,
+                          menuPortal: base => ({ ...base, zIndex: 99999 }),
+                        }}
+                        menuPortalTarget={document.body}
                         theme={theme => ({
                           ...theme,
                           colors: {
@@ -1004,6 +1025,7 @@ export default function ModalCadastroManual({
                         }
                         placeholder="Selecione"
                         isClearable
+                        menuPlacement="top"
                       />
                     </td>
                     <td>
@@ -1018,7 +1040,11 @@ export default function ModalCadastroManual({
                     <td>
                       <Select
                         classNamePrefix="input-form-brabo"
-                        styles={selectStylesRotulo}
+                        styles={{
+                          ...selectStylesRotulo,
+                          menuPortal: base => ({ ...base, zIndex: 99999 }),
+                        }}
+                        menuPortalTarget={document.body}
                         theme={theme => ({
                           ...theme,
                           colors: {
@@ -1044,6 +1070,7 @@ export default function ModalCadastroManual({
                         }
                         placeholder="Selecione"
                         isClearable
+                        menuPlacement="top"
                       />
                     </td>
                     <td>
@@ -1090,7 +1117,11 @@ export default function ModalCadastroManual({
                       <td>
                         <Select
                           classNamePrefix="input-form-brabo"
-                          styles={selectStylesRotulo}
+                          styles={{
+                            ...selectStylesRotulo,
+                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                          }}
+                          menuPortalTarget={document.body}
                           theme={theme => ({
                             ...theme,
                             colors: {
@@ -1116,6 +1147,7 @@ export default function ModalCadastroManual({
                           }
                           placeholder="Selecione"
                           isClearable
+                          menuPlacement="top"
                         />
                       </td>
                       <td>
@@ -1129,7 +1161,11 @@ export default function ModalCadastroManual({
                       <td>
                         <Select
                           classNamePrefix="input-form-brabo"
-                          styles={selectStylesRotulo}
+                          styles={{
+                            ...selectStylesRotulo,
+                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                          }}
+                          menuPortalTarget={document.body}
                           theme={theme => ({
                             ...theme,
                             colors: {
@@ -1155,6 +1191,7 @@ export default function ModalCadastroManual({
                           }
                           placeholder="Selecione"
                           isClearable
+                          menuPlacement="top"
                         />
                       </td>
                       <td>
@@ -1410,10 +1447,10 @@ export default function ModalCadastroManual({
         <ModalRotuloNutricional
           open={rotuloConfigOpen}
           onClose={() => setRotuloConfigOpen(false)}
-          descricoes={descricoesNutricionais}
-          unidades={unidadesNutricionais}
-          setDescricoes={setDescricoesNutricionais}
-          setUnidades={setUnidadesNutricionais}
+          descricoes={categoriasNutricionais.map(cat => cat.descricao)}
+          unidades={[...new Set(categoriasNutricionais.map(cat => cat.unidade))]}
+          setDescricoes={descArr => setCategoriasNutricionais(categoriasNutricionais.map((cat, i) => ({ ...cat, descricao: descArr[i] || cat.descricao })))}
+          setUnidades={unArr => setCategoriasNutricionais(categoriasNutricionais.map((cat, i) => ({ ...cat, unidade: unArr[i] || cat.unidade })))}
         />
       </div>
     </div>

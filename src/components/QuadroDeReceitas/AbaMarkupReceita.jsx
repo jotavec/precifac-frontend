@@ -156,7 +156,6 @@ export default function AbaMarkupReceita({
     return "Ex: 1,000";
   }
 
-  // ----------- CORRIGIDOS! -----------
   function calcularLucroBrutoUn() {
     const preco = parseBRL(precoComDesconto);
     const custo = parseBRL(custoUnitario);
@@ -205,7 +204,6 @@ export default function AbaMarkupReceita({
     }
     return "0%";
   }
-  // ----------- FIM DAS CORRIGIDAS -----------
 
   function calcularFaturamentoBruto() {
     const preco = parseBRL(precoComDesconto);
@@ -226,8 +224,9 @@ export default function AbaMarkupReceita({
   return (
     <div className="projecao-valores-markup-main" style={blocoPrincipal}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-        {/* TOPO: Simulador */}
+        {/* TOPO: Agora com Simulador de Desconto à direita */}
         <div className="projecao-valores-markup-topo" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '28px' }}>
+          {/* Preço de Venda (R$/un.) */}
           <div style={blocoInterno}>
             <div style={tituloBloco}>Preço de Venda (R$/un.)</div>
             <CurrencyInput
@@ -241,6 +240,35 @@ export default function AbaMarkupReceita({
               disabled={usarSubReceita}
             />
           </div>
+          {/* Peso Unitário (g) */}
+          <div style={blocoInterno}>
+            <div style={tituloBloco}>Peso Unitário (g)</div>
+            <input
+              style={inputPillMini}
+              className="input-form-brabo"
+              placeholder="Ex: 500"
+              value={pesoUnitario}
+              onChange={e => setPesoUnitario(e.target.value)}
+              onFocus={e => e.target.select()}
+            />
+          </div>
+          {/* Preço por KG / Custo Unitário */}
+          <div style={blocoInterno}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                <span style={subLabelStyle}>Preço por KG</span>
+                <span style={valueTextStyle}>{calcularPrecoPorKg() || '-'}</span>
+              </div>
+              <div style={separatorStyle}></div>
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                <span style={subLabelStyle}>Custo Unitário</span>
+                <span style={valueTextStyle}>
+                  {(custoUnitario || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+            </div>
+          </div>
+          {/* Simulador de Desconto */}
           <div style={blocoInterno}>
             <div style={tituloBloco}>Simulador de Desconto</div>
             <div style={{ display: "flex", gap: 10, width: "100%", justifyContent: "center" }}>
@@ -271,32 +299,6 @@ export default function AbaMarkupReceita({
             </div>
             <div style={{ marginTop: 15, fontWeight: 700, fontSize: "1.13rem", flexGrow: 1, display: 'flex', alignItems: 'center' }}>
               Valor com desconto: <span style={{ color: "#00cfff", fontWeight: 900, marginLeft: 6 }}>{precoComDesconto}</span>
-            </div>
-          </div>
-          <div style={blocoInterno}>
-            <div style={tituloBloco}>Peso Unitário (g)</div>
-            <input
-              style={inputPillMini}
-              className="input-form-brabo"
-              placeholder="Ex: 500"
-              value={pesoUnitario}
-              onChange={e => setPesoUnitario(e.target.value)}
-              onFocus={e => e.target.select()}
-            />
-          </div>
-          <div style={blocoInterno}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                <span style={subLabelStyle}>Preço por KG</span>
-                <span style={valueTextStyle}>{calcularPrecoPorKg() || '-'}</span>
-              </div>
-              <div style={separatorStyle}></div>
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                <span style={subLabelStyle}>Custo Unitário</span>
-                <span style={valueTextStyle}>
-                  {(custoUnitario || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </span>
-              </div>
             </div>
           </div>
         </div>

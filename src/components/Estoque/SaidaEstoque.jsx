@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import "./EntradaEstoque.css"; // Usa o mesmo CSS global do restante
 import Select from "react-select";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
+import "./EntradaEstoque.css"; // Usa o mesmo CSS global do restante
 
 // ====== ESTILO REACT-SELECT (azul/padrão do app) ======
 const selectStyles = {
@@ -76,6 +78,19 @@ const selectStyles = {
 };
 
 export default function SaidaEstoque() {
+  // ===== LIMITE DE PLANO =====
+  const { user } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
+
+  // BLOQUEIA ACESSO NO PLANO GRATUITO
+  if (isPlanoGratuito) {
+    return (
+      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+    );
+  }
+
   const [produtosList, setProdutosList] = useState([
     {
       codigoInterno: "",

@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from "react";
 import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
 import "./Fornecedores.css";
 
 export default function Fornecedores() {
+  // --- PEGA O PLANO DO USUÁRIO ---
+  const { user } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
+
+  // === BLOQUEIA GRATUITO ===
+  if (isPlanoGratuito) {
+    return (
+      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+    );
+  }
+
+  // === NORMAL PARA PLANOS PAGOS ===
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoIdx, setEditandoIdx] = useState(null);
   const [fornecedores, setFornecedores] = useState([]);
@@ -90,7 +106,7 @@ export default function Fornecedores() {
   return (
     <div className="fornecedores-main">
 
-      {/* HEADER EM LINHA: TÍTULO À ESQUERDA, BOTÃO À DIREITA */}
+      {/* HEADER */}
       <div className="fornecedores-header-row">
         <h2 className="fornecedores-titulo">Fornecedores</h2>
         <button

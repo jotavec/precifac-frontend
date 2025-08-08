@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import "./EntradaEstoque.css";
-import ModalCadastroManual from "./ModalCadastroManual"; // Produto
+import ModalCadastroManual from "./ModalCadastroManual";
 import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
 import Select from "react-select";
+import "./EntradaEstoque.css";
 
-// ====== ESTILO REACT-SELECT (azul/despesasfixas) ======
+// ====== ESTILO REACT-SELECT ======
 const selectStyles = {
   control: (base, state) => ({
     ...base,
@@ -78,6 +80,19 @@ const selectStyles = {
 };
 
 export default function EntradaEstoque() {
+  // ===== LIMITE DE PLANO =====
+  const { user } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
+
+  // BLOQUEIA ACESSO NO PLANO GRATUITO
+  if (isPlanoGratuito) {
+    return (
+      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+    );
+  }
+
   // ESTADOS DO FORNECEDOR
   const [fornecedores, setFornecedores] = useState([]);
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null);
@@ -225,12 +240,10 @@ export default function EntradaEstoque() {
     <div className="estoque-main-full">
       <div className="estoque-container">
         <h2 className="estoque-titulo">Entrada de Estoque</h2>
-
         {/* === Bloco Fornecedor (Select + botão ao lado direito, grudado na direita) === */}
         <section className="estoque-section">
           <h3>Dados do Fornecedor</h3>
           <div style={{ width: "100%" }}>
-            {/* LABEL REMOVIDO AQUI */}
             <div className="fornecedor-select-abs-wrap">
               <Select
                 options={fornecedores.map(f => ({

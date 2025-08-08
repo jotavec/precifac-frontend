@@ -7,7 +7,8 @@ import AbaMarkupReceita from "./AbaMarkupReceita";
 import AbaImpressaoReceita from "./AbaImpressaoReceita";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import ModalConfiguracoes from "./ModalConfiguracoes";
-import ModalPreviewImpressao from "./ModalPreviewImpressao";
+import { pdf } from "@react-pdf/renderer";
+import FichaTecnicaPDF from "./FichaTecnicaPDF";
 import "./CentralReceitas.css";
 
 const ABAS = [
@@ -70,7 +71,7 @@ function parseBRL(valor) {
 async function uploadImagemReceita(base64) {
   if (!base64 || !base64.startsWith("data:image")) return base64;
   const formData = new FormData();
-  formData.append("imagem", base64);
+  formData.append("file", base64);
   try {
     const res = await fetch("/api/uploads/receita", {
       method: "POST",
@@ -124,7 +125,6 @@ export default function CentralReceitas() {
   const [allSelected, setAllSelected] = useState(false);
   const [modalConfigOpen, setModalConfigOpen] = useState(false);
   const [deleteSelecionadosModalOpen, setDeleteSelecionadosModalOpen] = useState(false);
-  const [previewImpressaoOpen, setPreviewImpressaoOpen] = useState(false);
 
   // PERFIL DA EMPRESA/USUÁRIO (PARA FICHA TÉCNICA)
   const [perfil, setPerfil] = useState(null);
@@ -405,13 +405,40 @@ export default function CentralReceitas() {
     setDeleteSelecionadosModalOpen(false);
   }
 
-  function handlePrintSelecionados() {
+  // ----------- DOWNLOAD DIRETO DO PDF AO IMPRIMIR -----------
+  async function handlePrintSelecionados() {
     if (selecionados.length === 0) return;
-    setPreviewImpressaoOpen(true);
     setModalConfigOpen(false);
-  }
 
-  // --------- ALTERADO PARA USAR UPLOAD IMAGEM ---------
+    // Filtra receitas válidas
+    const receitasValidas = receitas.filter(r => selecionados.includes(r.id) && r && typeof r === "object");
+    if (receitasValidas.length === 0) {
+      alert("Nenhuma receita válida para exportar.");
+      return;
+    }
+
+    try {
+      const blob = await pdf(
+        <FichaTecnicaPDF
+          receitas={receitasValidas}
+          perfil={perfil}
+        />
+      ).toBlob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "fichas-tecnicas.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erro ao gerar PDF: " + e.message);
+    }
+  }
+  // ----------------------------------------------------------
+
+  // ---------- AQUI A FUNÇÃO QUE FALTAVA: SALVAR RECEITA -----------
   async function handleSalvar() {
     if (!nome.trim()) {
       alert("Preencha o nome da receita antes de salvar!");
@@ -445,7 +472,7 @@ export default function CentralReceitas() {
       pesoUnitario,
       descontoReais,
       descontoPercentual,
-      imagemFinal: imagemUrlFinal, // <-- usa url
+      imagemFinal: imagemUrlFinal,
       conservacaoData,
       observacoes,
       passosPreparo,
@@ -482,6 +509,7 @@ export default function CentralReceitas() {
       alert("Erro de rede ao salvar receita.");
     }
   }
+  // --------------------------------------------------------------
 
   const custoTotalReceita =
     ingredientes.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
@@ -691,14 +719,6 @@ export default function CentralReceitas() {
         totalReceitas={receitasFiltradas.length}
         onSelectAll={handleSelectAll}
         allSelected={allSelected}
-      />
-
-      {/* MODAL DE PREVIEW DE IMPRESSÃO */}
-      <ModalPreviewImpressao
-        open={previewImpressaoOpen}
-        onClose={() => setPreviewImpressaoOpen(false)}
-        receitasSelecionadas={receitas.filter(r => selecionados.includes(r.id))}
-        perfil={perfil}
       />
 
       {/* MODAL DE CONFIRMAR DELETE INDIVIDUAL */}

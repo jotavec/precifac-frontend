@@ -1,5 +1,5 @@
 import React from "react";
-import { FaPrint, FaTrashAlt } from "react-icons/fa";
+import { FaTrashAlt, FaFilePdf } from "react-icons/fa";
 
 export default function ModalConfiguracoes({
   open,
@@ -111,7 +111,7 @@ export default function ModalConfiguracoes({
               marginBottom: 2,
             }}
           >
-            {/* IMPRIMIR */}
+            {/* BAIXAR */}
             <div
               style={{
                 flex: 1,
@@ -135,7 +135,7 @@ export default function ModalConfiguracoes({
                   boxShadow: "0 2px 7px #00cfff16"
                 }}
               >
-                <FaPrint size={38} color="#2196f3" />
+                <FaFilePdf size={42} color="#e63946" />
               </div>
               <span
                 style={{
@@ -145,7 +145,7 @@ export default function ModalConfiguracoes({
                   marginBottom: 7,
                 }}
               >
-                Imprimir
+                Baixar
               </span>
               <button
                 onClick={onPrintSelecionados}
@@ -173,7 +173,7 @@ export default function ModalConfiguracoes({
                       : "none",
                 }}
               >
-                Imprimir Selecionados
+                Baixar Selecionados
               </button>
             </div>
             {/* APAGAR */}

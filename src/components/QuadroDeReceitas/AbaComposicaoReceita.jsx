@@ -16,12 +16,9 @@ function formatarCustoUn(custo, unidade) {
 function formatarDinheiro(valor, casas = 2) {
   const n = Number(valor);
   if (isNaN(n)) return "-";
-  // Corrige -0,00 para 0,00
   const valCorrigido = Math.abs(n) < 0.005 ? 0 : n;
   return `R$ ${valCorrigido.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
 }
-
-// --- Função para renderizar marca como lista ---
 function renderizaMarcas(marca) {
   if (!marca) return "-";
   if (Array.isArray(marca)) {
@@ -45,8 +42,6 @@ function renderizaMarcas(marca) {
   }
   return marca;
 }
-
-// Função para garantir número
 function parseBRL(valor) {
   if (typeof valor === "number") return valor;
   if (!valor) return 0;
@@ -106,7 +101,6 @@ export default function AbaComposicaoReceita({
       receita: r
     }));
 
-  // Styles padrão para todos os Selects
   const selectStyles = {
     menuPortal: base => ({ ...base, zIndex: 99999 }),
     control: base => ({
@@ -123,11 +117,9 @@ export default function AbaComposicaoReceita({
     singleValue: base => ({ ...base, color: "#2196f3" }),
   };
 
-  // Função utilitária para buscar receita da subreceita
   function getReceitaPorId(id) {
     return todasReceitas.find(r => String(r.id) === String(id));
   }
-  // Função para calcular custo unitário da subreceita (igual à CentralReceitas)
   function calcularCustoUnitario(receita) {
     if (!receita) return null;
     const ing = receita.ingredientes || [];
@@ -143,7 +135,6 @@ export default function AbaComposicaoReceita({
     return rend && custoTotal > 0 ? (custoTotal / Number(rend)) : null;
   }
 
-  // --------- Atualizar valorTotal sempre que subReceita ou quantidade mudarem ---------
   useEffect(() => {
     setSubReceitas(arr =>
       arr.map(item => {
@@ -151,7 +142,12 @@ export default function AbaComposicaoReceita({
         const custoUn = calcularCustoUnitario(receitaSelecionada);
         const qt = Number(item.qt) || 0;
         const valorTotal = custoUn != null && !isNaN(qt) ? custoUn * qt : 0;
-        return { ...item, valorTotal };
+        // Atualiza medida sempre ao carregar receitas
+        return {
+          ...item,
+          valorTotal,
+          medida: receitaSelecionada?.rendimentoUnidade || receitaSelecionada?.yieldUnit || "",
+        };
       })
     );
     // eslint-disable-next-line
@@ -185,13 +181,14 @@ export default function AbaComposicaoReceita({
               </tr>
             ) : ingredientes.map((item, idx) => {
               const optionSelecionada = options.find(o => o.value === String(item.produtoId));
-              let marca = item.marca, qtEmb = item.qtEmb, unMedida = item.unMedida, precoEmb = item.precoEmb;
+              let marca = item.marca, qtEmb = item.qtEmb, unMedida = item.unMedida, precoEmb = item.precoEmb, nome = item.nome;
               if (optionSelecionada && optionSelecionada.produto) {
                 const prod = optionSelecionada.produto;
                 marca = prod.marca;
                 qtEmb = prod.totalEmbalagem;
                 unMedida = prod.unidade;
                 precoEmb = prod.custoTotal;
+                nome = prod.nome;
               }
               const custoUn = (precoEmb && qtEmb) ? (Number(precoEmb) / Number(qtEmb)) : null;
               const custoTotalItem = item.valorTotal;
@@ -207,12 +204,13 @@ export default function AbaComposicaoReceita({
                           arr.map((i, iidx) => {
                             if (iidx !== idx) return i;
                             if (!selected) {
-                              return { produtoId: null, marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0 };
+                              return { produtoId: null, nome: "", marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0 };
                             }
                             const produto = selected.produto;
                             return {
                               ...i,
                               produtoId: String(produto.id),
+                              nome: produto.nome,
                               marca: produto.marca,
                               qtEmb: produto.totalEmbalagem,
                               unMedida: produto.unidade,
@@ -280,7 +278,7 @@ export default function AbaComposicaoReceita({
         <button
           className="aba-comp-btn-add"
           onClick={() => setIngredientes([...ingredientes, {
-            produtoId: null, marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0
+            produtoId: null, nome: "", marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0
           }])}
         >
           + Adicionar Ingrediente
@@ -296,7 +294,7 @@ export default function AbaComposicaoReceita({
               <th className="aba-comp-th">Receitas</th>
               <th className="aba-comp-th">Tipo</th>
               <th className="aba-comp-th">Qt.</th>
-              <th className="aba-comp-th">Medida</th>
+              <th className="aba-comp-th">Un. Medida</th>
               <th className="aba-comp-th">Custo Un.</th>
               <th className="aba-comp-th">Custo Porção</th>
               <th className="aba-comp-th">Ação</th>
@@ -310,7 +308,6 @@ export default function AbaComposicaoReceita({
                 </td>
               </tr>
             ) : subReceitas.map((item, idx) => {
-              // --- Select para SUB RECEITA ---
               const optionSelecionada = optionsSubReceita.find(o => o.value === String(item.receitaId));
               const receitaSelecionada = getReceitaPorId(item.receitaId);
               const tipo = receitaSelecionada?.tipoSelecionado?.label || "";
@@ -330,19 +327,19 @@ export default function AbaComposicaoReceita({
                           arr.map((i, iidx) => {
                             if (iidx !== idx) return i;
                             if (!selected) {
-                              return { receitaId: null, tipo: "", qt: "", medida: "", valorTotal: 0 };
+                              return { receitaId: null, nome: "", tipo: "", qt: "", medida: "", valorTotal: 0 };
                             }
                             const receita = selected.receita;
-                            // Calcular valorTotal direto aqui!
                             const custoUn = calcularCustoUnitario(receita);
                             const qtAtual = Number(i.qt) || 0;
                             const valorTotal = custoUn != null && !isNaN(qtAtual) ? custoUn * qtAtual : 0;
                             return {
                               ...i,
                               receitaId: String(receita.id),
+                              nome: receita.nomeProduto || receita.name || "",
                               tipo: receita.tipoSelecionado?.label || "",
                               qt: "",
-                              medida: receita.rendimentoUnidade || "",
+                              medida: receita.rendimentoUnidade || receita.yieldUnit || "",
                               valorTotal,
                             };
                           })
@@ -369,13 +366,18 @@ export default function AbaComposicaoReceita({
                           const custoUn = calcularCustoUnitario(receita);
                           const qtAtual = Number(val) || 0;
                           const valorTotal = custoUn != null && !isNaN(qtAtual) ? custoUn * qtAtual : 0;
-                          return { ...i, qt: val, valorTotal };
+                          return {
+                            ...i,
+                            qt: val,
+                            valorTotal,
+                            medida: receita?.rendimentoUnidade || receita?.yieldUnit || "",
+                          };
                         }));
                       }}
                       className="aba-comp-input"
                     />
                   </td>
-                  <td className="aba-comp-td">{medida}</td>
+                  <td className="aba-comp-td">{item.medida || "-"}</td>
                   <td className="aba-comp-td">
                     {custoUn != null ? formatarCustoUn(custoUn, medida) : "-"}
                   </td>
@@ -400,7 +402,7 @@ export default function AbaComposicaoReceita({
         </table>
         <button
           className="aba-comp-btn-add"
-          onClick={() => setSubReceitas([...subReceitas, { receitaId: null, tipo: "", qt: "", medida: "", valorTotal: 0 }])}
+          onClick={() => setSubReceitas([...subReceitas, { receitaId: null, nome: "", tipo: "", qt: "", medida: "", valorTotal: 0 }])}
         >
           + Adicionar Sub Receita
         </button>
@@ -414,8 +416,8 @@ export default function AbaComposicaoReceita({
             <tr>
               <th className="aba-comp-th">Embalagem</th>
               <th className="aba-comp-th">Marca</th>
-              <th className="aba-comp-th">Qt. Emb.</th>
-              <th className="aba-comp-th">Medida</th>
+              <th className="aba-comp-th">Qt Emb.</th>
+              <th className="aba-comp-th">Un. Medida</th>
               <th className="aba-comp-th">Preço Emb.</th>
               <th className="aba-comp-th">Qt.</th>
               <th className="aba-comp-th">Custo Un.</th>
@@ -432,13 +434,14 @@ export default function AbaComposicaoReceita({
               </tr>
             ) : embalagens.map((item, idx) => {
               const optionSelecionada = options.find(o => o.value === String(item.produtoId));
-              let marca = item.marca, qtEmb = item.qtEmb, unMedida = item.unMedida, precoEmb = item.precoEmb;
+              let marca = item.marca, qtEmb = item.qtEmb, unMedida = item.unMedida, precoEmb = item.precoEmb, nome = item.nome;
               if (optionSelecionada && optionSelecionada.produto) {
                 const prod = optionSelecionada.produto;
                 marca = prod.marca;
                 qtEmb = prod.totalEmbalagem;
                 unMedida = prod.unidade;
                 precoEmb = prod.custoTotal;
+                nome = prod.nome;
               }
               const custoUn = (precoEmb && qtEmb) ? (Number(precoEmb) / Number(qtEmb)) : null;
               const custoTotalItem = item.valorTotal;
@@ -454,12 +457,13 @@ export default function AbaComposicaoReceita({
                           arr.map((i, iidx) => {
                             if (iidx !== idx) return i;
                             if (!selected) {
-                              return { produtoId: null, marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0 };
+                              return { produtoId: null, nome: "", marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0 };
                             }
                             const produto = selected.produto;
                             return {
                               ...i,
                               produtoId: String(produto.id),
+                              nome: produto.nome,
                               marca: produto.marca,
                               qtEmb: produto.totalEmbalagem,
                               unMedida: produto.unidade,
@@ -527,7 +531,7 @@ export default function AbaComposicaoReceita({
         <button
           className="aba-comp-btn-add"
           onClick={() => setEmbalagens([...embalagens, {
-            produtoId: null, marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0
+            produtoId: null, nome: "", marca: "", qtEmb: "", unMedida: "", precoEmb: "", qtUsada: "", valorTotal: 0
           }])}
         >
           + Adicionar Embalagem
