@@ -6,7 +6,7 @@ import "./Fornecedores.css";
 
 export default function Fornecedores() {
   // --- PEGA O PLANO DO USUÁRIO ---
-  const { user } = useAuth() || {};
+  const { user, setAba } = useAuth() || {};
   const plano = user?.plano || "gratuito";
   const isPlanoGratuito = plano === "gratuito";
   const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
@@ -14,7 +14,14 @@ export default function Fornecedores() {
   // === BLOQUEIA GRATUITO ===
   if (isPlanoGratuito) {
     return (
-      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+      <ModalUpgradePlano
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        irParaPlanos={() => {
+          setAba("perfil_planos");
+          setShowUpgrade(false);
+        }}
+      />
     );
   }
 

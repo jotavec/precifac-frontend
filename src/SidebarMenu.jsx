@@ -1,23 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  FaUser,
-  FaCog,
   FaMoneyBill,
   FaPercent,
   FaBoxes,
-  FaChartLine,
-  FaPowerOff,
+  FaPowerOff, // (não usamos mais, mas pode deixar ou remover)
+  FaLightbulb,
+  FaUser,
 } from "react-icons/fa";
 import { GiChefToque } from "react-icons/gi";
-// Caminho relativo partindo de src/components para src/components/modals/ModalUpgradePlano
 import ModalUpgradePlano from "./components/modals/ModalUpgradePlano";
 import { useAuth } from "./App";
 import "./SidebarMenu.css";
+import { usePlanLimiter } from "./hooks/usePlanLimiter";
+
+import logoIcon from "./assets/logo.png";
+import logoFull from "./assets/tudo junto.png";
 
 export default function SidebarMenu({
   selected,
   onSelect,
-  onLogout,
+  onLogout, // não usamos mais, mas mantive a prop pra não quebrar quem chama
   subCategoriasPrincipais = [],
   subCategoriasMarkup = [],
   sidebarExpanded,
@@ -27,28 +29,40 @@ export default function SidebarMenu({
   const [markupOpen, setMarkupOpen] = useState(false);
   const [estoqueOpen, setEstoqueOpen] = useState(false);
   const [receitasOpen, setReceitasOpen] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const { isOpen: isUpgradeOpen, openUpgradeModal, closeUpgradeModal } = usePlanLimiter();
 
   const { user } = useAuth() || {};
   const plano = user?.plano || "gratuito";
   const isPlanoGratuito = plano === "gratuito";
 
+  useEffect(() => {
+    console.log("[Sidebar] isUpgradeOpen mudou:", isUpgradeOpen);
+  }, [isUpgradeOpen]);
+
+  // NOVA ORDEM:
+  // 1) Quadro de Receitas
+  // 2) Custos
+  // 3) Markup
+  // 4) Estoque
+  // 5) Sugestões
+  //
+  // "Perfil" foi REMOVIDO daqui e vai para o rodapé (no lugar do Sair).
   const menuItems = [
-    { label: "Perfil", icon: <FaUser /> },
-    { label: "Configurações", icon: <FaCog /> },
+    {
+      label: "Quadro de Receitas",
+      icon: <GiChefToque size={22} />,
+      subItems: [{ label: "Central de Receitas" }],
+    },
     {
       label: "Custos",
       icon: <FaMoneyBill />,
-      subItems: subCategoriasPrincipais.map((cat) => ({
-        label: cat.label,
-      })),
+      subItems: subCategoriasPrincipais.map((cat) => ({ label: cat.label })),
     },
     {
       label: "Markup",
       icon: <FaPercent />,
-      subItems: subCategoriasMarkup.map((cat) => ({
-        label: cat.label,
-      })),
+      subItems: subCategoriasMarkup.map((cat) => ({ label: cat.label })),
     },
     {
       label: "Estoque",
@@ -62,13 +76,8 @@ export default function SidebarMenu({
       ],
     },
     {
-      label: "Quadro de Receitas",
-      icon: <GiChefToque size={22} />,
-      subItems: [{ label: "Central de Receitas" }],
-    },
-    {
-      label: "Planejamento de Vendas",
-      icon: <FaChartLine />,
+      label: "Sugestões",
+      icon: <FaLightbulb />,
     },
   ];
 
@@ -110,18 +119,19 @@ export default function SidebarMenu({
       isPlanoGratuito &&
       bloqueadosEstoque.includes(subItem.label)
     ) {
-      setShowUpgradeModal(true);
+      openUpgradeModal();
       return;
     }
     onSelect(`${parentLabel}:${subItem.label}`);
   }
 
-  // --- FUNÇÃO PARA IR PARA PLANOS DO PERFIL (SPA) ---
   function irParaPlanosPerfil() {
-    console.log(">> Chamou irParaPlanosPerfil!");
     onSelect("Perfil:Planos");
-    setShowUpgradeModal(false);
+    closeUpgradeModal();
   }
+
+  // cor das setinhas (mesma do início do degradê dos botões)
+  const arrowFill = "#00C6FF";
 
   return (
     <>
@@ -136,15 +146,29 @@ export default function SidebarMenu({
           setReceitasOpen(false);
         }}
       >
-        <div className="sidebar-logo" />
+        {/* LOGO */}
+        <div className="sidebar-logo">
+          <img
+            className="sidebar-logo-img"
+            src={sidebarExpanded ? logoFull : logoIcon}
+            alt="CalculaAi"
+            draggable={false}
+          />
+        </div>
+
+        {/* LISTA PRINCIPAL */}
         <ul className="sidebar-list">
           {menuItems.map((item) => (
             <li key={item.label}>
               <div
                 className={
-                  "sidebar-list-item"
-                  + (selected && (selected === item.label || (item.subItems && selected.startsWith(item.label + ":"))) ? " selected" : "")
-                  + (item.subItems ? " has-submenu" : "")
+                  "sidebar-list-item" +
+                  (selected &&
+                  (selected === item.label ||
+                    (item.subItems && selected.startsWith(item.label + ":")))
+                    ? " selected"
+                    : "") +
+                  (item.subItems ? " has-submenu" : "")
                 }
                 onClick={() => handleMenuClick(item)}
                 tabIndex={0}
@@ -153,67 +177,39 @@ export default function SidebarMenu({
                 <span className="icon">{item.icon}</span>
                 <span className="label">
                   <span className="label-text">{item.label}</span>
+
                   {item.label === "Custos" && item.subItems && (
-                    <span
-                      className="submenu-arrow"
-                      style={{
-                        transition: "transform 0.2s",
-                        display: "inline-block",
-                        transform: custosOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        marginLeft: 22,
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                        <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    <span className="submenu-arrow" style={{ display: "inline-block", marginLeft: 22 }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        style={{ transform: custosOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                        <polygon points="12,17 6,10 18,10" fill={arrowFill} />
                       </svg>
                     </span>
                   )}
+
                   {item.label === "Markup" && item.subItems && (
-                    <span
-                      className="submenu-arrow"
-                      style={{
-                        transition: "transform 0.2s",
-                        display: "inline-block",
-                        transform: markupOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        marginLeft: 22,
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                        <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    <span className="submenu-arrow" style={{ display: "inline-block", marginLeft: 22 }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        style={{ transform: markupOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                        <polygon points="12,17 6,10 18,10" fill={arrowFill} />
                       </svg>
                     </span>
                   )}
+
                   {item.label === "Estoque" && item.subItems && (
-                    <span
-                      className="submenu-arrow"
-                      style={{
-                        transition: "transform 0.2s",
-                        display: "inline-block",
-                        transform: estoqueOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        marginLeft: 22,
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                        <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    <span className="submenu-arrow" style={{ display: "inline-block", marginLeft: 22 }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        style={{ transform: estoqueOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                        <polygon points="12,17 6,10 18,10" fill={arrowFill} />
                       </svg>
                     </span>
                   )}
+
                   {item.label === "Quadro de Receitas" && item.subItems && (
-                    <span
-                      className="submenu-arrow"
-                      style={{
-                        transition: "transform 0.2s",
-                        display: "inline-block",
-                        transform: receitasOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        marginLeft: 22,
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                        <polygon points="12,17 6,10 18,10" fill="#b388ff" />
+                    <span className="submenu-arrow" style={{ display: "inline-block", marginLeft: 22 }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        style={{ transform: receitasOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                        <polygon points="12,17 6,10 18,10" fill={arrowFill} />
                       </svg>
                     </span>
                   )}
@@ -227,8 +223,8 @@ export default function SidebarMenu({
                     <li
                       key={sub.label}
                       className={
-                        "sidebar-subitem"
-                        + (selected === `Custos:${sub.label}` ? " selected" : "")
+                        "sidebar-subitem" +
+                        (selected === `Custos:${sub.label}` ? " selected" : "")
                       }
                       onClick={(e) => {
                         e.stopPropagation();
@@ -241,14 +237,15 @@ export default function SidebarMenu({
                   ))}
                 </ul>
               )}
+
               {item.label === "Markup" && item.subItems && markupOpen && (
                 <ul className="sidebar-submenu">
                   {item.subItems.map((sub) => (
                     <li
                       key={sub.label}
                       className={
-                        "sidebar-subitem"
-                        + (selected === `Markup:${sub.label}` ? " selected" : "")
+                        "sidebar-subitem" +
+                        (selected === `Markup:${sub.label}` ? " selected" : "")
                       }
                       onClick={(e) => {
                         e.stopPropagation();
@@ -261,37 +258,29 @@ export default function SidebarMenu({
                   ))}
                 </ul>
               )}
+
               {item.label === "Estoque" && item.subItems && estoqueOpen && (
                 <ul className="sidebar-submenu">
                   {item.subItems.map((sub) => (
                     <li
                       key={sub.label}
                       className={
-                        "sidebar-subitem"
-                        + (selected === `Estoque:${sub.label}` ? " selected" : "")
-                        + (isPlanoGratuito && bloqueadosEstoque.includes(sub.label) ? " locked" : "")
+                        "sidebar-subitem" +
+                        (selected === `Estoque:${sub.label}` ? " selected" : "") +
+                        (isPlanoGratuito && bloqueadosEstoque.includes(sub.label) ? " locked" : "")
                       }
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSubItemClick("Estoque", sub);
                       }}
                       tabIndex={0}
-                      style={
-                        isPlanoGratuito && bloqueadosEstoque.includes(sub.label)
-                          ? { opacity: 0.55, cursor: "not-allowed" }
-                          : {}
-                      }
+                      style={isPlanoGratuito && bloqueadosEstoque.includes(sub.label)
+                        ? { opacity: 0.55, cursor: "not-allowed" }
+                        : {}}
                     >
                       <span className="label-text">{sub.label}</span>
                       {isPlanoGratuito && bloqueadosEstoque.includes(sub.label) && (
-                        <span
-                          style={{
-                            color: "#fdab00",
-                            marginLeft: 10,
-                            fontSize: 16,
-                            fontWeight: 700,
-                          }}
-                        >
+                        <span style={{ color: "#fdab00", marginLeft: 10, fontSize: 16, fontWeight: 700 }}>
                           🔒
                         </span>
                       )}
@@ -299,14 +288,15 @@ export default function SidebarMenu({
                   ))}
                 </ul>
               )}
+
               {item.label === "Quadro de Receitas" && item.subItems && receitasOpen && (
                 <ul className="sidebar-submenu">
                   {item.subItems.map((sub) => (
                     <li
                       key={sub.label}
                       className={
-                        "sidebar-subitem"
-                        + (selected === `Quadro de Receitas:${sub.label}` ? " selected" : "")
+                        "sidebar-subitem" +
+                        (selected === `Quadro de Receitas:${sub.label}` ? " selected" : "")
                       }
                       onClick={(e) => {
                         e.stopPropagation();
@@ -322,25 +312,32 @@ export default function SidebarMenu({
             </li>
           ))}
         </ul>
-        <hr className="sidebar-divider" />
-        <div className="sidebar-list-item logout" onClick={onLogout} tabIndex={0}>
-          <span className="icon">
-            <FaPowerOff />
-          </span>
-          <span className="label">
-            <span className="label-text">Sair</span>
-          </span>
-        </div>
-      </nav>
-      <ModalUpgradePlano
-  open={showUpgradeModal}
-  onClose={() => {
-    setShowUpgradeModal(false);
-    onSelect("Perfil"); // Redireciona para a aba Perfil ao fechar
-  }}
-  irParaPlanos={irParaPlanosPerfil}
-/>
 
+        <hr className="sidebar-divider" />
+
+        {/* PERFIL NO LUGAR DO “SAIR” (rodapé) */}
+        <div
+          className={
+            "sidebar-list-item" + (selected === "Perfil" ? " selected" : "")
+          }
+          onClick={() => onSelect("Perfil")}
+          tabIndex={0}
+        >
+          <span className="icon"><FaUser /></span>
+          <span className="label"><span className="label-text">Perfil</span></span>
+        </div>
+
+        {/* Removido o botão "Sair" */}
+      </nav>
+
+      <ModalUpgradePlano
+        open={isUpgradeOpen}
+        onClose={() => {
+          closeUpgradeModal();
+          onSelect("Perfil");
+        }}
+        irParaPlanos={irParaPlanosPerfil}
+      />
     </>
   );
 }

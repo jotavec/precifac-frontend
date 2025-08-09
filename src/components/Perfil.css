@@ -94,6 +94,28 @@ body {
   box-shadow: 0 0 0 2px #00cfff99;
 }
 
+/* Botão Sair com degradê vermelho */
+.perfil-branco-btn-sair {
+  width: 92%;
+  margin: 0 auto 10px auto;
+  padding: 13px 0;
+  border-radius: 14px;
+  font-size: 1.06rem;
+  color: #fff;
+  background: linear-gradient(90deg, #ff4b2b 0%, #ff0000 100%);
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.4);
+  transition: opacity 0.18s, background 0.18s, box-shadow 0.16s;
+  outline: none;
+}
+.perfil-branco-btn-sair:hover:enabled {
+  background: linear-gradient(90deg, #ff0000 0%, #b30000 100%);
+  opacity: 0.92;
+  box-shadow: 0 0 22px 6px rgba(255, 0, 0, 0.4);
+}
+
 /* Tira todo glow/contorno de foco dos botões */
 .perfil-branco-btn-info:focus,
 .perfil-branco-btn-info:focus-visible,
@@ -152,19 +174,7 @@ body {
   letter-spacing: 0.03rem;
 }
 .perfil-branco-form-row input[type="text"],
-.perfil-branco-form-row input[type="email"] {
-  width: 100%;
-  padding: 12px 16px;
-  background: #f6f6f7;
-  border: none;
-  border-radius: 11px;
-  font-size: 1.05rem;
-  color: #363636;
-  margin-bottom: 0;
-  outline: none;
-  transition: box-shadow 0.18s;
-  box-shadow: 0 2px 9px #f0f0f0aa inset;
-}
+.perfil-branco-form-row input[type="email"],
 .perfil-branco-form-row input[type="password"] {
   width: 100%;
   padding: 12px 16px;
@@ -187,13 +197,8 @@ body {
 .perfil-branco-form-row input[type="password"]:focus:not([disabled]) {
   box-shadow: 0 0 0 2px #00cfff55;
 }
-.perfil-branco-form-row input[type="password"][disabled] {
-  background: #f3f3f3;
-  color: #aaa;
-  cursor: not-allowed;
-}
 
-/* Botão Buscar CEP no mesmo azul gradiente */
+/* Botão Buscar CEP */
 .perfil-branco-btn-buscar {
   background: linear-gradient(90deg, #00cfff 0%, #c0e8fa 100%);
   color: #fff;
@@ -225,7 +230,7 @@ body {
   box-shadow: none;
 }
 
-/* Botões finais todos azuis */
+/* Botões finais */
 .perfil-branco-actions {
   display: flex;
   gap: 22px;
@@ -253,7 +258,6 @@ body {
   padding: 14px 32px;
   cursor: pointer;
   transition: box-shadow 0.2s, background 0.18s;
-  box-shadow: none;
 }
 .perfil-branco-btn-save:hover {
   background: linear-gradient(90deg, #00cfff 0%, #237be7 100%);

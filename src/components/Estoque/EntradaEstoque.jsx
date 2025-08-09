@@ -81,7 +81,7 @@ const selectStyles = {
 
 export default function EntradaEstoque() {
   // ===== LIMITE DE PLANO =====
-  const { user } = useAuth() || {};
+  const { user, setAba } = useAuth() || {};
   const plano = user?.plano || "gratuito";
   const isPlanoGratuito = plano === "gratuito";
   const [showUpgrade, setShowUpgrade] = useState(isPlanoGratuito);
@@ -89,7 +89,14 @@ export default function EntradaEstoque() {
   // BLOQUEIA ACESSO NO PLANO GRATUITO
   if (isPlanoGratuito) {
     return (
-      <ModalUpgradePlano open={showUpgrade} onClose={() => setShowUpgrade(true)} />
+      <ModalUpgradePlano
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        irParaPlanos={() => {
+          setAba("perfil_planos");
+          setShowUpgrade(false);
+        }}
+      />
     );
   }
 

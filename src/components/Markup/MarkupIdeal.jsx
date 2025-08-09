@@ -4,6 +4,8 @@ import AbasModal from "./AbasModal";
 import DespesasFixasModal from "./DespesasFixasModal";
 import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
 import "./MarkupIdeal.css";
 
 // =====================
@@ -398,7 +400,7 @@ function BlocoSubReceita() {
             i
           </span>
           <span className="markup-ideal-tip-tooltip-text">
-            <b>Atenção:</b> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em outras receitas, evitando que a margem de lucro seja aplicada duas vezes no produto final.
+            <b>Atenção:</b> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em receitas.
           </span>
         </div>
       </div>
@@ -491,6 +493,11 @@ function BlocoCard({
 }
 
 export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
+  const { user, setAba } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const [mediaTipo, setMediaTipo] = useState("6");
   const [faturamentoLista, setFaturamentoLista] = useState([]);
   const [faturamentoMedia, setFaturamentoMedia] = useState(0);
@@ -614,6 +621,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         if (Array.isArray(res.data)) {
           setDespesasFixasSubcats(res.data);
         } else if (res.data && Array.isArray(res.data.categorias)) {
+          // CORREÇÃO DE PARÊNTESES AQUI
           setDespesasFixasSubcats(
             res.data.categorias.map(cat => ({
               nome: cat.name,
@@ -721,6 +729,12 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   const handleAddBloco = async () => {
     if (inputNovo.trim() === "") return;
 
+    // Pré-checagem: no plano gratuito só 1 bloco (além do SubReceita)
+    if (isPlanoGratuito && blocos.length >= 1) {
+      setShowUpgrade(true);
+      return;
+    }
+
     const ativos = custosAtivosPorBloco[blocos.length] || {};
     const totalEncargosReais = somarEncargosReais(
       ativos,
@@ -752,6 +766,10 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
       setBlocos(blocos => [...blocos, response.data]);
       setInputNovo("");
     } catch (err) {
+      if (err?.response?.status === 403) {
+        setShowUpgrade(true);
+        return;
+      }
       alert("Erro ao adicionar bloco: " + err.message);
     }
   };
@@ -1037,6 +1055,16 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         }}
         onConfirm={apagarConfirmado}
         itemLabel="bloco"
+      />
+
+      {/* Modal de Upgrade quando extrapola limite */}
+      <ModalUpgradePlano
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        irParaPlanos={() => {
+          setAba("perfil_planos");
+          setShowUpgrade(false);
+        }}
       />
     </>
   );

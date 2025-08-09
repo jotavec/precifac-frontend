@@ -9,7 +9,11 @@ import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import ModalConfiguracoes from "./ModalConfiguracoes";
 import { pdf } from "@react-pdf/renderer";
 import FichaTecnicaPDF from "./FichaTecnicaPDF";
+import ModalUpgradePlano from "../modals/ModalUpgradePlano";
+import { useAuth } from "../../App";
 import "./CentralReceitas.css";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
@@ -67,7 +71,22 @@ function parseBRL(valor) {
   return Number(valorLimpo);
 }
 
-// === FUNÇÃO NOVA: Upload imagem da receita ===
+/** ===== Helpers de URL da imagem ===== */
+function toPublicUrl(url) {
+  if (!url) return url;
+  if (url.startsWith("data:image")) return url; // base64 para preview
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/uploads")) return `${BACKEND_URL}${url}`;
+  return url;
+}
+function toStoredUrl(url) {
+  if (!url) return url;
+  // remove o host antes de salvar no banco
+  if (url.startsWith(BACKEND_URL)) return url.replace(BACKEND_URL, "");
+  return url;
+}
+
+/** === Upload imagem da receita === */
 async function uploadImagemReceita(base64) {
   if (!base64 || !base64.startsWith("data:image")) return base64;
   const formData = new FormData();
@@ -80,7 +99,9 @@ async function uploadImagemReceita(base64) {
     });
     if (!res.ok) throw new Error("Erro ao enviar imagem.");
     const data = await res.json();
-    return data.url || null;
+    // data.url esperado como "/uploads/receitas/arquivo.jpg"
+    const urlPublica = toPublicUrl(data.url || "");
+    return urlPublica || null;
   } catch {
     alert("Erro ao enviar imagem.");
     return null;
@@ -88,13 +109,18 @@ async function uploadImagemReceita(base64) {
 }
 
 export default function CentralReceitas() {
+  const { user, setAba } = useAuth() || {};
+  const plano = user?.plano || "gratuito";
+  const isPlanoGratuito = plano === "gratuito";
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const [receitas, setReceitas] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState(0);
   const [editandoId, setEditandoId] = useState(null);
 
   const [nome, setNome] = useState("");
-  const [imagemFinal, setImagemFinal] = useState(null);
+  const [imagemFinal, setImagemFinal] = useState(null); // sempre pública para preview
   const [conservacaoData, setConservacaoData] = useState(defaultConservacao);
   const [observacoes, setObservacoes] = useState("");
   const [passosPreparo, setPassosPreparo] = useState([{ id: 1, descricao: "", imagem: null }]);
@@ -186,7 +212,8 @@ export default function CentralReceitas() {
   function handleEditar(receita) {
     setEditandoId(receita.id);
     setNome(receita.nomeProduto || receita.name || "");
-    setImagemFinal(receita.imagemFinal || null);
+    // normaliza para URL pública (preview)
+    setImagemFinal(toPublicUrl(receita.imagemFinal || null));
     setConservacaoData(receita.conservacaoData || defaultConservacao);
     setObservacoes(receita.observacoes || receita.notes || "");
     setPassosPreparo(receita.passosPreparo || [{ id: 1, descricao: "", imagem: null }]);
@@ -236,6 +263,12 @@ export default function CentralReceitas() {
   }
 
   function handleCadastrar() {
+    // Pré-checagem de cota: plano gratuito limita a 5 receitas
+    if (isPlanoGratuito && receitas.length >= 5) {
+      setShowUpgrade(true);
+      return;
+    }
+
     setEditandoId(null);
     setNome("");
     setImagemFinal(null);
@@ -438,18 +471,23 @@ export default function CentralReceitas() {
   }
   // ----------------------------------------------------------
 
-  // ---------- AQUI A FUNÇÃO QUE FALTAVA: SALVAR RECEITA -----------
+  // ---------- SALVAR RECEITA -----------
   async function handleSalvar() {
     if (!nome.trim()) {
       alert("Preencha o nome da receita antes de salvar!");
       return;
     }
 
-    let imagemUrlFinal = imagemFinal;
+    let imagemUrlPreview = imagemFinal;
     if (imagemFinal && imagemFinal.startsWith("data:image")) {
-      imagemUrlFinal = await uploadImagemReceita(imagemFinal);
-      if (!imagemUrlFinal) return;
+      // upload retorna pública; guardamos pública no estado
+      imagemUrlPreview = await uploadImagemReceita(imagemFinal);
+      if (!imagemUrlPreview) return;
+      setImagemFinal(imagemUrlPreview);
     }
+
+    // Mas no banco salvamos SEM o host
+    const imagemUrlParaSalvar = toStoredUrl(imagemUrlPreview);
 
     const safeBlocoAtivo = normalizeBlocoAtivo(blocoMarkupAtivo);
 
@@ -472,7 +510,7 @@ export default function CentralReceitas() {
       pesoUnitario,
       descontoReais,
       descontoPercentual,
-      imagemFinal: imagemUrlFinal,
+      imagemFinal: imagemUrlParaSalvar || null,
       conservacaoData,
       observacoes,
       passosPreparo,
@@ -502,6 +540,10 @@ export default function CentralReceitas() {
         setModalOpen(false);
         setEditandoId(null);
         setNumeroFicha("");
+      } else if (res.status === 403) {
+        // Limite excedido -> abrir modal de upgrade
+        setShowUpgrade(true);
+        return;
       } else {
         alert("Erro ao salvar receita!");
       }
@@ -675,7 +717,7 @@ export default function CentralReceitas() {
               ) : (
                 <AbaComp
                   nome={nome} setNome={setNome}
-                  imagemFinal={imagemFinal} setImagemFinal={setImagemFinal}
+                  imagemFinal={imagemFinal} setImagemFinal={(v) => setImagemFinal(toPublicUrl(v))}
                   conservacaoData={conservacaoData} setConservacaoData={setConservacaoData}
                   observacoes={observacoes} setObservacoes={setObservacoes}
                   passosPreparo={passosPreparo} setPassosPreparo={setPassosPreparo}
@@ -737,6 +779,16 @@ export default function CentralReceitas() {
         itemLabel={selecionados.length > 1
           ? `${selecionados.length} receitas selecionadas`
           : "1 receita selecionada"}
+      />
+
+      {/* Modal de Upgrade quando extrapola limite */}
+      <ModalUpgradePlano
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        irParaPlanos={() => {
+          setAba("perfil_planos");
+          setShowUpgrade(false);
+        }}
       />
     </div>
   );

@@ -1,10 +1,16 @@
 :root {
   --sidebar-bg: #222;
-  --sidebar-selected: #7D52FF;
-  --sidebar-selected-bg: #2c2541;
+
+  /* === Paleta do menu === */
+  --brand-grad-start: #00C6FF;   /* mesmo dos botões do perfil */
+  --brand-grad-end:   #0072FF;   /* mesmo dos botões do perfil */
+
+  --sidebar-selected: #FFFFFF;   /* texto/ícone quando selecionado */
   --sidebar-text: #ccc;
-  --sidebar-hover-bg: #282840;
-  --sidebar-divider: #39334d;
+
+  /* hovers e divisores afinados pro azul */
+  --sidebar-hover-flat: #0e2a3b; /* fallback p/ browsers velhos */
+  --sidebar-divider: #274e52;
   --sidebar-red: #d32f2f;
 }
 
@@ -29,18 +35,27 @@
   max-width: 340px;
   min-width: 72px;
 }
+
+/* ==== LOGO (substitui a bolinha) ==== */
 .sidebar-logo {
-  margin: 18px 0 10px 12px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 4px 18px #0002;
+  margin: 18px 12px 10px 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  min-height: 48px;
 }
+.sidebar-logo-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 4px 18px #0002);
+}
+.sidebar.expanded .sidebar-logo-img {
+  width: 220px;   /* mostra a logo+nome maior quando expandido */
+  height: auto;
+}
+
 .sidebar-list {
   width: 100%;
   margin: 0;
@@ -59,14 +74,18 @@
   margin: 4px 0;
   padding: 0;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s, padding 0.22s cubic-bezier(.4,0,.2,1);
+  transition: background 0.18s, color 0.18s, padding 0.22s cubic-bezier(.4,0,.2,1), box-shadow 0.18s;
   font-size: 18px;
   position: relative;
 }
+
+/* Hover com o mesmo degradê dos botões */
 .sidebar-list-item:hover,
 .sidebar-list-item:focus {
-  background: var(--sidebar-hover-bg);
-  color: #fff;
+  background: var(--sidebar-hover-flat);
+  background: linear-gradient(90deg, var(--brand-grad-start) 0%, var(--brand-grad-end) 100%);
+  color: var(--sidebar-selected);
+  box-shadow: 0 4px 16px #0002;
 }
 
 .sidebar:not(.expanded) .sidebar-list-item {
@@ -149,10 +168,12 @@
   font-size: 16px;
   margin-left: 0;
 }
+
+/* Hover/selected do subitem com o MESMO degradê */
 .sidebar-subitem.selected,
 .sidebar-subitem:hover,
 .sidebar-subitem:focus {
-  background: var(--sidebar-selected-bg);
+  background: linear-gradient(90deg, var(--brand-grad-start) 0%, var(--brand-grad-end) 100%);
   color: var(--sidebar-selected);
   font-weight: bold;
   border-radius: 24px;
@@ -165,14 +186,17 @@
   color: var(--sidebar-selected);
 }
 
+/* Item principal selecionado com o MESMO degradê */
 .sidebar-list-item.selected {
-  background: var(--sidebar-selected-bg);
+  background: linear-gradient(90deg, var(--brand-grad-start) 0%, var(--brand-grad-end) 100%);
   color: var(--sidebar-selected);
+  box-shadow: 0 4px 16px #0002;
 }
 .sidebar-list-item.selected .icon,
 .sidebar-list-item.selected .label-text {
   color: var(--sidebar-selected);
 }
+
 .sidebar-list-item.logout {
   color: var(--sidebar-red);
   cursor: pointer;

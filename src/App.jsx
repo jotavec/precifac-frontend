@@ -13,10 +13,11 @@ import SaidaEstoque from "./components/Estoque/SaidaEstoque";
 import Movimentacoes from "./components/Estoque/Movimentacoes";
 import Fornecedores from "./components/Estoque/Fornecedores";
 import QuadroReceitas from "./components/QuadroReceitas";
-import PlanejamentoVendas from "./components/PlanejamentoVendas";
+// import PlanejamentoVendas from "./components/PlanejamentoVendas"; // não usado mais
 import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
+import Sugestoes from "./components/Sugestoes/Sugestoes"; // << caminho correto
 import "./App.css";
 import "./AppContainer.css";
 
@@ -75,6 +76,7 @@ const initialEncargosState = {
   colaboradores: { percent: "", value: "" }
 };
 
+// >>> Atualizado: último item agora é "Sugestões"
 const abasPrincipais = [
   { label: "Perfil", component: Perfil },
   { label: "Configurações", component: Configuracoes },
@@ -82,7 +84,7 @@ const abasPrincipais = [
   { label: "Markup", component: Markup },
   { label: "Estoque", component: Estoque },
   { label: "Quadro de Receitas", component: QuadroReceitas },
-  { label: "Planejamento de Vendas", component: PlanejamentoVendas }
+  { label: "Sugestões", component: Sugestoes }
 ];
 
 const subCategoriasPrincipais = [
@@ -331,7 +333,6 @@ export default function App() {
     if (aba === "central_receitas") {
       return "Quadro de Receitas:Central de Receitas";
     }
-    // Adicionado: se aba for especial de perfil/planos
     if (aba === "perfil_planos") {
       return "Perfil:Planos";
     }
@@ -340,7 +341,7 @@ export default function App() {
 
   function handleSidebarSelect(label) {
     console.log("App.jsx - handleSidebarSelect label:", label);
-    console.log("SidebarSelect label:", label); // <-- Coloque aqui, só dentro da função!
+    console.log("SidebarSelect label:", label);
     if (label.startsWith("Custos:")) {
       setAba(2);
       const sub = label.split(":")[1];
@@ -376,7 +377,6 @@ export default function App() {
   const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
   const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
 
-  // === COMPONENTE FINAL (usa AuthContext)
   return (
     <AuthContext.Provider value={{ user, setUser, setAba }}>
       {user ? (

@@ -362,7 +362,7 @@ export default function Perfil({ onLogout, abaInicial }) {
   function handleAvatarChange(e) {
     const file = e.target.files[0];
     if (file) {
-      setAvatarFile(file);
+    setAvatarFile(file);
     }
   }
 
@@ -526,9 +526,8 @@ export default function Perfil({ onLogout, abaInicial }) {
             Planos
           </button>
           <button
-            className="perfil-branco-btn-info"
+            className="perfil-branco-btn-sair"
             onClick={onLogout}
-            style={{ fontWeight: 700 }}
           >
             Sair
           </button>
