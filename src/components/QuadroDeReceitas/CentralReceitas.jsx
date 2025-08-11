@@ -13,7 +13,9 @@ import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
 import "./CentralReceitas.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+/** Base do backend (Render) vinda do .env */
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`;
+const api = (path) => `${API_BASE}${path}`;
 
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
@@ -76,13 +78,13 @@ function toPublicUrl(url) {
   if (!url) return url;
   if (url.startsWith("data:image")) return url; // base64 para preview
   if (url.startsWith("http")) return url;
-  if (url.startsWith("/uploads")) return `${BACKEND_URL}${url}`;
+  if (url.startsWith("/uploads")) return `${API_BASE}${url}`;
   return url;
 }
 function toStoredUrl(url) {
   if (!url) return url;
   // remove o host antes de salvar no banco
-  if (url.startsWith(BACKEND_URL)) return url.replace(BACKEND_URL, "");
+  if (url.startsWith(API_BASE)) return url.replace(API_BASE, "");
   return url;
 }
 
@@ -92,7 +94,7 @@ async function uploadImagemReceita(base64) {
   const formData = new FormData();
   formData.append("file", base64);
   try {
-    const res = await fetch("/api/uploads/receita", {
+    const res = await fetch(api("/uploads/receita"), {
       method: "POST",
       body: formData,
       credentials: "include"
@@ -167,7 +169,7 @@ export default function CentralReceitas() {
 
   async function fetchReceitas() {
     try {
-      const res = await fetch("/api/receitas", { credentials: "include" });
+      const res = await fetch(api("/receitas"), { credentials: "include" });
       if (res.ok) {
         setReceitas(await res.json());
       }
@@ -176,7 +178,7 @@ export default function CentralReceitas() {
 
   async function fetchBlocosMarkup() {
     try {
-      const res = await fetch("/api/markup-ideal", { credentials: "include" });
+      const res = await fetch(api("/markup-ideal"), { credentials: "include" });
       if (res.ok) {
         setBlocosMarkup(await res.json());
       }
@@ -187,10 +189,10 @@ export default function CentralReceitas() {
 
   async function fetchPerfil() {
     try {
-      const resUser = await fetch('/api/users/me', { credentials: "include" });
+      const resUser = await fetch(api('/users/me'), { credentials: "include" });
       const user = resUser.ok ? await resUser.json() : {};
 
-      const resConfig = await fetch('/api/company-config', { credentials: "include" });
+      const resConfig = await fetch(api('/company-config'), { credentials: "include" });
       const empresa = resConfig.ok ? await resConfig.json() : {};
 
       setPerfil({
@@ -250,7 +252,7 @@ export default function CentralReceitas() {
   async function confirmarDelete() {
     if (!receitaPraDeletar) return;
     try {
-      const res = await fetch(`/api/receitas/${receitaPraDeletar.id}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(api(`/receitas/${receitaPraDeletar.id}`), { method: "DELETE", credentials: "include" });
       if (res.ok) {
         fetchReceitas();
       }
@@ -428,7 +430,7 @@ export default function CentralReceitas() {
     if (selecionados.length === 0) return;
     for (const id of selecionados) {
       try {
-        await fetch(`/api/receitas/${id}`, { method: "DELETE", credentials: "include" });
+        await fetch(api(`/receitas/${id}`), { method: "DELETE", credentials: "include" });
       } catch (err) { }
     }
     await fetchReceitas();
@@ -521,14 +523,14 @@ export default function CentralReceitas() {
     try {
       let res;
       if (editandoId) {
-        res = await fetch(`/api/receitas/${editandoId}`, {
+        res = await fetch(api(`/receitas/${editandoId}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(dadosReceita),
         });
       } else {
-        res = await fetch(`/api/receitas`, {
+        res = await fetch(api(`/receitas`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

@@ -13,15 +13,18 @@ import SaidaEstoque from "./components/Estoque/SaidaEstoque";
 import Movimentacoes from "./components/Estoque/Movimentacoes";
 import Fornecedores from "./components/Estoque/Fornecedores";
 import QuadroReceitas from "./components/QuadroReceitas";
-// import PlanejamentoVendas from "./components/PlanejamentoVendas"; // não usado mais
 import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
-import Sugestoes from "./components/Sugestoes/Sugestoes"; // << caminho correto
+import Sugestoes from "./components/Sugestoes/Sugestoes";
 import "./App.css";
 import "./AppContainer.css";
 
-// ===== AuthContext para toda a aplicação =====
+/** Base da API montada do .env (Render em prod, local em dev se quiser trocar) */
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`;
+const api = (path) => `${API_BASE}${path}`;
+
+// ===== AuthContext =====
 export const AuthContext = createContext();
 export function useAuth() {
   return useContext(AuthContext);
@@ -134,14 +137,15 @@ export default function App() {
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
 
-  // >>>> AJUSTE AQUI: DEFINE O COMPONENTE ATIVO <<<<
+  // >>> componente ativo
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
+  // carrega funcionários
   useEffect(() => {
     if (!user) return;
     async function fetchFuncionarios() {
       try {
-        const res = await fetch("/api/folhapagamento/funcionarios", { credentials: "include" });
+        const res = await fetch(api("/folhapagamento/funcionarios"), { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           setCategoriasCustos(cats => {
@@ -162,7 +166,7 @@ export default function App() {
   }, [user]);
 
   async function handleAddFuncionario(novoFuncionario) {
-    const res = await fetch("/api/folhapagamento/funcionarios", {
+    const res = await fetch(api("/folhapagamento/funcionarios"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -182,7 +186,7 @@ export default function App() {
 
   async function handleEditarFuncionario(idx, funcionarioEditado) {
     const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(`/api/folhapagamento/funcionarios/${id}`, {
+    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -202,7 +206,7 @@ export default function App() {
 
   async function handleExcluirFuncionario(idx) {
     const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(`/api/folhapagamento/funcionarios/${id}`, {
+    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
       method: "DELETE",
       credentials: "include"
     });
@@ -225,7 +229,7 @@ export default function App() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await fetch("/api/users/me", {
+        const res = await fetch(api("/users/me"), {
           method: "GET",
           credentials: "include"
         });
@@ -233,7 +237,7 @@ export default function App() {
           const data = await res.json();
           setUser(data);
         }
-      } catch (err) {}
+      } catch {}
     }
     fetchUser();
   }, []);
@@ -246,7 +250,7 @@ export default function App() {
     e.preventDefault();
     setMsg("Enviando...");
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch(api("/users"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -264,7 +268,7 @@ export default function App() {
       const data = await res.json();
       setUser(data.user);
       setMsg("");
-    } catch (err) {
+    } catch {
       setMsg("Erro de conexão ao cadastrar.");
     }
   }
@@ -273,7 +277,7 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch("/api/users/login", {
+      const res = await fetch(api("/users/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -290,13 +294,13 @@ export default function App() {
       const data = await res.json();
       setUser(data.user);
       setMsg("");
-    } catch (err) {
+    } catch {
       setMsg("Erro ao fazer login.");
     }
   }
 
   async function handleLogout() {
-    await fetch("/api/users/logout", {
+    await fetch(api("/users/logout"), {
       method: "POST",
       credentials: "include"
     });
@@ -340,8 +344,6 @@ export default function App() {
   }
 
   function handleSidebarSelect(label) {
-    console.log("App.jsx - handleSidebarSelect label:", label);
-    console.log("SidebarSelect label:", label);
     if (label.startsWith("Custos:")) {
       setAba(2);
       const sub = label.split(":")[1];

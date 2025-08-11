@@ -88,12 +88,9 @@
 .receita-uploader-preview {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* garante preview correto mesmo com imagem pequena */
-  object-position: center;
-  display: block;
+  object-fit: contain;   /* <<< mantem proporção */
+  background: #f6fbff;  /* fundo neutro quando sobrar espaço */
   border-radius: 13px;
-  background: #f7f9fb;
-  margin: 0 auto;
 }
 
 /* === BOTÃO REMOVER IMAGEM: X vermelho minimalista === */
@@ -131,22 +128,19 @@
   outline: 2px solid #e53935;
 }
 
+/* Placeholder */
 .receita-uploader-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 12px;
   color: #2196f3;
   font-weight: 800;
   font-size: 1.01rem;
   opacity: 0.92;
   letter-spacing: 0.02em;
-  height: 100%;
-  width: 100%;
 }
 
-/* ========== FORMULÁRIO E TABELA ========== */
 .receita-geral-formcol {
   flex: 1;
   display: flex;
@@ -393,11 +387,10 @@
   align-items: center;
   justify-content: center;
 }
-
 .receita-cropper-modal {
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 8px 44px #1115  , 0 2px 9px #00cfff33;
+  box-shadow: 0 8px 44px #1115, 0 2px 9px #00cfff33;
   padding: 0 0 14px 0;
   min-width: 420px;
   min-height: 610px;
@@ -409,12 +402,10 @@
   position: relative;
   animation: fadeInCropper .15s;
 }
-
 @keyframes fadeInCropper {
-  from { opacity: 0; transform: scale(0.98);}
-  to { opacity: 1; transform: scale(1);}
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
-
 .receita-cropper-content {
   width: 370px;
   height: 494px;
@@ -428,7 +419,6 @@
   align-items: center;
   justify-content: center;
 }
-
 .receita-cropper-footer {
   width: 100%;
   display: flex;
@@ -437,11 +427,9 @@
   gap: 16px;
   margin-top: 16px;
 }
-
 .receita-cropper-zoom {
   width: 230px;
 }
-
 .receita-cropper-actions {
   display: flex;
   flex-direction: row;
@@ -449,7 +437,6 @@
   justify-content: center;
   margin-top: 2px;
 }
-
 .receita-cropper-btn {
   background: linear-gradient(90deg, #00cfff 0%, #2196f3 100%);
   color: #fff;
@@ -546,12 +533,6 @@
   .receita-geral-nome {
     font-size: 1.3rem;
   }
-  .receita-uploader-imagem {
-    width: 220px;
-    height: 220px;
-    min-width: 180px;
-    min-height: 180px;
-  }
 }
 @media (max-width: 600px) {
   .central-receitas-header {
@@ -581,10 +562,10 @@
     font-size: 1.1rem;
   }
   .receita-uploader-imagem {
-    width: 150px;
-    height: 150px;
-    min-width: 120px;
-    min-height: 120px;
+    width: 200px;
+    height: 200px;
+    min-width: 200px;
+    min-height: 200px;
   }
   .receita-geral-bloco.modo-preparo {
     width: 100vw;
