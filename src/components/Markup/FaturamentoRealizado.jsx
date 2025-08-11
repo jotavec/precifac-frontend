@@ -3,11 +3,16 @@ import axios from "axios";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { FaTrashAlt, FaFilter } from "react-icons/fa";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
-import "./FaturamentoRealizado.css"; // <-- IMPORTA O CSS
+import "./FaturamentoRealizado.css";
 
-const API_URL = "/api/sales-results";
-const corLinha = "#2196f3";   // <-- agora azul!
-const corAmarelo = "#ffe156";
+// ====== Base da API (Render ou local) ======
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL || ""}${import.meta.env.VITE_API_PREFIX || ""}`;
+const api = (p) => `${API_BASE}${p}`;
+
+// endpoint único para CRUD dos faturamentos
+const SALES_URL = api("/filtro-faturamento/sales-results");
+
+const corLinha = "#2196f3";
 
 function maskMoneyBRL(v) {
   v = v.replace(/\D/g, "");
@@ -22,9 +27,7 @@ function maskMoneyBRL(v) {
 function maskMonthYear(value) {
   value = value.replace(/\D/g, "");
   value = value.slice(0, 6);
-  if (value.length > 2) {
-    value = value.slice(0, 2) + "/" + value.slice(2);
-  }
+  if (value.length > 2) value = value.slice(0, 2) + "/" + value.slice(2);
   return value;
 }
 
@@ -49,7 +52,7 @@ function TooltipCustom({ active, payload, label }) {
   return null;
 }
 
-export default function FaturamentoRealizado({ user, setGastoSobreFaturamento }) {
+export default function FaturamentoRealizado({ user /*, setGastoSobreFaturamento*/ }) {
   const USER_ID = user?.id;
   const [month, setMonth] = useState("");
   const [value, setValue] = useState("");
@@ -57,14 +60,14 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
   const [totalDespesasFixas, setTotalDespesasFixas] = useState(0);
   const [totalFolha, setTotalFolha] = useState(0);
 
-  // Filtro de média: agora local!
+  // Filtro de média salvo por usuário
   const [mediaTipo, setMediaTipo] = useState("6");
 
-  // Modal filtro de média
+  // Modal filtro
   const [modalOpen, setModalOpen] = useState(false);
   const modalRef = useRef();
 
-  // Modal de confirmação de delete
+  // Modal delete
   const [idParaDeletar, setIdParaDeletar] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -83,72 +86,67 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
       }
     }
     if (modalOpen) document.addEventListener("mousedown", handleClickOutside);
-    else document.removeEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [modalOpen]);
 
-  // Busca o filtro salvo no backend apenas uma vez ao carregar
+  // Busca filtro salvo
   useEffect(() => {
     async function fetchFiltro() {
       try {
-        const res = await axios.get("/api/filtro-faturamento", { withCredentials: true });
-        if (res.data?.filtro && res.data.filtro !== mediaTipo) {
-          setMediaTipo(res.data.filtro);
-        }
+        const res = await axios.get(api("/filtro-faturamento"), { withCredentials: true });
+        if (res.data?.filtro && res.data.filtro !== mediaTipo) setMediaTipo(res.data.filtro);
       } catch {
         setMediaTipo("6");
       }
     }
     fetchFiltro();
-    // eslint-disable-next-line
   }, [USER_ID]);
 
   function handleSelect(tipo) {
     setMediaTipo(tipo);
     setModalOpen(false);
-    axios.post("/api/users/filtro-faturamento", { filtro: tipo }, { withCredentials: true }).catch(() => { });
+    axios
+      .post(api("/filtro-faturamento"), { filtro: tipo }, { withCredentials: true })
+      .catch(() => {});
   }
 
   useEffect(() => {
     if (USER_ID) buscar();
-    // eslint-disable-next-line
   }, [USER_ID]);
 
   async function buscar() {
     try {
-      const res = await axios.get(API_URL, { withCredentials: true });
+      const res = await axios.get(SALES_URL, { withCredentials: true });
       setLista(Array.isArray(res.data) ? res.data : []);
     } catch {
       setLista([]);
     }
   }
 
-  // Busca despesas fixas e folha do backend
+  // Busca totais de despesas fixas e folha
   useEffect(() => {
     async function fetchTotais() {
       try {
-        const resDespesas = await axios.get("/api/despesasfixas/subcategorias", { withCredentials: true });
+        const resDespesas = await axios.get(api("/despesasfixas/subcategorias"), { withCredentials: true });
         const categorias = Array.isArray(resDespesas.data) ? resDespesas.data : [];
         let totalFixas = 0;
         categorias.forEach(cat => {
           if (Array.isArray(cat.fixedCosts)) {
-            cat.fixedCosts.forEach(custo => {
-              totalFixas += Number(custo.value || 0);
-            });
+            cat.fixedCosts.forEach(custo => { totalFixas += Number(custo.value || 0); });
           }
         });
 
-        const resFolha = await axios.get("/api/folhapagamento/funcionarios", { withCredentials: true });
+        const resFolha = await axios.get(api("/folhapagamento/funcionarios"), { withCredentials: true });
         const funcionarios = Array.isArray(resFolha.data) ? resFolha.data : [];
-        let totalFolha = 0;
+        let somaFolha = 0;
         funcionarios.forEach(f => {
           const val = Number((f.salario || "").toString().replace(",", "."));
-          if (!isNaN(val)) totalFolha += val;
+          if (!isNaN(val)) somaFolha += val;
         });
 
         setTotalDespesasFixas(totalFixas);
-        setTotalFolha(totalFolha);
-      } catch (err) {
+        setTotalFolha(somaFolha);
+      } catch {
         setTotalDespesasFixas(0);
         setTotalFolha(0);
       }
@@ -163,20 +161,20 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
       const mesConvertido = yyyy && mm ? `${yyyy}-${mm}` : month;
       const valorNumerico = Number(value.replace(/\D/g, "")) / 100;
 
-      await axios.post(API_URL, {
-        month: mesConvertido,
-        value: valorNumerico
-      }, { withCredentials: true });
+      await axios.post(
+        SALES_URL,
+        { month: mesConvertido, value: valorNumerico },
+        { withCredentials: true }
+      );
 
       setMonth("");
       setValue("");
       await buscar();
-    } catch (err) {
+    } catch {
       alert("Erro ao lançar faturamento!");
     }
   }
 
-  // ---- FUNÇÕES DO MODAL DE DELETE ----
   function pedirConfirmacao(id) {
     setIdParaDeletar(id);
     setShowConfirmModal(true);
@@ -185,7 +183,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
   async function apagarConfirmado() {
     if (!idParaDeletar) return;
     try {
-      await axios.delete(`${API_URL}/${idParaDeletar}`, { withCredentials: true });
+      await axios.delete(`${SALES_URL}/${idParaDeletar}`, { withCredentials: true });
       await buscar();
       setShowConfirmModal(false);
       setIdParaDeletar(null);
@@ -196,10 +194,8 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
     }
   }
 
-  // ---- CÁLCULO DA MÉDIA ----
-  let listaMedia;
-  if (mediaTipo === "all") listaMedia = lista;
-  else listaMedia = lista.slice(-Number(mediaTipo));
+  // Cálculos
+  const listaMedia = mediaTipo === "all" ? lista : lista.slice(-Number(mediaTipo));
   const mediaCustom = Array.isArray(listaMedia) && listaMedia.length > 0
     ? listaMedia.reduce((acc, cur) => acc + cur.value, 0) / listaMedia.length
     : 0;
@@ -217,12 +213,9 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
 
   return (
     <div className="painel-root">
-      {/* Header padrão */}
       <div className="painel-header">
         <div>
-          <div className="painel-titulo-pagina">
-            Faturamentos Realizados
-          </div>
+          <div className="painel-titulo-pagina">Faturamentos Realizados</div>
         </div>
         <div className="painel-total-geral">
           <span>Média de Faturamento</span>
@@ -243,9 +236,7 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
           </div>
           {modalOpen && (
             <div ref={modalRef} className="faturamento-filtro-modal">
-              <div className="faturamento-filtro-titulo">
-                Considerar quantos meses?
-              </div>
+              <div className="faturamento-filtro-titulo">Considerar quantos meses?</div>
               {opcoes.map(opt => (
                 <div
                   key={opt.value}
@@ -258,16 +249,13 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
               ))}
             </div>
           )}
-          {/* === % Gastos sobre faturamento === */}
           <div className="faturamento-badge-gastos">
             % Gastos sobre faturamento: <b>{percentualGastosFormatado}%</b>
           </div>
         </div>
       </div>
 
-      {/* Bloco principal */}
       <div className="painel-content painel-content-faturamento">
-        {/* Formulário de lançamento */}
         <form className="faturamento-form" onSubmit={salvar}>
           <input
             type="text"
@@ -287,36 +275,23 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
             onChange={e => setValue(maskMoneyBRL(e.target.value))}
             required
             inputMode="numeric"
-            pattern="^R\$ (\d{1,3}(\.\d{3})*|\d+),\d{2}$"
             className="faturamento-input-valor"
           />
-          <button type="submit" className="btn-azul-grad">
-            Lançar
-          </button>
+          <button type="submit" className="btn-azul-grad">Lançar</button>
         </form>
 
-        {/* Gráfico */}
         <div className="faturamento-grafico-bloco">
-          <div className="faturamento-grafico-titulo">
-            Relação Gráfica dos Últimos 6 Meses
-          </div>
+          <div className="faturamento-grafico-titulo">Relação Gráfica dos Últimos 6 Meses</div>
           <ResponsiveContainer width="99%" height={250}>
             <LineChart data={ultimos6} margin={{ top: 32, right: 32, left: 32, bottom: 32 }}>
               <CartesianGrid stroke="#e1e9f7" strokeDasharray="4 6" />
               <XAxis dataKey="month" tickFormatter={formatarMes} stroke="#237be7" tick={{ fontSize: 15 }} tickMargin={18} />
               <Tooltip content={<TooltipCustom />} />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={corLinha}         // Linha azul #2196f3
-                strokeWidth={3}
-                dot={{ r: 5, fill: "#fff" }}
-              />
+              <Line type="monotone" dataKey="value" stroke={corLinha} strokeWidth={3} dot={{ r: 5, fill: "#fff" }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Histórico */}
         <h4 className="faturamento-historico-titulo">Histórico lançado:</h4>
         <ul className="faturamento-historico-lista">
           {Array.isArray(lista) && lista.slice().reverse().map(x => (
@@ -335,13 +310,9 @@ export default function FaturamentoRealizado({ user, setGastoSobreFaturamento })
         </ul>
       </div>
 
-      {/* MODAL DE CONFIRMAÇÃO */}
       <ConfirmDeleteModal
         isOpen={showConfirmModal}
-        onRequestClose={() => {
-          setShowConfirmModal(false);
-          setIdParaDeletar(null);
-        }}
+        onRequestClose={() => { setShowConfirmModal(false); setIdParaDeletar(null); }}
         onConfirm={apagarConfirmado}
         itemLabel="faturamento"
       />

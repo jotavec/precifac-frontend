@@ -4,55 +4,88 @@ import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
 import Cropper from "react-easy-crop";
 import TabelaPlanos from "./TabelaPlanos";
-import './Perfil.css';
+import "./Perfil.css";
 
 const API_URL = "/api";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
+/* ==================== Masks ==================== */
 function formatCNPJ(value) {
-  value = value.replace(/\D/g, '');
+  value = value.replace(/\D/g, "");
   if (value.length > 14) value = value.slice(0, 14);
-  value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-  value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-  value = value.replace(/(\d{4})(\d)/, '$1-$2');
+  value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+  value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+  value = value.replace(/(\d{4})(\d)/, "$1-$2");
   return value;
 }
 function formatCPF(value) {
-  value = value.replace(/\D/g, '');
+  value = value.replace(/\D/g, "");
   if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d)/, '$1.$2');
-  value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  value = value.replace(/(\d{3})(\d)/, "$1.$2");
+  value = value.replace(/(\d{3})(\d)/, "$1.$2");
+  value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   return value;
 }
 function formatPhone(value) {
-  value = value.replace(/\D/g, '');
+  value = value.replace(/\D/g, "");
   if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-  if (value.length > 10) {
-    value = value.replace(/(\d{5})(\d)/, '$1-$2');
-  } else {
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-  }
+  value = value.replace(/^(\d{2})(\d)/g, "($1) $2");
+  if (value.length > 10) value = value.replace(/(\d{5})(\d)/, "$1-$2");
+  else value = value.replace(/(\d{4})(\d)/, "$1-$2");
   return value;
 }
 function formatCEP(value) {
-  value = value.replace(/\D/g, '');
+  value = value.replace(/\D/g, "");
   if (value.length > 8) value = value.slice(0, 8);
-  value = value.replace(/(\d{5})(\d)/, '$1-$2');
+  value = value.replace(/(\d{5})(\d)/, "$1-$2");
   return value;
 }
 
+/* ==================== Avatar helpers ==================== */
+function pickAvatarFrom(data) {
+  return (
+    data?.avatarUrl ||
+    data?.avatar ||
+    data?.url ||
+    data?.photoUrl ||
+    data?.photo ||
+    null
+  );
+}
+
+// normaliza caminho e monta URL final
 function getFullAvatarUrl(avatarUrl) {
   if (!avatarUrl) return null;
-  if (avatarUrl.startsWith("http")) return avatarUrl;
-  return BACKEND_URL.replace(/\/$/, "") + "/" + avatarUrl.replace(/^\//, "");
+
+  let raw = String(avatarUrl);
+
+  // separa query (?t=123)
+  const qIndex = raw.indexOf("?");
+  const query = qIndex >= 0 ? raw.slice(qIndex + 1) : "";
+  let pathOnly = qIndex >= 0 ? raw.slice(0, qIndex) : raw;
+
+  // normaliza barras
+  pathOnly = pathOnly.replace(/\\/g, "/");
+
+  // já é absoluta?
+  if (/^https?:\/\//i.test(pathOnly)) {
+    return query ? `${pathOnly}?${query}` : pathOnly;
+  }
+
+  // se vier só o nome, prefixa uploads/avatars/
+  if (!pathOnly.includes("/")) {
+    pathOnly = `uploads/avatars/${pathOnly}`;
+  }
+
+  const base = BACKEND_URL.replace(/\/$/, "");
+  const full = `${base}/${pathOnly.replace(/^\//, "")}`;
+  return query ? `${full}?${query}` : full;
 }
 
 function AvatarSidebar({ avatarUrl }) {
   return (
-    <div className="perfil-avatar-branco" style={{ position: 'relative', width: 120, height: 120 }}>
+    <div className="perfil-avatar-branco" style={{ position: "relative", width: 120, height: 120 }}>
       {avatarUrl ? (
         <img
           src={getFullAvatarUrl(avatarUrl)}
@@ -60,16 +93,18 @@ function AvatarSidebar({ avatarUrl }) {
           style={{
             width: 120,
             height: 120,
-            borderRadius: '50%',
-            objectFit: 'cover',
+            borderRadius: "50%",
+            objectFit: "cover",
             border: "3px solid #ececec",
-            background: "#ececec"
+            background: "#ececec",
           }}
         />
       ) : (
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="60" fill="#ececec" />
-          <text x="50%" y="58%" textAnchor="middle" fontSize="52" fill="#bbb" dy=".3em" fontWeight="bold">👤</text>
+          <text x="50%" y="58%" textAnchor="middle" fontSize="52" fill="#bbb" dy=".3em" fontWeight="bold">
+            👤
+          </text>
         </svg>
       )}
     </div>
@@ -96,7 +131,7 @@ function EditIcon() {
       }}
     >
       <svg width="22" height="22" fill="#fff" viewBox="0 0 20 20">
-        <path d="M17.1 6.55a1.4 1.4 0 0 0 0-2l-2-2a1.4 1.4 0 0 0-2 0l-1.1 1.1 4 4 1.1-1.1zm-2.6 2.6l-4-4-7.1 7.1c-.14.14-.23.32-.27.51l-.86 3.44c-.08.31.2.6.51.52l3.43-.87c.19-.05.37-.13.51-.27l7.1-7.1z"/>
+        <path d="M17.1 6.55a1.4 1.4 0 0 0 0-2l-2-2a1.4 1.4 0 0 0-2 0l-1.1 1.1 4 4 1.1-1.1zm-2.6 2.6l-4-4-7.1 7.1c-.14.14-.23.32-.27.51l-.86 3.44c-.08.31.2.6.51.52l3.43-.87c.19-.05.37-.13.51-.27l7.1-7.1z" />
       </svg>
     </span>
   );
@@ -108,9 +143,9 @@ function getCroppedImg(imageSrc, crop, zoom, aspect) {
     image.crossOrigin = "anonymous";
     image.src = imageSrc;
     image.onload = () => {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 256;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -127,19 +162,12 @@ function getCroppedImg(imageSrc, crop, zoom, aspect) {
       ctx.closePath();
       ctx.clip();
 
-      ctx.drawImage(
-        image,
-        sx, sy, side, side,
-        0, 0, 256, 256
-      );
+      ctx.drawImage(image, sx, sy, side, side, 0, 0, 256, 256);
       ctx.restore();
 
-      canvas.toBlob(blob => {
-        resolve({
-          blob,
-          url: URL.createObjectURL(blob)
-        });
-      }, 'image/png');
+      canvas.toBlob((blob) => {
+        resolve({ blob, url: URL.createObjectURL(blob) });
+      }, "image/png");
     };
     image.onerror = reject;
   });
@@ -147,18 +175,20 @@ function getCroppedImg(imageSrc, crop, zoom, aspect) {
 
 async function uploadAvatar(blob) {
   const formData = new FormData();
-  formData.append('avatar', blob, 'avatar.png');
-  const { data } = await axios.post('/api/users/me/avatar', formData, {
+  formData.append("avatar", blob, "avatar.png");
+  const { data } = await axios.post(`${API_URL}/users/me/avatar`, formData, {
     withCredentials: true,
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { "Content-Type": "multipart/form-data" },
   });
-  return data.avatarUrl;
+  return pickAvatarFrom(data);
 }
 
+/* ==================== Component ==================== */
 export default function Perfil({ onLogout, abaInicial }) {
   const [editando, setEditando] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aba, setAba] = useState(abaInicial || "dados");
+
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -173,7 +203,7 @@ export default function Perfil({ onLogout, abaInicial }) {
     bairro: "",
     cidade: "",
     estado: "",
-    cpf: ""
+    cpf: "",
   });
   const [backup, setBackup] = useState(form);
 
@@ -191,10 +221,7 @@ export default function Perfil({ onLogout, abaInicial }) {
   const [toastType, setToastType] = useState("success");
 
   useEffect(() => {
-    if (abaInicial && abaInicial !== aba) {
-      setAba(abaInicial);
-      console.log("Perfil.jsx - Recebeu abaInicial:", abaInicial);
-    }
+    if (abaInicial && abaInicial !== aba) setAba(abaInicial);
     // eslint-disable-next-line
   }, [abaInicial]);
 
@@ -203,15 +230,27 @@ export default function Perfil({ onLogout, abaInicial }) {
       setLoading(true);
       try {
         const { data } = await axios.get(`${API_URL}/users/me`, { withCredentials: true });
-        setUser(data);
-        setAvatarPreview(data.avatarUrl || null);
+        const avatar = pickAvatarFrom(data);
+        setUser({ ...data, avatarUrl: avatar });
+        setAvatarPreview(avatar || null);
+
         let novoForm = {
-          ...form,
           nome: data.name || "",
           email: data.email || "",
           telefone: data.telefone || "",
-          cpf: data.cpf || ""
+          cpf: data.cpf || "",
+          empresaNome: "",
+          cnpj: "",
+          telefoneEmpresa: "",
+          cep: "",
+          rua: "",
+          numero: "",
+          bairro: "",
+          cidade: "",
+          estado: "",
+          semNumero: false,
         };
+
         const resConfig = await axios.get(`${API_URL}/company-config`, { withCredentials: true });
         if (resConfig.data) {
           novoForm = {
@@ -224,9 +263,10 @@ export default function Perfil({ onLogout, abaInicial }) {
             numero: resConfig.data.numero || "",
             bairro: resConfig.data.bairro || "",
             cidade: resConfig.data.cidade || "",
-            estado: resConfig.data.estado || ""
+            estado: resConfig.data.estado || "",
           };
         }
+
         setForm(novoForm);
         setBackup(novoForm);
       } catch (err) {
@@ -248,15 +288,29 @@ export default function Perfil({ onLogout, abaInicial }) {
   }, [avatarFile]);
 
   async function onCropConfirm() {
-    const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
-    const avatarUrl = await uploadAvatar(cropped.blob);
-    const avatarUrlCacheBusted = avatarUrl + "?t=" + Date.now();
-    setAvatarPreview(avatarUrlCacheBusted);
-    setUser((prev) => ({ ...prev, avatarUrl: avatarUrlCacheBusted }));
-    setShowCrop(false);
-    setAvatarFile(null);
-    URL.revokeObjectURL(cropFileUrl);
-  }
+  const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
+
+  // Faz o upload
+  const formData = new FormData();
+  formData.append('avatar', cropped.blob, 'avatar.png');
+  const { data } = await axios.post('/api/users/me/avatar', formData, {
+    withCredentials: true,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+  // Monta URL ABSOLUTA + cache-buster
+  const absolute = getFullAvatarUrl(data.avatarUrl);
+  const cacheBusted = absolute + (absolute.includes('?') ? '&' : '?') + 't=' + Date.now();
+
+  // Atualiza preview e user
+  setAvatarPreview(cacheBusted);
+  setUser(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+
+  setShowCrop(false);
+  setAvatarFile(null);
+  URL.revokeObjectURL(cropFileUrl);
+}
+
 
   function onCropCancel() {
     setShowCrop(false);
@@ -267,17 +321,16 @@ export default function Perfil({ onLogout, abaInicial }) {
   function onCropChange(newCrop) {
     setCrop(newCrop);
   }
-
   function onZoomChange(newZoom) {
     setZoom(newZoom);
   }
 
   async function buscarCep() {
-    if (!form.cep || form.cep.length < 8) return;
-    setForm(f => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
+    if (!form.cep || form.cep.replace(/\D/g, "").length < 8) return;
+    setForm((f) => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
     try {
       const { data } = await axios.get(`https://viacep.com.br/ws/${form.cep.replace(/\D/g, "")}/json/`);
-      setForm(f => ({
+      setForm((f) => ({
         ...f,
         rua: data.logradouro || "",
         bairro: data.bairro || "",
@@ -285,7 +338,7 @@ export default function Perfil({ onLogout, abaInicial }) {
         estado: data.uf || "",
       }));
     } catch {
-      setForm(f => ({ ...f, rua: "", bairro: "", cidade: "", estado: "" }));
+      setForm((f) => ({ ...f, rua: "", bairro: "", cidade: "", estado: "" }));
       setToastMsg("CEP não encontrado!");
       setToastType("warn");
       setShowToast(true);
@@ -300,19 +353,19 @@ export default function Perfil({ onLogout, abaInicial }) {
     if (name === "cep") val = formatCEP(value);
     if (name === "telefoneEmpresa" || name === "telefone") val = formatPhone(value);
 
-    setForm(f => ({
+    setForm((f) => ({
       ...f,
       [name]: type === "checkbox" ? checked : val,
-      ...(name === "semNumero" && checked ? { numero: "" } : {})
+      ...(name === "semNumero" && checked ? { numero: "" } : {}),
     }));
   }
 
   function handleSemNumeroClick() {
     if (!editando) return;
-    setForm(f => ({
+    setForm((f) => ({
       ...f,
       semNumero: !f.semNumero,
-      numero: !f.semNumero ? "" : f.numero
+      numero: !f.semNumero ? "" : f.numero,
     }));
   }
 
@@ -320,31 +373,34 @@ export default function Perfil({ onLogout, abaInicial }) {
     setEditando(false);
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/users/me`, {
-        name: form.nome,
-        cpf: form.cpf,
-        telefone: form.telefone
-      }, { withCredentials: true });
+      await axios.put(
+        `${API_URL}/users/me`,
+        { name: form.nome, cpf: form.cpf, telefone: form.telefone },
+        { withCredentials: true }
+      );
 
-      await axios.post(`${API_URL}/company-config`, {
-        companyName: form.empresaNome,
-        cnpj: form.cnpj,
-        phone: form.telefoneEmpresa,
-        cep: form.cep,
-        rua: form.rua,
-        numero: form.semNumero ? "" : form.numero,
-        bairro: form.bairro,
-        cidade: form.cidade,
-        estado: form.estado,
-        cpf: form.cpf
-      }, { withCredentials: true });
+      await axios.post(
+        `${API_URL}/company-config`,
+        {
+          companyName: form.empresaNome,
+          cnpj: form.cnpj,
+          phone: form.telefoneEmpresa,
+          cep: form.cep,
+          rua: form.rua,
+          numero: form.semNumero ? "" : form.numero,
+          bairro: form.bairro,
+          cidade: form.cidade,
+          estado: form.estado,
+          cpf: form.cpf,
+        },
+        { withCredentials: true }
+      );
 
       setBackup(form);
-
       setToastMsg("Configurações salvas!");
       setToastType("success");
       setShowToast(true);
-    } catch (err) {
+    } catch {
       setToastMsg("Erro ao salvar configurações");
       setToastType("error");
       setShowToast(true);
@@ -360,16 +416,11 @@ export default function Perfil({ onLogout, abaInicial }) {
   }
 
   function handleAvatarChange(e) {
-    const file = e.target.files[0];
-    if (file) {
-    setAvatarFile(file);
-    }
+    const file = e.target.files?.[0];
+    if (file) setAvatarFile(file);
   }
 
   if (loading) return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
-
-  // DEBUG ABA ATUAL
-  console.log("Perfil.jsx - aba atual:", aba, "| abaInicial prop:", abaInicial);
 
   return (
     <>
@@ -385,21 +436,32 @@ export default function Perfil({ onLogout, abaInicial }) {
             background: "rgba(10,16,40,0.58)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
-          <div style={{
-            background: "#fff",
-            borderRadius: 18,
-            boxShadow: "0 4px 40px #0002",
-            padding: 36,
-            minWidth: 340,
-            minHeight: 370,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center"
-          }}>
-            <div style={{ position: "relative", width: 280, height: 280, background: "#f7fafb", borderRadius: "50%", overflow: "hidden" }}>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              boxShadow: "0 4px 40px #0002",
+              padding: 36,
+              minWidth: 340,
+              minHeight: 370,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: 280,
+                height: 280,
+                background: "#f7fafb",
+                borderRadius: "50%",
+                overflow: "hidden",
+              }}
+            >
               <Cropper
                 image={cropFileUrl}
                 crop={crop}
@@ -408,11 +470,9 @@ export default function Perfil({ onLogout, abaInicial }) {
                 cropShape="round"
                 showGrid={false}
                 onCropChange={onCropChange}
-                onCropComplete={(_, croppedAreaPixels) => { }}
+                onCropComplete={() => {}}
                 onZoomChange={onZoomChange}
-                style={{
-                  containerStyle: { borderRadius: "50%", overflow: "hidden" }
-                }}
+                style={{ containerStyle: { borderRadius: "50%", overflow: "hidden" } }}
               />
             </div>
             <div style={{ marginTop: 24, display: "flex", gap: 20 }}>
@@ -422,7 +482,7 @@ export default function Perfil({ onLogout, abaInicial }) {
                 max={3}
                 step={0.01}
                 value={zoom}
-                onChange={e => setZoom(Number(e.target.value))}
+                onChange={(e) => setZoom(Number(e.target.value))}
                 style={{ width: 140 }}
               />
               <span style={{ fontSize: 15, color: "#0094e7", fontWeight: 600 }}>Zoom</span>
@@ -438,7 +498,7 @@ export default function Perfil({ onLogout, abaInicial }) {
                   border: "2px solid #ddd",
                   fontWeight: 600,
                   fontSize: 15,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Cancelar
@@ -454,7 +514,7 @@ export default function Perfil({ onLogout, abaInicial }) {
                   fontWeight: 700,
                   fontSize: 15,
                   cursor: "pointer",
-                  boxShadow: "0 3px 24px #00cfff21"
+                  boxShadow: "0 3px 24px #00cfff21",
                 }}
               >
                 Confirmar
@@ -464,17 +524,10 @@ export default function Perfil({ onLogout, abaInicial }) {
         </div>
       )}
 
-      <div className="perfil-titulo-header">
-        Perfil
-      </div>
+      <div className="perfil-titulo-header">Perfil</div>
 
       <div className="perfil-branco-main">
-        <ModalToast
-          show={showToast}
-          message={toastMsg}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
+        <ModalToast show={showToast} message={toastMsg} type={toastType} onClose={() => setShowToast(false)} />
 
         <div className="perfil-branco-side">
           <label
@@ -485,7 +538,7 @@ export default function Perfil({ onLogout, abaInicial }) {
               position: "relative",
               width: 120,
               height: 120,
-              margin: "0 auto"
+              margin: "0 auto",
             }}
           >
             <AvatarSidebar avatarUrl={avatarPreview || user.avatarUrl} />
@@ -502,10 +555,7 @@ export default function Perfil({ onLogout, abaInicial }) {
 
           <div className="perfil-branco-nome">{form.nome || "Seu Nome"}</div>
           <div className="perfil-branco-cargo">Usuário</div>
-          <button
-            className={`perfil-branco-btn-info${aba === "dados" ? " ativo" : ""}`}
-            onClick={() => setAba("dados")}
-          >
+          <button className={`perfil-branco-btn-info${aba === "dados" ? " ativo" : ""}`} onClick={() => setAba("dados")}>
             Dados Pessoais
           </button>
           <button
@@ -517,82 +567,46 @@ export default function Perfil({ onLogout, abaInicial }) {
           </button>
           <button
             className={`perfil-branco-btn-info${aba === "planos" ? " ativo" : ""}`}
-            onClick={() => {
-              console.log("Perfil.jsx - Clique em Planos, setAba('planos')");
-              setAba("planos");
-            }}
+            onClick={() => setAba("planos")}
             style={{ marginBottom: 10, fontWeight: 700 }}
           >
             Planos
           </button>
-          <button
-            className="perfil-branco-btn-sair"
-            onClick={onLogout}
-          >
+          <button className="perfil-branco-btn-sair" onClick={onLogout}>
             Sair
           </button>
         </div>
 
         <div className="perfil-branco-content">
-          {console.log("Perfil.jsx - Renderizando aba:", aba)}
           {aba === "dados" && (
-            <form
-              autoComplete="off"
-              onSubmit={e => { e.preventDefault(); handleSalvar(); }}
-            >
+            <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSalvar(); }}>
               <h2 className="perfil-branco-titulo">Dados Pessoais</h2>
               <div className="perfil-branco-form">
                 <div className="perfil-branco-form-row">
                   <div>
                     <label>Nome</label>
-                    <input
-                      type="text"
-                      name="nome"
-                      disabled={!editando}
-                      value={form.nome}
-                      onChange={handleChange}
-                      placeholder="Seu nome"
-                    />
+                    <input type="text" name="nome" disabled={!editando} value={form.nome} onChange={handleChange} placeholder="Seu nome" />
                   </div>
                   <div>
                     <label>CPF</label>
-                    <input
-                      type="text"
-                      name="cpf"
-                      disabled={!editando}
-                      value={form.cpf}
-                      onChange={handleChange}
-                      placeholder="CPF"
-                    />
+                    <input type="text" name="cpf" disabled={!editando} value={form.cpf} onChange={handleChange} placeholder="CPF" />
                   </div>
                 </div>
                 <div className="perfil-branco-form-row">
                   <div style={{ flex: 1 }}>
                     <label>Telefone</label>
-                    <input
-                      type="text"
-                      name="telefone"
-                      disabled={!editando}
-                      value={form.telefone}
-                      onChange={handleChange}
-                      placeholder="Telefone"
-                    />
+                    <input type="text" name="telefone" disabled={!editando} value={form.telefone} onChange={handleChange} placeholder="Telefone" />
                   </div>
                 </div>
 
-                <h2 className="perfil-branco-titulo" style={{ marginTop: 32, marginBottom: 0 }}>Dados Empresariais</h2>
+                <h2 className="perfil-branco-titulo" style={{ marginTop: 32, marginBottom: 0 }}>
+                  Dados Empresariais
+                </h2>
 
                 <div className="perfil-branco-form-row" style={{ alignItems: "flex-end" }}>
                   <div>
                     <label>CEP</label>
-                    <input
-                      type="text"
-                      name="cep"
-                      disabled={!editando}
-                      value={form.cep}
-                      onChange={handleChange}
-                      placeholder="CEP"
-                    />
+                    <input type="text" name="cep" disabled={!editando} value={form.cep} onChange={handleChange} placeholder="CEP" />
                   </div>
                   <div style={{ display: "flex", alignItems: "flex-end", height: "100%" }}>
                     <button
@@ -610,14 +624,7 @@ export default function Perfil({ onLogout, abaInicial }) {
                 <div className="perfil-branco-form-row">
                   <div style={{ flex: 2 }}>
                     <label>Endereço</label>
-                    <input
-                      type="text"
-                      name="rua"
-                      disabled={!editando}
-                      value={form.rua}
-                      onChange={handleChange}
-                      placeholder="Rua"
-                    />
+                    <input type="text" name="rua" disabled={!editando} value={form.rua} onChange={handleChange} placeholder="Rua" />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
@@ -646,36 +653,15 @@ export default function Perfil({ onLogout, abaInicial }) {
                 <div className="perfil-branco-form-row">
                   <div>
                     <label>Bairro</label>
-                    <input
-                      type="text"
-                      name="bairro"
-                      disabled={!editando}
-                      value={form.bairro}
-                      onChange={handleChange}
-                      placeholder="Bairro"
-                    />
+                    <input type="text" name="bairro" disabled={!editando} value={form.bairro} onChange={handleChange} placeholder="Bairro" />
                   </div>
                   <div>
                     <label>Cidade</label>
-                    <input
-                      type="text"
-                      name="cidade"
-                      disabled={!editando}
-                      value={form.cidade}
-                      onChange={handleChange}
-                      placeholder="Cidade"
-                    />
+                    <input type="text" name="cidade" disabled={!editando} value={form.cidade} onChange={handleChange} placeholder="Cidade" />
                   </div>
                   <div>
                     <label>Estado</label>
-                    <input
-                      type="text"
-                      name="estado"
-                      disabled={!editando}
-                      value={form.estado}
-                      onChange={handleChange}
-                      placeholder="Estado"
-                    />
+                    <input type="text" name="estado" disabled={!editando} value={form.estado} onChange={handleChange} placeholder="Estado" />
                   </div>
                 </div>
                 <div className="perfil-branco-form-row">
@@ -692,25 +678,14 @@ export default function Perfil({ onLogout, abaInicial }) {
                   </div>
                   <div>
                     <label>CNPJ</label>
-                    <input
-                      type="text"
-                      name="cnpj"
-                      disabled={!editando}
-                      value={form.cnpj}
-                      onChange={handleChange}
-                      placeholder="CNPJ"
-                    />
+                    <input type="text" name="cnpj" disabled={!editando} value={form.cnpj} onChange={handleChange} placeholder="CNPJ" />
                   </div>
                 </div>
               </div>
               <div className="perfil-branco-actions">
                 {editando ? (
                   <>
-                    <button
-                      type="button"
-                      className="perfil-branco-btn-discard"
-                      onClick={handleCancelar}
-                    >
+                    <button type="button" className="perfil-branco-btn-discard" onClick={handleCancelar}>
                       Cancelar
                     </button>
                     <button type="submit" className="perfil-branco-btn-save">
@@ -718,21 +693,16 @@ export default function Perfil({ onLogout, abaInicial }) {
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="perfil-branco-btn-save"
-                    onClick={() => setEditando(true)}
-                  >
+                  <button type="button" className="perfil-branco-btn-save" onClick={() => setEditando(true)}>
                     Editar
                   </button>
                 )}
               </div>
             </form>
           )}
-          {aba === "login" && (
-            <PerfilLoginSenha email={form.email} />
-          )}
-          {aba === "planos" && <TabelaPlanos />}
+
+          {aba === "login" && <PerfilLoginSenha email={form.email} />}
+          {aba === "planos" && <TabelaPlanos userEmail={form.email || user?.email} />}
         </div>
       </div>
     </>

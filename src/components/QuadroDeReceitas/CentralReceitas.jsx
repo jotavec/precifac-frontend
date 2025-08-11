@@ -13,8 +13,10 @@ import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
 import "./CentralReceitas.css";
 
-/** Base do backend (Render) vinda do .env */
-const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`;
+/** Bases do backend vindas do .env */
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
+const API_BASE = `${BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`; // usado para rotas da API (/api)
 const api = (path) => `${API_BASE}${path}`;
 
 const ABAS = [
@@ -28,7 +30,7 @@ const ABAS = [
 const defaultConservacao = [
   { descricao: "Congelado", temp: "-18", tempoNum: "6", tempoUnidade: 1 },
   { descricao: "Refrigerado", temp: "4", tempoNum: "3", tempoUnidade: 0 },
-  { descricao: "Ambiente", temp: "20", tempoNum: "2", tempoUnidade: 2 }
+  { descricao: "Ambiente", temp: "20", tempoNum: "2", tempoUnidade: 2 },
 ];
 
 function normalizeBlocoAtivo(valor) {
@@ -40,11 +42,7 @@ function normalizeBlocoAtivo(valor) {
 function formatarBRL(valor) {
   if (valor === null || valor === undefined || valor === "" || valor === "-") return "-";
   let num = Number(
-    String(valor)
-      .replace("R$", "")
-      .replace(/\./g, "")
-      .replace(",", ".")
-      .trim()
+    String(valor).replace("R$", "").replace(/\./g, "").replace(",", ".").trim()
   );
   if (isNaN(num)) return "-";
   const valCorrigido = Math.abs(num) < 0.005 ? 0 : num;
@@ -52,9 +50,7 @@ function formatarBRL(valor) {
 }
 
 function gerarNumeroFicha(receitas) {
-  const usados = receitas
-    .map(r => parseInt(r.numeroFicha))
-    .filter(n => !isNaN(n));
+  const usados = receitas.map((r) => parseInt(r.numeroFicha)).filter((n) => !isNaN(n));
   const maior = usados.length > 0 ? Math.max(...usados) : 0;
   return String(maior + 1).padStart(4, "0");
 }
@@ -76,38 +72,17 @@ function parseBRL(valor) {
 /** ===== Helpers de URL da imagem ===== */
 function toPublicUrl(url) {
   if (!url) return url;
-  if (url.startsWith("data:image")) return url; // base64 para preview
+  if (url.startsWith("data:image")) return url; // base64 (preview)
   if (url.startsWith("http")) return url;
-  if (url.startsWith("/uploads")) return `${API_BASE}${url}`;
+  if (url.startsWith("/uploads")) return `${BACKEND_URL}${url}`; // servir pelo host SEM /api
   return url;
 }
 function toStoredUrl(url) {
   if (!url) return url;
-  // remove o host antes de salvar no banco
+  // remove o host com ou sem /api
   if (url.startsWith(API_BASE)) return url.replace(API_BASE, "");
-  return url;
-}
-
-/** === Upload imagem da receita === */
-async function uploadImagemReceita(base64) {
-  if (!base64 || !base64.startsWith("data:image")) return base64;
-  const formData = new FormData();
-  formData.append("file", base64);
-  try {
-    const res = await fetch(api("/uploads/receita"), {
-      method: "POST",
-      body: formData,
-      credentials: "include"
-    });
-    if (!res.ok) throw new Error("Erro ao enviar imagem.");
-    const data = await res.json();
-    // data.url esperado como "/uploads/receitas/arquivo.jpg"
-    const urlPublica = toPublicUrl(data.url || "");
-    return urlPublica || null;
-  } catch {
-    alert("Erro ao enviar imagem.");
-    return null;
-  }
+  if (url.startsWith(BACKEND_URL)) return url.replace(BACKEND_URL, "");
+  return url; // já relativo
 }
 
 export default function CentralReceitas() {
@@ -122,7 +97,7 @@ export default function CentralReceitas() {
   const [editandoId, setEditandoId] = useState(null);
 
   const [nome, setNome] = useState("");
-  const [imagemFinal, setImagemFinal] = useState(null); // sempre pública para preview
+  const [imagemFinal, setImagemFinal] = useState(null); // sempre pública p/ preview e PDF
   const [conservacaoData, setConservacaoData] = useState(defaultConservacao);
   const [observacoes, setObservacoes] = useState("");
   const [passosPreparo, setPassosPreparo] = useState([{ id: 1, descricao: "", imagem: null }]);
@@ -131,9 +106,9 @@ export default function CentralReceitas() {
   const [embalagens, setEmbalagens] = useState([]);
   const [maoDeObra, setMaoDeObra] = useState([]);
   const [tipoSelecionado, setTipoSelecionado] = useState(null);
-  const [rendimentoNumero, setRendimentoNumero] = useState('');
+  const [rendimentoNumero, setRendimentoNumero] = useState("");
   const [rendimentoUnidade, setRendimentoUnidade] = useState("unidade");
-  const [tempoTotal, setTempoTotal] = useState('');
+  const [tempoTotal, setTempoTotal] = useState("");
   const [tempoUnidade, setTempoUnidade] = useState("minutos");
   const [precoVenda, setPrecoVenda] = useState("");
   const [pesoUnitario, setPesoUnitario] = useState("");
@@ -170,29 +145,25 @@ export default function CentralReceitas() {
   async function fetchReceitas() {
     try {
       const res = await fetch(api("/receitas"), { credentials: "include" });
-      if (res.ok) {
-        setReceitas(await res.json());
-      }
-    } catch (err) { }
+      if (res.ok) setReceitas(await res.json());
+    } catch {}
   }
 
   async function fetchBlocosMarkup() {
     try {
       const res = await fetch(api("/markup-ideal"), { credentials: "include" });
-      if (res.ok) {
-        setBlocosMarkup(await res.json());
-      }
-    } catch (err) {
+      if (res.ok) setBlocosMarkup(await res.json());
+    } catch {
       setBlocosMarkup([]);
     }
   }
 
   async function fetchPerfil() {
     try {
-      const resUser = await fetch(api('/users/me'), { credentials: "include" });
+      const resUser = await fetch(api("/users/me"), { credentials: "include" });
       const user = resUser.ok ? await resUser.json() : {};
 
-      const resConfig = await fetch(api('/company-config'), { credentials: "include" });
+      const resConfig = await fetch(api("/company-config"), { credentials: "include" });
       const empresa = resConfig.ok ? await resConfig.json() : {};
 
       setPerfil({
@@ -206,7 +177,7 @@ export default function CentralReceitas() {
         estado: empresa.estado,
         cep: empresa.cep,
       });
-    } catch (err) {
+    } catch {
       setPerfil({});
     }
   }
@@ -214,7 +185,7 @@ export default function CentralReceitas() {
   function handleEditar(receita) {
     setEditandoId(receita.id);
     setNome(receita.nomeProduto || receita.name || "");
-    // normaliza para URL pública (preview)
+    // normaliza para URL pública (preview/PDF)
     setImagemFinal(toPublicUrl(receita.imagemFinal || null));
     setConservacaoData(receita.conservacaoData || defaultConservacao);
     setObservacoes(receita.observacoes || receita.notes || "");
@@ -244,7 +215,7 @@ export default function CentralReceitas() {
   }
 
   function handleApagar(id) {
-    const receita = receitas.find(r => r.id === id);
+    const receita = receitas.find((r) => r.id === id);
     setReceitaPraDeletar(receita);
     setDeleteModalOpen(true);
   }
@@ -252,13 +223,14 @@ export default function CentralReceitas() {
   async function confirmarDelete() {
     if (!receitaPraDeletar) return;
     try {
-      const res = await fetch(api(`/receitas/${receitaPraDeletar.id}`), { method: "DELETE", credentials: "include" });
-      if (res.ok) {
-        fetchReceitas();
-      }
+      const res = await fetch(api(`/receitas/${receitaPraDeletar.id}`), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) fetchReceitas();
       setDeleteModalOpen(false);
       setReceitaPraDeletar(null);
-    } catch (error) {
+    } catch {
       setDeleteModalOpen(false);
       setReceitaPraDeletar(null);
     }
@@ -282,10 +254,10 @@ export default function CentralReceitas() {
     setEmbalagens([]);
     setMaoDeObra([]);
     setTipoSelecionado(null);
-    setRendimentoNumero('');
-    setRendimentoUnidade('unidade');
-    setTempoTotal('');
-    setTempoUnidade('minutos');
+    setRendimentoNumero("");
+    setRendimentoUnidade("unidade");
+    setTempoTotal("");
+    setTempoUnidade("minutos");
     setPrecoVenda("");
     setPesoUnitario("");
     setDescontoReais("");
@@ -302,13 +274,11 @@ export default function CentralReceitas() {
     const bloco = blocosMarkup.find(
       (b, idx) => String(b.id || b.nome || idx) === String(blocoAtivo)
     );
-    return bloco ? (bloco.nome || bloco.label || bloco.categoria || "-") : "-";
+    return bloco ? bloco.nome || bloco.label || bloco.categoria || "-" : "-";
   }
 
   function getNumeroFichaVisual(receita, idx) {
-    if (receita.numeroFicha) {
-      return String(receita.numeroFicha).padStart(4, "0");
-    }
+    if (receita.numeroFicha) return String(receita.numeroFicha).padStart(4, "0");
     return String(idx + 1).padStart(4, "0");
   }
 
@@ -324,7 +294,10 @@ export default function CentralReceitas() {
       emb.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
       mao.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0);
     return rend && custoTotal > 0
-      ? (custoTotal / Number(rend)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+      ? (custoTotal / Number(rend)).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })
       : "-";
   }
 
@@ -337,21 +310,23 @@ export default function CentralReceitas() {
         taxasPagamento: 0,
         comissoes: 0,
         outros: 0,
-        totalEncargosReais: 0
+        totalEncargosReais: 0,
       };
     }
     const bloco = blocosMarkup.find(
       (b, idx) => String(b.id || b.nome || idx) === String(receita.blocoMarkupAtivo)
     );
-    return bloco || {
-      markupIdeal: 1,
-      gastosFaturamento: 0,
-      impostos: 0,
-      taxasPagamento: 0,
-      comissoes: 0,
-      outros: 0,
-      totalEncargosReais: 0
-    };
+    return (
+      bloco || {
+        markupIdeal: 1,
+        gastosFaturamento: 0,
+        impostos: 0,
+        taxasPagamento: 0,
+        comissoes: 0,
+        outros: 0,
+        totalEncargosReais: 0,
+      }
+    );
   }
 
   function calcularLucroLiquido(receita) {
@@ -382,14 +357,14 @@ export default function CentralReceitas() {
       sub.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
       emb.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0) +
       mao.reduce((acc, cur) => acc + (Number(cur.valorTotal) || 0), 0);
-    return rend && custoTotal > 0 ? (custoTotal / Number(rend)) : 0;
+    return rend && custoTotal > 0 ? custoTotal / Number(rend) : 0;
   }
 
   function calcularMargemContribuicao(receita) {
     return calcularLucroLiquido(receita);
   }
 
-  function autoSaveAbaAtual() { }
+  function autoSaveAbaAtual() {}
 
   function handleTrocarAba(idx) {
     autoSaveAbaAtual();
@@ -397,24 +372,22 @@ export default function CentralReceitas() {
   }
 
   function handleSelectCheckbox(id) {
-    setSelecionados(prev => {
+    setSelecionados((prev) => {
       const already = prev.includes(id);
       let novaSelecao;
       if (already) {
-        novaSelecao = prev.filter(sid => sid !== id);
+        novaSelecao = prev.filter((sid) => sid !== id);
       } else {
         novaSelecao = [...prev, id];
       }
-      setAllSelected(
-        novaSelecao.length === receitasFiltradas.length && receitasFiltradas.length > 0
-      );
+      setAllSelected(novaSelecao.length === receitasFiltradas.length && receitasFiltradas.length > 0);
       return novaSelecao;
     });
   }
 
   function handleSelectAll() {
     if (!allSelected) {
-      setSelecionados(receitasFiltradas.map(r => r.id));
+      setSelecionados(receitasFiltradas.map((r) => r.id));
       setAllSelected(true);
     } else {
       setSelecionados([]);
@@ -431,7 +404,7 @@ export default function CentralReceitas() {
     for (const id of selecionados) {
       try {
         await fetch(api(`/receitas/${id}`), { method: "DELETE", credentials: "include" });
-      } catch (err) { }
+      } catch {}
     }
     await fetchReceitas();
     setSelecionados([]);
@@ -445,20 +418,16 @@ export default function CentralReceitas() {
     if (selecionados.length === 0) return;
     setModalConfigOpen(false);
 
-    // Filtra receitas válidas
-    const receitasValidas = receitas.filter(r => selecionados.includes(r.id) && r && typeof r === "object");
+    const receitasValidas = receitas.filter(
+      (r) => selecionados.includes(r.id) && r && typeof r === "object"
+    );
     if (receitasValidas.length === 0) {
       alert("Nenhuma receita válida para exportar.");
       return;
     }
 
     try {
-      const blob = await pdf(
-        <FichaTecnicaPDF
-          receitas={receitasValidas}
-          perfil={perfil}
-        />
-      ).toBlob();
+      const blob = await pdf(<FichaTecnicaPDF receitas={receitasValidas} perfil={perfil} />).toBlob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -480,22 +449,11 @@ export default function CentralReceitas() {
       return;
     }
 
-    let imagemUrlPreview = imagemFinal;
-    if (imagemFinal && imagemFinal.startsWith("data:image")) {
-      // upload retorna pública; guardamos pública no estado
-      imagemUrlPreview = await uploadImagemReceita(imagemFinal);
-      if (!imagemUrlPreview) return;
-      setImagemFinal(imagemUrlPreview);
-    }
-
-    // Mas no banco salvamos SEM o host
-    const imagemUrlParaSalvar = toStoredUrl(imagemUrlPreview);
+    // salvamos SEM o host (ex.: "/uploads/receitas/...jpg")
+    const imagemUrlParaSalvar = toStoredUrl(imagemFinal);
 
     const safeBlocoAtivo = normalizeBlocoAtivo(blocoMarkupAtivo);
-
-    const fichaParaSalvar = editandoId
-      ? numeroFicha
-      : gerarNumeroFicha(receitas);
+    const fichaParaSalvar = editandoId ? numeroFicha : gerarNumeroFicha(receitas);
 
     const dadosReceita = {
       nome: nome,
@@ -508,7 +466,10 @@ export default function CentralReceitas() {
       rendimentoUnidade,
       tempoTotal,
       tempoUnidade,
-      precoVenda: Number(parseBRL(precoVenda)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      precoVenda: Number(parseBRL(precoVenda)).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
       pesoUnitario,
       descontoReais,
       descontoPercentual,
@@ -518,8 +479,9 @@ export default function CentralReceitas() {
       passosPreparo,
       dataUltimaAtualizacao,
       blocoMarkupAtivo: safeBlocoAtivo,
-      numeroFicha: fichaParaSalvar
+      numeroFicha: fichaParaSalvar,
     };
+
     try {
       let res;
       if (editandoId) {
@@ -543,13 +505,12 @@ export default function CentralReceitas() {
         setEditandoId(null);
         setNumeroFicha("");
       } else if (res.status === 403) {
-        // Limite excedido -> abrir modal de upgrade
         setShowUpgrade(true);
         return;
       } else {
         alert("Erro ao salvar receita!");
       }
-    } catch (error) {
+    } catch {
       alert("Erro de rede ao salvar receita.");
     }
   }
@@ -564,13 +525,17 @@ export default function CentralReceitas() {
   const rendimento = Number(rendimentoNumero) || 1;
   const custoUnitario = custoTotalReceita > 0 ? custoTotalReceita / rendimento : 0;
 
-  const receitasFiltradas = receitas.filter(r => {
+  const receitasFiltradas = receitas.filter((r) => {
     const texto = filtro.trim().toLowerCase();
     if (!texto) return true;
     return (
       (r.nomeProduto || r.name || "").toLowerCase().includes(texto) ||
-      (r.tipoProduto || (r.tipoSelecionado && r.tipoSelecionado.label) || "").toLowerCase().includes(texto) ||
-      (getNomeBlocoMarkup(normalizeBlocoAtivo(r.blocoMarkupAtivo)) || "").toLowerCase().includes(texto)
+      (r.tipoProduto || (r.tipoSelecionado && r.tipoSelecionado.label) || "")
+        .toLowerCase()
+        .includes(texto) ||
+      (getNomeBlocoMarkup(normalizeBlocoAtivo(r.blocoMarkupAtivo)) || "")
+        .toLowerCase()
+        .includes(texto)
     );
   });
 
@@ -580,7 +545,7 @@ export default function CentralReceitas() {
     return {
       perfil,
       nomeReceita: nome,
-      imagemFinal,
+      imagemFinal, // pública p/ PDF
       conservacaoData,
       observacoes,
       passosPreparo,
@@ -614,10 +579,10 @@ export default function CentralReceitas() {
             type="text"
             placeholder="Filtrar por nome, tipo, categoria, etc..."
             value={filtro}
-            onChange={e => setFiltro(e.target.value)}
+            onChange={(e) => setFiltro(e.target.value)}
             autoComplete="off"
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <button onClick={handleCadastrar} className="btn-nova-receita">
               <FaPlus /> Nova Receita
             </button>
@@ -633,7 +598,7 @@ export default function CentralReceitas() {
                 marginLeft: "3px",
                 fontSize: "1.38rem",
                 color: "#00cfff",
-                transition: "background 0.16s"
+                transition: "background 0.16s",
               }}
               onClick={() => setModalConfigOpen(true)}
             >
@@ -662,39 +627,57 @@ export default function CentralReceitas() {
           <tbody>
             {receitasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={10} className="central-receitas-td-centralizada central-receitas-td-vazia">Nenhuma receita cadastrada.</td>
-              </tr>
-            ) : receitasFiltradas.map((receita, idx) => (
-              <tr key={receita.id} className="central-receitas-tabela-linha">
-                <td className="central-receitas-td">
-                  {getNumeroFichaVisual(receita, idx)}
-                </td>
-                <td className="central-receitas-td">{receita.nomeProduto || receita.name || "-"}</td>
-                <td className="central-receitas-td">{receita.tipoProduto || (receita.tipoSelecionado && receita.tipoSelecionado.label) || "-"}</td>
-                <td className="central-receitas-td">
-                  {getNomeBlocoMarkup(normalizeBlocoAtivo(receita.blocoMarkupAtivo))}
-                </td>
-                <td className="central-receitas-td">
-                  {calcularCustoUnitario(receita)}
-                </td>
-                <td className="central-receitas-td">{calcularMargemContribuicao(receita)}</td>
-                <td className="central-receitas-td">{calcularLucroLiquido(receita)}</td>
-                <td className="central-receitas-td">{formatarBRL(receita.precoVenda)}</td>
-                <td className="central-receitas-td central-receitas-td-acao">
-                  <button onClick={() => handleEditar(receita)} className="central-receitas-btn-acao" title="Editar"><FaEdit /></button>
-                </td>
-                <td className="central-receitas-td central-receitas-td-acao" style={{ textAlign: 'center' }}>
-                  <label className="checkbox-custom">
-                    <input
-                      type="checkbox"
-                      checked={selecionados.includes(receita.id)}
-                      onChange={() => handleSelectCheckbox(receita.id)}
-                    />
-                    <span className="checkmark"></span>
-                  </label>
+                <td
+                  colSpan={10}
+                  className="central-receitas-td-centralizada central-receitas-td-vazia"
+                >
+                  Nenhuma receita cadastrada.
                 </td>
               </tr>
-            ))}
+            ) : (
+              receitasFiltradas.map((receita, idx) => (
+                <tr key={receita.id} className="central-receitas-tabela-linha">
+                  <td className="central-receitas-td">{getNumeroFichaVisual(receita, idx)}</td>
+                  <td className="central-receitas-td">
+                    {receita.nomeProduto || receita.name || "-"}
+                  </td>
+                  <td className="central-receitas-td">
+                    {receita.tipoProduto ||
+                      (receita.tipoSelecionado && receita.tipoSelecionado.label) ||
+                      "-"}
+                  </td>
+                  <td className="central-receitas-td">
+                    {getNomeBlocoMarkup(normalizeBlocoAtivo(receita.blocoMarkupAtivo))}
+                  </td>
+                  <td className="central-receitas-td">{calcularCustoUnitario(receita)}</td>
+                  <td className="central-receitas-td">{calcularMargemContribuicao(receita)}</td>
+                  <td className="central-receitas-td">{calcularLucroLiquido(receita)}</td>
+                  <td className="central-receitas-td">{formatarBRL(receita.precoVenda)}</td>
+                  <td className="central-receitas-td central-receitas-td-acao">
+                    <button
+                      onClick={() => handleEditar(receita)}
+                      className="central-receitas-btn-acao"
+                      title="Editar"
+                    >
+                      <FaEdit />
+                    </button>
+                  </td>
+                  <td
+                    className="central-receitas-td central-receitas-td-acao"
+                    style={{ textAlign: "center" }}
+                  >
+                    <label className="checkbox-custom">
+                      <input
+                        type="checkbox"
+                        checked={selecionados.includes(receita.id)}
+                        onChange={() => handleSelectCheckbox(receita.id)}
+                      />
+                      <span className="checkmark"></span>
+                    </label>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -707,7 +690,9 @@ export default function CentralReceitas() {
                 <div
                   key={aba.label}
                   onClick={() => handleTrocarAba(idx)}
-                  className={`central-receitas-aba${abaAtiva === idx ? " central-receitas-aba-ativa" : ""}`}
+                  className={`central-receitas-aba${
+                    abaAtiva === idx ? " central-receitas-aba-ativa" : ""
+                  }`}
                 >
                   {aba.label}
                 </div>
@@ -718,36 +703,67 @@ export default function CentralReceitas() {
                 <AbaImpressaoReceita {...getImpressaoProps()} />
               ) : (
                 <AbaComp
-                  nome={nome} setNome={setNome}
-                  imagemFinal={imagemFinal} setImagemFinal={(v) => setImagemFinal(toPublicUrl(v))}
-                  conservacaoData={conservacaoData} setConservacaoData={setConservacaoData}
-                  observacoes={observacoes} setObservacoes={setObservacoes}
-                  passosPreparo={passosPreparo} setPassosPreparo={setPassosPreparo}
-                  ingredientes={ingredientes} setIngredientes={setIngredientes}
-                  subReceitas={subReceitas} setSubReceitas={setSubReceitas}
-                  embalagens={embalagens} setEmbalagens={setEmbalagens}
-                  maoDeObra={maoDeObra} setMaoDeObra={setMaoDeObra}
-                  tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado}
-                  rendimentoNumero={rendimentoNumero} setRendimentoNumero={setRendimentoNumero}
-                  rendimentoUnidade={rendimentoUnidade} setRendimentoUnidade={setRendimentoUnidade}
-                  tempoTotal={tempoTotal} setTempoTotal={setTempoTotal}
-                  tempoUnidade={tempoUnidade} setTempoUnidade={setTempoUnidade}
-                  precoVenda={precoVenda} setPrecoVenda={setPrecoVenda}
-                  pesoUnitario={pesoUnitario} setPesoUnitario={setPesoUnitario}
-                  descontoReais={descontoReais} setDescontoReais={setDescontoReais}
-                  descontoPercentual={descontoPercentual} setDescontoPercentual={setDescontoPercentual}
+                  nome={nome}
+                  setNome={setNome}
+                  imagemFinal={imagemFinal}
+                  setImagemFinal={(v) => setImagemFinal(toPublicUrl(v))}
+                  conservacaoData={conservacaoData}
+                  setConservacaoData={setConservacaoData}
+                  observacoes={observacoes}
+                  setObservacoes={setObservacoes}
+                  passosPreparo={passosPreparo}
+                  setPassosPreparo={setPassosPreparo}
+                  ingredientes={ingredientes}
+                  setIngredientes={setIngredientes}
+                  subReceitas={subReceitas}
+                  setSubReceitas={setSubReceitas}
+                  embalagens={embalagens}
+                  setEmbalagens={setEmbalagens}
+                  maoDeObra={maoDeObra}
+                  setMaoDeObra={setMaoDeObra}
+                  tipoSelecionado={tipoSelecionado}
+                  setTipoSelecionado={setTipoSelecionado}
+                  rendimentoNumero={rendimentoNumero}
+                  setRendimentoNumero={setRendimentoNumero}
+                  rendimentoUnidade={rendimentoUnidade}
+                  setRendimentoUnidade={setRendimentoUnidade}
+                  tempoTotal={tempoTotal}
+                  setTempoTotal={setTempoTotal}
+                  tempoUnidade={tempoUnidade}
+                  setTempoUnidade={setTempoUnidade}
+                  precoVenda={precoVenda}
+                  setPrecoVenda={setPrecoVenda}
+                  pesoUnitario={pesoUnitario}
+                  setPesoUnitario={setPesoUnitario}
+                  descontoReais={descontoReais}
+                  setDescontoReais={setDescontoReais}
+                  descontoPercentual={descontoPercentual}
+                  setDescontoPercentual={setDescontoPercentual}
                   blocosMarkup={blocosMarkup}
                   custoTotalReceita={custoTotalReceita}
                   custoUnitario={custoUnitario}
-                  dataUltimaAtualizacao={dataUltimaAtualizacao} setDataUltimaAtualizacao={setDataUltimaAtualizacao}
-                  blocoMarkupAtivo={blocoMarkupAtivo} setBlocoMarkupAtivo={setBlocoMarkupAtivo}
-                  numeroFicha={numeroFicha} setNumeroFicha={setNumeroFicha}
+                  dataUltimaAtualizacao={dataUltimaAtualizacao}
+                  setDataUltimaAtualizacao={setDataUltimaAtualizacao}
+                  blocoMarkupAtivo={blocoMarkupAtivo}
+                  setBlocoMarkupAtivo={setBlocoMarkupAtivo}
+                  numeroFicha={numeroFicha}
+                  setNumeroFicha={setNumeroFicha}
                 />
               )}
             </div>
             <div className="central-receitas-modal-footer">
-              <button onClick={() => { setModalOpen(false); setEditandoId(null); }} className="btn-cancelar-modal-receita">Cancelar</button>
-              <button onClick={handleSalvar} className="btn-salvar-modal-receita">Salvar</button>
+              <button
+                onClick={() => {
+                  setModalOpen(false);
+                  setEditandoId(null);
+                }}
+                className="btn-cancelar-modal-receita"
+              >
+                Cancelar
+              </button>
+              <button onClick={handleSalvar} className="btn-salvar-modal-receita">
+                Salvar
+              </button>
             </div>
           </div>
         </div>
@@ -768,7 +784,10 @@ export default function CentralReceitas() {
       {/* MODAL DE CONFIRMAR DELETE INDIVIDUAL */}
       <ConfirmDeleteModal
         isOpen={deleteModalOpen}
-        onRequestClose={() => { setDeleteModalOpen(false); setReceitaPraDeletar(null); }}
+        onRequestClose={() => {
+          setDeleteModalOpen(false);
+          setReceitaPraDeletar(null);
+        }}
         onConfirm={confirmarDelete}
         itemLabel={receitaPraDeletar?.nomeProduto || receitaPraDeletar?.name || "receita"}
       />
@@ -778,9 +797,11 @@ export default function CentralReceitas() {
         isOpen={deleteSelecionadosModalOpen}
         onRequestClose={() => setDeleteSelecionadosModalOpen(false)}
         onConfirm={confirmarDeleteSelecionados}
-        itemLabel={selecionados.length > 1
-          ? `${selecionados.length} receitas selecionadas`
-          : "1 receita selecionada"}
+        itemLabel={
+          selecionados.length > 1
+            ? `${selecionados.length} receitas selecionadas`
+            : "1 receita selecionada"
+        }
       />
 
       {/* Modal de Upgrade quando extrapola limite */}

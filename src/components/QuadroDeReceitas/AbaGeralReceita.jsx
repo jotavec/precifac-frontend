@@ -4,16 +4,8 @@ import imageCompression from "browser-image-compression";
 import { FaUpload, FaCamera, FaPlus, FaTrash } from "react-icons/fa";
 import "./AbaGeralReceita.css";
 
-/** BACKEND base para montar URL pública em dev/prod */
+/** Para montar preview quando vier caminho relativo do backend */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-
-/** Normaliza caminhos para preview:
- * - falsy/"null"/"undefined" => ""
- * - base64 => retorna como está
- * - absoluta => retorna como está
- * - "/uploads/..." => prefixa BACKEND_URL
- * - fallback => retorna original
- */
 function toPublicUrl(url) {
   if (!url || url === "null" || url === "undefined") return "";
   if (url.startsWith("data:image")) return url;
@@ -22,39 +14,23 @@ function toPublicUrl(url) {
   return url;
 }
 
-/** Extrai caminho relativo compatível vindo do backend */
-function pickRelative(resp) {
-  if (!resp) return "";
-  const rel =
-    resp.relativePath ||
-    resp.url ||
-    resp.path ||
-    resp.filePath ||
-    resp.location ||
-    "";
-  if (!rel || rel === "null" || rel === "undefined") return "";
-  if (rel.startsWith("http")) return rel;
-  if (rel.startsWith("/uploads/")) return rel;
-  if (rel.startsWith("uploads/")) return `/${rel}`;
-  return rel;
-}
-
 // ========== COMPONENTE UPLOADER ============= //
 function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
-  const [imagemFonte, setImagemFonte] = useState(null);       // base64 temporário p/ crop
-  const [imagemRelativa, setImagemRelativa] = useState("");   // caminho relativo salvo
+  const [imagemFonte, setImagemFonte] = useState(null);     // base64 temporário p/ crop
+  const [imagemFinalLocal, setImagemFinalLocal] = useState(""); // base64 OU caminho relativo já salvo
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [showCrop, setShowCrop] = useState(false);
+  const [saidaMime, setSaidaMime] = useState("image/jpeg"); // "image/png" p/ preservar alpha
   const inputImgRef = useRef(null);
 
   useEffect(() => {
     if (!imagemInicial) {
-      setImagemRelativa("");
+      setImagemFinalLocal("");
       return;
     }
-    setImagemRelativa(imagemInicial);
+    setImagemFinalLocal(imagemInicial);
   }, [imagemInicial]);
 
   const onCropComplete = useCallback((_, area) => {
@@ -65,6 +41,9 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // PNG preserva transparência; outros como JPEG
+    setSaidaMime(file.type === "image/png" ? "image/png" : "image/jpeg");
+
     let compressed = file;
     try {
       compressed = await imageCompression(file, {
@@ -72,7 +51,7 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
         maxWidthOrHeight: 1000,
         useWebWorker: true,
       });
-    } catch (err) {
+    } catch {
       alert("Erro ao comprimir imagem.");
       return;
     }
@@ -85,6 +64,7 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
     reader.readAsDataURL(compressed);
   };
 
+  // Recorta e gera BASE64 (PNG com alpha / JPEG com fundo branco)
   const aplicarCorte = async () => {
     if (!imagemFonte || !croppedAreaPixels) return;
 
@@ -98,50 +78,35 @@ function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {
     canvas.height = SIZE;
     const ctx = canvas.getContext("2d");
 
+    // JPEG não tem alpha -> pinta branco
+    if (saidaMime !== "image/png") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, SIZE, SIZE);
+    }
+
     const { x, y, width, height } = croppedAreaPixels;
     ctx.drawImage(image, x, y, width, height, 0, 0, SIZE, SIZE);
 
-    canvas.toBlob(
-      async (blob) => {
-        try {
-          const formData = new FormData();
-          formData.append("file", blob, "imagem-receita.jpg");
+    const base64 =
+      saidaMime === "image/png"
+        ? canvas.toDataURL("image/png")              // preserva transparência
+        : canvas.toDataURL("image/jpeg", 0.92);      // fundo branco
 
-          // >>> usa o backend definido por env (Render em produção)
-          const res = await fetch(`${BACKEND_URL}/api/uploads/receita`, {
-            method: "POST",
-            body: formData,
-            credentials: "include",
-          });
-          if (!res.ok) throw new Error("Falha no upload");
+    setImagemFinalLocal(base64);
+    onImagemFinalAlterada && onImagemFinalAlterada(base64);
 
-          const data = await res.json();
-          const rel = pickRelative(data);
-          const preview = toPublicUrl(rel);
-
-          setImagemRelativa(rel || "");
-          onImagemFinalAlterada && onImagemFinalAlterada(rel || "");
-        } catch (err) {
-          console.error(err);
-          alert("Erro ao enviar imagem.");
-        } finally {
-          setShowCrop(false);
-          setImagemFonte(null);
-        }
-      },
-      "image/jpeg",
-      0.92
-    );
+    setShowCrop(false);
+    setImagemFonte(null);
   };
 
   const removerImagem = (e) => {
     e.stopPropagation();
-    setImagemRelativa("");
+    setImagemFinalLocal("");
     onImagemFinalAlterada && onImagemFinalAlterada("");
     if (inputImgRef.current) inputImgRef.current.value = "";
   };
 
-  const previewSrc = toPublicUrl(imagemRelativa);
+  const previewSrc = toPublicUrl(imagemFinalLocal);
   const hasPreview = typeof previewSrc === "string" && previewSrc.length > 4;
 
   return (

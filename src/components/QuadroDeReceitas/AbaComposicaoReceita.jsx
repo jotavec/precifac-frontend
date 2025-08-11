@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import { FaTrash } from "react-icons/fa";
 import "./AbaComposicaoReceita.css";
+import api from "../../services/api"; // <-- usa o cliente central (injeta Authorization)
 
 function formatarCustoUn(custo, unidade) {
   const val = Number(custo);
@@ -68,8 +69,7 @@ export default function AbaComposicaoReceita({
 
   async function fetchProdutosEstoque() {
     try {
-      const res = await fetch("http://localhost:3000/api/produtos");
-      const data = await res.json();
+      const { data } = await api.get("/produtos");
       setProdutosEstoque(Array.isArray(data) ? data : []);
     } catch {
       setProdutosEstoque([]);
@@ -78,8 +78,7 @@ export default function AbaComposicaoReceita({
 
   async function fetchTodasReceitas() {
     try {
-      const res = await fetch("/api/receitas", { credentials: "include" });
-      const data = await res.json();
+      const { data } = await api.get("/receitas"); // baseURL já é /api
       setTodasReceitas(Array.isArray(data) ? data : []);
     } catch {
       setTodasReceitas([]);
