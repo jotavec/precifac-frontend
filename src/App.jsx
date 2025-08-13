@@ -20,8 +20,9 @@ import Sugestoes from "./components/Sugestoes/Sugestoes";
 import "./App.css";
 import "./AppContainer.css";
 
-/** Base da API montada do .env (Render em prod, local em dev se quiser trocar) */
-const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`;
+/** Base da API montada do .env (Render em prod). Sem fallback pra localhost. */
+const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${API_PREFIX}`;
 const api = (path) => `${API_BASE}${path}`;
 
 // ===== AuthContext =====
@@ -123,9 +124,15 @@ function getNavState() {
 
 export default function App() {
   const navInit = getNavState();
-  const [screen, setScreen] = useState("login");
+  const [screen, setScreen] = useState(
+    typeof window !== "undefined" && window.location.pathname === "/login" ? "login" : "login"
+  );
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  // ====== Auth gate ======
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false); // evita renderizar app antes de checar a sessão
+
   const [msg, setMsg] = useState("");
   const [aba, setAba] = useState(navInit.aba);
   const [catIdx, setCatIdx] = useState(navInit.catIdx);
@@ -140,7 +147,36 @@ export default function App() {
   // >>> componente ativo
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
-  // carrega funcionários
+  // carrega sessão do usuário (apenas uma vez)
+  useEffect(() => {
+    let canceled = false;
+    async function fetchUser() {
+      try {
+        const res = await fetch(api("/users/me"), {
+          method: "GET",
+          credentials: "include"
+        });
+        if (!canceled) {
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data);
+          } else {
+            setUser(null);
+          }
+        }
+      } catch {
+        if (!canceled) setUser(null);
+      } finally {
+        if (!canceled) setAuthChecked(true);
+      }
+    }
+    fetchUser();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  // carrega funcionários quando logado
   useEffect(() => {
     if (!user) return;
     async function fetchFuncionarios() {
@@ -151,6 +187,12 @@ export default function App() {
           setCategoriasCustos(cats => {
             const novas = [...cats];
             novas[1].funcionarios = Array.isArray(data) ? data : [];
+            return novas;
+          });
+        } else {
+          setCategoriasCustos(cats => {
+            const novas = [...cats];
+            novas[1].funcionarios = [];
             return novas;
           });
         }
@@ -226,22 +268,6 @@ export default function App() {
     localStorage.setItem("navState", JSON.stringify(navState));
   }, [aba, catIdx, subCatMarkup]);
 
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(api("/users/me"), {
-          method: "GET",
-          credentials: "include"
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch {}
-    }
-    fetchUser();
-  }, []);
-
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
@@ -268,6 +294,7 @@ export default function App() {
       const data = await res.json();
       setUser(data.user);
       setMsg("");
+      if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
     } catch {
       setMsg("Erro de conexão ao cadastrar.");
     }
@@ -294,22 +321,26 @@ export default function App() {
       const data = await res.json();
       setUser(data.user);
       setMsg("");
+      if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
     } catch {
       setMsg("Erro ao fazer login.");
     }
   }
 
   async function handleLogout() {
-    await fetch(api("/users/logout"), {
-      method: "POST",
-      credentials: "include"
-    });
+    try {
+      await fetch(api("/users/logout"), {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch {}
     setUser(null);
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
     setAba(0);
     setCatIdx(0);
     setSubCatMarkup(0);
+    if (typeof window !== "undefined") window.history.replaceState({}, "", "/login");
   }
 
   function getSelectedLabel(aba, catIdx, subCatMarkup) {
@@ -378,6 +409,11 @@ export default function App() {
 
   const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
   const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
+
+  // ===== RENDER =====
+  if (!authChecked) {
+    return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ user, setUser, setAba }}>
@@ -514,8 +550,12 @@ export default function App() {
           </form>
           <button
             onClick={() => {
-              setScreen(screen === "login" ? "register" : "login");
+              const next = screen === "login" ? "register" : "login";
+              setScreen(next);
               setMsg("");
+              if (typeof window !== "undefined") {
+                window.history.replaceState({}, "", next === "login" ? "/login" : "/");
+              }
             }}
             style={{
               width: "100%",
