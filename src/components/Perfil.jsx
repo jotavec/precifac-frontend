@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import api from "../services/api";
+import api, { BASE_URL } from "../services/api";
 import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
 import Cropper from "react-easy-crop";
 import TabelaPlanos from "./TabelaPlanos";
 import "./Perfil.css";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 /* ==================== Masks ==================== */
 function formatCNPJ(value) {
@@ -77,7 +75,7 @@ function getFullAvatarUrl(avatarUrl) {
     pathOnly = `uploads/avatars/${pathOnly}`;
   }
 
-  const base = BACKEND_URL.replace(/\/$/, "");
+  const base = String(BASE_URL || "").replace(/\/$/, "");
   const full = `${base}/${pathOnly.replace(/^\//, "")}`;
   return query ? `${full}?${query}` : full;
 }
