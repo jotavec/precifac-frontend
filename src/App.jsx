@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import api from "./services/api";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -19,11 +20,6 @@ import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
 import "./App.css";
 import "./AppContainer.css";
-
-/** Base da API montada do .env (Render em prod). Sem fallback pra localhost. */
-const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
-const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${API_PREFIX}`;
-const api = (path) => `${API_BASE}${path}`;
 
 // ===== AuthContext =====
 export const AuthContext = createContext();
@@ -124,14 +120,12 @@ function getNavState() {
 
 export default function App() {
   const navInit = getNavState();
-  const [screen, setScreen] = useState(
-    typeof window !== "undefined" && window.location.pathname === "/login" ? "login" : "login"
-  );
+  const [screen, setScreen] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   // ====== Auth gate ======
   const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false); // evita renderizar app antes de checar a sessão
+  const [authChecked, setAuthChecked] = useState(false);
 
   const [msg, setMsg] = useState("");
   const [aba, setAba] = useState(navInit.aba);
@@ -147,22 +141,14 @@ export default function App() {
   // >>> componente ativo
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
-  // carrega sessão do usuário (apenas uma vez)
+  // checa sessão uma vez
   useEffect(() => {
     let canceled = false;
     async function fetchUser() {
       try {
-        const res = await fetch(api("/users/me"), {
-          method: "GET",
-          credentials: "include"
-        });
+        const res = await api.get("/users/me");
         if (!canceled) {
-          if (res.ok) {
-            const data = await res.json();
-            setUser(data);
-          } else {
-            setUser(null);
-          }
+          setUser(res.data);
         }
       } catch {
         if (!canceled) setUser(null);
@@ -171,9 +157,7 @@ export default function App() {
       }
     }
     fetchUser();
-    return () => {
-      canceled = true;
-    };
+    return () => { canceled = true; };
   }, []);
 
   // carrega funcionários quando logado
@@ -181,21 +165,12 @@ export default function App() {
     if (!user) return;
     async function fetchFuncionarios() {
       try {
-        const res = await fetch(api("/folhapagamento/funcionarios"), { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setCategoriasCustos(cats => {
-            const novas = [...cats];
-            novas[1].funcionarios = Array.isArray(data) ? data : [];
-            return novas;
-          });
-        } else {
-          setCategoriasCustos(cats => {
-            const novas = [...cats];
-            novas[1].funcionarios = [];
-            return novas;
-          });
-        }
+        const res = await api.get("/folhapagamento/funcionarios");
+        setCategoriasCustos(cats => {
+          const novas = [...cats];
+          novas[1].funcionarios = Array.isArray(res.data) ? res.data : [];
+          return novas;
+        });
       } catch {
         setCategoriasCustos(cats => {
           const novas = [...cats];
@@ -208,59 +183,47 @@ export default function App() {
   }, [user]);
 
   async function handleAddFuncionario(novoFuncionario) {
-    const res = await fetch(api("/folhapagamento/funcionarios"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(novoFuncionario)
-    });
-    if (res.ok) {
-      const novo = await res.json();
+    try {
+      const { data } = await api.post("/folhapagamento/funcionarios", novoFuncionario);
       setCategoriasCustos(cats => {
         const novas = [...cats];
-        novas[1].funcionarios = [...novas[1].funcionarios, novo];
+        novas[1].funcionarios = [...novas[1].funcionarios, data];
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   async function handleEditarFuncionario(idx, funcionarioEditado) {
-    const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(funcionarioEditado)
-    });
-    if (res.ok) {
-      const atualizado = await res.json();
+    try {
+      const id = categoriasCustos[1].funcionarios[idx].id;
+      const { data } = await api.put(`/folhapagamento/funcionarios/${id}`, funcionarioEditado);
       setCategoriasCustos(cats => {
         const novas = [...cats];
-        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => i === idx ? atualizado : f);
+        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => (i === idx ? data : f));
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   async function handleExcluirFuncionario(idx) {
-    const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
-      method: "DELETE",
-      credentials: "include"
-    });
-    if (res.ok) {
+    try {
+      const id = categoriasCustos[1].funcionarios[idx].id;
+      await api.delete(`/folhapagamento/funcionarios/${id}`);
       setCategoriasCustos(cats => {
         const novas = [...cats];
         novas[1].funcionarios = novas[1].funcionarios.filter((_, i) => i !== idx);
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   useEffect(() => {
@@ -276,27 +239,17 @@ export default function App() {
     e.preventDefault();
     setMsg("Enviando...");
     try {
-      const res = await fetch(api("/users"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users", {
+        name: form.name,
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao cadastrar.");
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user);
+      setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
-    } catch {
-      setMsg("Erro de conexão ao cadastrar.");
+    } catch (err) {
+      const text = err?.response?.data?.error || "Erro ao cadastrar.";
+      setMsg(text);
     }
   }
 
@@ -304,35 +257,33 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch(api("/users/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users/login", {
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao fazer login.");
-        return;
+      // se o backend retornar token no corpo, persistimos (para contornar bloqueio de 3rd-party cookies)
+      if (data?.token) {
+        try {
+          localStorage.setItem("authToken", data.token);
+        } catch {}
       }
-      const data = await res.json();
-      setUser(data.user);
+      setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
-    } catch {
-      setMsg("Erro ao fazer login.");
+    } catch (err) {
+      const text = err?.response?.data?.error || "Erro ao fazer login.";
+      setMsg(text);
     }
   }
 
   async function handleLogout() {
     try {
-      await fetch(api("/users/logout"), {
-        method: "POST",
-        credentials: "include"
-      });
+      await api.post("/users/logout");
+    } catch {}
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("accessToken");
     } catch {}
     setUser(null);
     setScreen("login");
@@ -350,27 +301,13 @@ export default function App() {
     if (aba === 3) {
       return `Markup:${subCategoriasMarkup[subCatMarkup]?.label || ""}`;
     }
-    if (aba === "cadastros") {
-      return "Estoque:Cadastros";
-    }
-    if (aba === "entrada") {
-      return "Estoque:Entrada";
-    }
-    if (aba === "fornecedores") {
-      return "Estoque:Fornecedores";
-    }
-    if (aba === "saida") {
-      return "Estoque:Saída";
-    }
-    if (aba === "movimentacoes") {
-      return "Estoque:Movimentações";
-    }
-    if (aba === "central_receitas") {
-      return "Quadro de Receitas:Central de Receitas";
-    }
-    if (aba === "perfil_planos") {
-      return "Perfil:Planos";
-    }
+    if (aba === "cadastros") return "Estoque:Cadastros";
+    if (aba === "entrada") return "Estoque:Entrada";
+    if (aba === "fornecedores") return "Estoque:Fornecedores";
+    if (aba === "saida") return "Estoque:Saída";
+    if (aba === "movimentacoes") return "Estoque:Movimentações";
+    if (aba === "central_receitas") return "Quadro de Receitas:Central de Receitas";
+    if (aba === "perfil_planos") return "Perfil:Planos";
     return abasPrincipais[aba]?.label || "";
   }
 
