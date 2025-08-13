@@ -8,15 +8,22 @@ import axios from "axios";
  * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com
  * - VITE_API_PREFIX: ex. /api
  */
-const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "http://localhost:3000";
-const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
+const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL; // sem fallback!
+const RAW_API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
 
 // remove barras à direita da base e garante que o prefix tenha 1 barra à esquerda
-const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
+const BASE_URL = String(RAW_BASE_URL || "").replace(/\/+$/, "");
 const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
 
 // base final: https://.../api
 const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+
+// (opcional) alerta claro se as envs não estiverem setadas
+if (!RAW_BASE_URL) {
+  // Evita cair em localhost silenciosamente
+  // Em produção, garanta VITE_BACKEND_URL configurada no Vercel.
+  console.error("[API] VITE_BACKEND_URL NÃO definida. Ajuste as variáveis de ambiente do Vercel.");
+}
 
 /* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
 function getCookie(name) {
