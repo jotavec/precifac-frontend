@@ -5,78 +5,26 @@ import "./Login.css";
 export default function Login({
   screen: initialScreen = "login",
   setScreen: setParentScreen = () => {},
+  form,
+  handleChange,
+  handleLogin,
+  handleRegister,
+  msg = "",
 }) {
+  // este componente NÃO simula nada: ele exige os handlers do App
+  if (!form || !handleChange || !handleLogin || !handleRegister) {
+    console.error(
+      "[Login.jsx] Faltam props obrigatórias: form, handleChange, handleLogin, handleRegister."
+    );
+  }
+
   const [screen, setScreen] = useState(initialScreen);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [msg, setMsg] = useState("");
-  const [geminiLoading, setGeminiLoading] = useState(false);
-  const [geminiSuggestions, setGeminiSuggestions] = useState([]);
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setMsg("Login simulado com sucesso!");
-  };
-
-  const handleRegister = (e) => {
-    e.preventDefault();
-    setMsg("Registro simulado com sucesso!");
-  };
-
-  const callGeminiApi = async (prompt) => {
-    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-    const payload = { contents: chatHistory };
-    const apiKey = "";
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json();
-      if (result.candidates?.length && result.candidates[0].content?.parts?.length) {
-        const text = result.candidates[0].content.parts[0].text;
-        return text
-          .split("\n")
-          .map((s) => s.replace(/[-* ]/g, "").trim())
-          .filter(Boolean);
-      } else {
-        throw new Error("Resposta da API inválida.");
-      }
-    } catch (error) {
-      console.error("Erro ao chamar a API Gemini:", error);
-      throw error;
-    }
-  };
-
-  const handleGeminiClick = async () => {
-    if (!form.name) {
-      setMsg("Por favor, insira seu nome primeiro.");
-      return;
-    }
-    setGeminiLoading(true);
-    setMsg("");
-    setGeminiSuggestions([]);
-    try {
-      const prompt = `Sugira 5 nomes de usuário criativos e seguros baseados no nome "${form.name}". Liste apenas os nomes de usuário, um por linha.`;
-      const suggestions = await callGeminiApi(prompt);
-      setGeminiSuggestions(suggestions);
-    } catch {
-      setMsg("Não foi possível obter sugestões. Tente novamente.");
-    } finally {
-      setGeminiLoading(false);
-    }
-  };
-
   const isLoginScreen = screen === "login";
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="login-root">
-      {/* Botão de suporte (gradiente + ícone WhatsApp alinhado 25x25) */}
+      {/* Botão de suporte (gradiente com ícone do WhatsApp) */}
       <a
         href="https://w.app/calculaai"
         target="_blank"
@@ -85,7 +33,7 @@ export default function Login({
         aria-label="Abrir suporte no WhatsApp"
         title="Falar no WhatsApp"
       >
-        {/* Ícone oficial (Simple Icons) — centrado e nítido */}
+        {/* Ícone WhatsApp (SVG vetorial, 25x25) */}
         <svg
           className="support-button__icon"
           viewBox="0 0 24 24"
@@ -98,13 +46,13 @@ export default function Login({
         >
           <path
             fill="currentColor"
-            d="M.057 24l1.687-6.163A11.867 11.867 0 01.157 11.892C.16 5.3 5.419 0 12.062 0c3.17 0 6.167 1.24 8.413 3.488a11.82 11.82 0 013.486 8.414c-.003 6.644-5.312 12.006-11.956 12.006a11.95 11.95 0 01-5.938-1.594L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.593 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.89 4.434-9.893 9.886a9.86 9.86 0 001.599 5.261l-.999 3.648 3.893-1.611zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.867-2.03-.967-.272-.1-.47-.149-.669.149-.198.297-.77.966-.944 1.164-.173.198-.346.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.777-1.48-1.742-1.653-2.04-.173-.297-.018-.457.13-.606.134-.133.297-.346.446-.52.149-.173.198-.297.297-.495.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.207-.242-.579-.487-.501-.669-.51-.173-.01-.37-.012-.568-.012-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"
+            d="M.057 24l1.687-6.163A11.867 11.867 0 01.157 11.892C.16 5.3 5.419 0 12.062 0 15.232 0 18.23 1.24 20.476 3.488a11.82 11.82 0 013.486 8.414c-.003 6.644-5.312 12.006-11.956 12.006a11.95 11.95 0 01-5.938-1.594L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.593 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.89 4.434-9.893 9.886a9.86 9.86 0 001.599 5.261l-.999 3.648 3.893-1.611zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.867-2.03-.967-.272-.1-.47-.149-.669.149-.198.297-.77.966-.944 1.164-.17.19-.34.22-.63.08-.29-.15-1.24-.45-2.36-1.45-.87-.77-1.46-1.71-1.63-2-.17-.29-.02-.45.13-.6.13-.13.29-.34.43-.51.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.51-.08-.15-.64-1.54-.88-2.11-.23-.56-.47-.48-.64-.49h-.55c-.19 0-.51.08-.78.36-.26.29-1 1-1 2.42 0 1.42 1.03 2.79 1.18 2.98.15.19 2.02 3.08 4.89 4.2.68.29 1.21.46 1.62.58.68.22 1.3.19 1.79.11.55-.08 1.7-.69 1.94-1.36.24-.66.24-1.23.17-1.35-.06-.12-.23-.19-.52-.34z"
           />
         </svg>
         <span>Suporte</span>
       </a>
 
-      {/* ESQUERDA: vídeo centralizado (coloque o arquivo em public/video/login-loop.mp4) */}
+      {/* ESQUERDA: vídeo (sem loop; toca 1x e pausa) */}
       <div className="login-left">
         <video
           src="/video/login-loop.mp4"
@@ -112,7 +60,7 @@ export default function Login({
           muted
           playsInline
           preload="metadata"
-          onEnded={(e) => e.currentTarget.pause()} /* toca 1x e congela no último frame */
+          onEnded={(e) => e.currentTarget.pause()}
         >
           Seu navegador não suporta vídeos HTML5.
         </video>
@@ -128,83 +76,87 @@ export default function Login({
           />
 
           <div className="login-card" role="form" aria-label="Login">
-            <h1 className="login-title">
-              {isLoginScreen ? "Entrar" : "Criar conta"}
-            </h1>
+            <h1 className="login-title">{isLoginScreen ? "Entrar" : "Criar conta"}</h1>
 
             <form onSubmit={isLoginScreen ? handleLogin : handleRegister}>
               {!isLoginScreen && (
                 <>
-                  <label className="login-label" htmlFor="name">
-                    Nome
-                  </label>
+                  <label className="login-label" htmlFor="name">Nome</label>
                   <input
                     id="name"
                     name="name"
                     placeholder="Seu nome completo"
-                    value={form.name}
+                    value={form?.name || ""}
                     onChange={handleChange}
                     className="login-input"
                     required
                   />
-                  <button
-                    type="button"
-                    className="gemini-button"
-                    onClick={handleGeminiClick}
-                    disabled={geminiLoading}
-                  >
-                    {geminiLoading ? "Sugerindo..." : "Sugerir usernames ✨"}
-                  </button>
                 </>
               )}
 
-              <label className="login-label" htmlFor="email">
-                E-mail
-              </label>
+              <label className="login-label" htmlFor="email">E-mail</label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 placeholder="seuemail@exemplo.com"
-                value={form.email}
+                value={form?.email || ""}
                 onChange={handleChange}
                 className="login-input"
                 autoComplete="email"
                 required
               />
 
-              <label className="login-label" htmlFor="password">
-                Senha
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={handleChange}
-                className="login-input"
-                autoComplete="current-password"
-                required
-              />
+              <label className="login-label" htmlFor="password">Senha</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={form?.password || ""}
+                  onChange={handleChange}
+                  className="login-input"
+                  autoComplete="current-password"
+                  required
+                />
+                {/* Botão olho (mostrar/ocultar senha) */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                >
+                  {showPassword ? (
+                    // Eye-off
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M3 3l18 18" stroke="#666" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 5.08A10.85 10.85 0 0112 5c7 0 10 7 10 7a13.32 13.32 0 01-3.26 4.33M6.12 6.12A13.32 13.32 0 002 12s3 7 10 7a10.85 10.85 0 003.88-.72" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    // Eye
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="12" r="3" stroke="#666" strokeWidth="2" />
+                    </svg>
+                  )}
+                </button>
+              </div>
 
               <button type="submit" className="login-primary">
                 {isLoginScreen ? "Entrar" : "Cadastrar"}
               </button>
             </form>
-
-            {geminiSuggestions.length > 0 && (
-              <div className="gemini-suggestions">
-                <h4>Sugestões para você:</h4>
-                <ul>
-                  {geminiSuggestions.map((s, i) => (
-                    <li key={i} onClick={() => setForm({ ...form, email: s })}>
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             <div className="login-footer">
               <span style={{ color: "#666" }}>
@@ -214,10 +166,9 @@ export default function Login({
                 type="button"
                 className="login-link"
                 onClick={() => {
-                  setScreen(isLoginScreen ? "register" : "login");
-                  setParentScreen(isLoginScreen ? "register" : "login");
-                  setMsg("");
-                  setGeminiSuggestions([]);
+                  const next = isLoginScreen ? "register" : "login";
+                  setScreen(next);
+                  setParentScreen(next);
                 }}
               >
                 {isLoginScreen ? "Criar conta" : "Fazer login"}
@@ -225,13 +176,7 @@ export default function Login({
             </div>
 
             {!!msg && (
-              <div
-                style={{
-                  color: geminiSuggestions.length > 0 ? "#333" : "#900",
-                  marginTop: 8,
-                  textAlign: "center",
-                }}
-              >
+              <div style={{ color: "#900", marginTop: 8, textAlign: "center" }}>
                 {msg}
               </div>
             )}

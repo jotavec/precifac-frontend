@@ -18,7 +18,7 @@ import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
-import Login from "./pages/Login";           // <— usa Login separado
+import Login from "./pages/Login";           // usa a tela de login estilizada
 import "./App.css";
 import "./AppContainer.css";
 
@@ -147,9 +147,7 @@ export default function App() {
     async function fetchUser() {
       try {
         const res = await api.get("/users/me");
-        if (!canceled) {
-          setUser(res.data);
-        }
+        if (!canceled) setUser(res.data);
       } catch {
         if (!canceled) setUser(null);
       } finally {
@@ -345,9 +343,6 @@ export default function App() {
     }
   }
 
-  const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
-  const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
-
   return (
     <AuthContext.Provider value={{ user, setUser, setAba }}>
       {user ? (
@@ -438,67 +433,16 @@ export default function App() {
           </main>
         </div>
       ) : (
-        <div
-          style={{
-            maxWidth: 360,
-            margin: "2rem auto",
-            padding: 32,
-            border: "1px solid #ccc",
-            borderRadius: 16
-          }}
-        >
-          <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
-          <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
-            {screen === "register" && (
-              <input
-                name="name"
-                placeholder="Nome"
-                value={form.name}
-                onChange={handleChange}
-                style={{ display: "block", width: "100%", marginBottom: 8 }}
-                required
-              />
-            )}
-            <input
-              name="email"
-              type="email"
-              placeholder="E-mail"
-              value={form.email}
-              onChange={handleChange}
-              style={{ display: "block", width: "100%", marginBottom: 8 }}
-              required
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Senha"
-              value={form.password}
-              onChange={handleChange}
-              style={{ display: "block", width: "100%", marginBottom: 8 }}
-              required
-            />
-            <button type="submit" style={{ width: "100%", marginBottom: 8 }}>
-              {screen === "login" ? "Entrar" : "Cadastrar"}
-            </button>
-          </form>
-          <button
-            onClick={() => {
-              setScreen(screen === "login" ? "register" : "login");
-              setMsg("");
-            }}
-            style={{
-              width: "100%",
-              background: "#eee",
-              border: "none",
-              color: "#222"
-            }}
-          >
-            {screen === "login"
-              ? "Não tem conta? Cadastre-se"
-              : "Já tem conta? Faça login"}
-          </button>
-          <div style={{ color: "#900", marginTop: 8 }}>{msg}</div>
-        </div>
+        // >>>>> AQUI A CORREÇÃO: usa a sua tela Login bonitona
+        <Login
+          screen={screen}
+          setScreen={setScreen}
+          form={form}
+          handleChange={handleChange}
+          handleLogin={handleLogin}
+          handleRegister={handleRegister}
+          msg={msg}
+        />
       )}
     </AuthContext.Provider>
   );
