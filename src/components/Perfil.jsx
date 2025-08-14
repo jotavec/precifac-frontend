@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api, { BASE_URL } from "../services/api";
 import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
 import Cropper from "react-easy-crop";
 import TabelaPlanos from "./TabelaPlanos";
 import "./Perfil.css";
-
-const API_URL = "/api";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 /* ==================== Masks ==================== */
 function formatCNPJ(value) {
@@ -78,7 +75,7 @@ function getFullAvatarUrl(avatarUrl) {
     pathOnly = `uploads/avatars/${pathOnly}`;
   }
 
-  const base = BACKEND_URL.replace(/\/$/, "");
+  const base = String(BASE_URL || "").replace(/\/$/, "");
   const full = `${base}/${pathOnly.replace(/^\//, "")}`;
   return query ? `${full}?${query}` : full;
 }
@@ -173,16 +170,6 @@ function getCroppedImg(imageSrc, crop, zoom, aspect) {
   });
 }
 
-async function uploadAvatar(blob) {
-  const formData = new FormData();
-  formData.append("avatar", blob, "avatar.png");
-  const { data } = await axios.post(`${API_URL}/users/me/avatar`, formData, {
-    withCredentials: true,
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return pickAvatarFrom(data);
-}
-
 /* ==================== Component ==================== */
 export default function Perfil({ onLogout, abaInicial }) {
   const [editando, setEditando] = useState(false);
@@ -229,7 +216,7 @@ export default function Perfil({ onLogout, abaInicial }) {
     async function fetchUser() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`${API_URL}/users/me`, { withCredentials: true });
+        const { data } = await api.get("/users/me");
         const avatar = pickAvatarFrom(data);
         setUser({ ...data, avatarUrl: avatar });
         setAvatarPreview(avatar || null);
@@ -251,7 +238,7 @@ export default function Perfil({ onLogout, abaInicial }) {
           semNumero: false,
         };
 
-        const resConfig = await axios.get(`${API_URL}/company-config`, { withCredentials: true });
+        const resConfig = await api.get("/company-config");
         if (resConfig.data) {
           novoForm = {
             ...novoForm,
@@ -288,29 +275,27 @@ export default function Perfil({ onLogout, abaInicial }) {
   }, [avatarFile]);
 
   async function onCropConfirm() {
-  const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
+    const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
 
-  // Faz o upload
-  const formData = new FormData();
-  formData.append('avatar', cropped.blob, 'avatar.png');
-  const { data } = await axios.post('/api/users/me/avatar', formData, {
-    withCredentials: true,
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
+    // Faz o upload
+    const formData = new FormData();
+    formData.append("avatar", cropped.blob, "avatar.png");
+    const { data } = await api.post("/users/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-  // Monta URL ABSOLUTA + cache-buster
-  const absolute = getFullAvatarUrl(data.avatarUrl);
-  const cacheBusted = absolute + (absolute.includes('?') ? '&' : '?') + 't=' + Date.now();
+    // Monta URL ABSOLUTA + cache-buster
+    const absolute = getFullAvatarUrl(data.avatarUrl);
+    const cacheBusted = absolute + (absolute.includes("?") ? "&" : "?") + "t=" + Date.now();
 
-  // Atualiza preview e user
-  setAvatarPreview(cacheBusted);
-  setUser(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+    // Atualiza preview e user
+    setAvatarPreview(cacheBusted);
+    setUser((prev) => ({ ...prev, avatarUrl: data.avatarUrl }));
 
-  setShowCrop(false);
-  setAvatarFile(null);
-  URL.revokeObjectURL(cropFileUrl);
-}
-
+    setShowCrop(false);
+    setAvatarFile(null);
+    URL.revokeObjectURL(cropFileUrl);
+  }
 
   function onCropCancel() {
     setShowCrop(false);
@@ -329,7 +314,8 @@ export default function Perfil({ onLogout, abaInicial }) {
     if (!form.cep || form.cep.replace(/\D/g, "").length < 8) return;
     setForm((f) => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
     try {
-      const { data } = await axios.get(`https://viacep.com.br/ws/${form.cep.replace(/\D/g, "")}/json/`);
+      const resp = await fetch(`https://viacep.com.br/ws/${form.cep.replace(/\D/g, "")}/json/`);
+      const data = await resp.json();
       setForm((f) => ({
         ...f,
         rua: data.logradouro || "",
@@ -373,28 +359,24 @@ export default function Perfil({ onLogout, abaInicial }) {
     setEditando(false);
     setLoading(true);
     try {
-      await axios.put(
-        `${API_URL}/users/me`,
-        { name: form.nome, cpf: form.cpf, telefone: form.telefone },
-        { withCredentials: true }
-      );
+      await api.put("/users/me", {
+        name: form.nome,
+        cpf: form.cpf,
+        telefone: form.telefone,
+      });
 
-      await axios.post(
-        `${API_URL}/company-config`,
-        {
-          companyName: form.empresaNome,
-          cnpj: form.cnpj,
-          phone: form.telefoneEmpresa,
-          cep: form.cep,
-          rua: form.rua,
-          numero: form.semNumero ? "" : form.numero,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          estado: form.estado,
-          cpf: form.cpf,
-        },
-        { withCredentials: true }
-      );
+      await api.post("/company-config", {
+        companyName: form.empresaNome,
+        cnpj: form.cnpj,
+        phone: form.telefoneEmpresa,
+        cep: form.cep,
+        rua: form.rua,
+        numero: form.semNumero ? "" : form.numero,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        estado: form.estado,
+        cpf: form.cpf,
+      });
 
       setBackup(form);
       setToastMsg("Configurações salvas!");

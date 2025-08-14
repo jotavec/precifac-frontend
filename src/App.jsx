@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import api from "./services/api";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -17,12 +18,9 @@ import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
+import Login from "./pages/Login";           // <— usa Login separado
 import "./App.css";
 import "./AppContainer.css";
-
-/** Base da API montada do .env (Render em prod, local em dev se quiser trocar) */
-const API_BASE = `${import.meta.env.VITE_BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`;
-const api = (path) => `${API_BASE}${path}`;
 
 // ===== AuthContext =====
 export const AuthContext = createContext();
@@ -125,7 +123,11 @@ export default function App() {
   const navInit = getNavState();
   const [screen, setScreen] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  // ====== Auth gate ======
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [msg, setMsg] = useState("");
   const [aba, setAba] = useState(navInit.aba);
   const [catIdx, setCatIdx] = useState(navInit.catIdx);
@@ -137,23 +139,38 @@ export default function App() {
   const [gastoSobreFaturamento, setGastoSobreFaturamento] = useState("0,0");
   const [categoriasCustos, setCategoriasCustos] = useState(initialCategoriasCustos);
 
-  // >>> componente ativo
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
-  // carrega funcionários
+  // checa sessão uma vez
+  useEffect(() => {
+    let canceled = false;
+    async function fetchUser() {
+      try {
+        const res = await api.get("/users/me");
+        if (!canceled) {
+          setUser(res.data);
+        }
+      } catch {
+        if (!canceled) setUser(null);
+      } finally {
+        if (!canceled) setAuthChecked(true);
+      }
+    }
+    fetchUser();
+    return () => { canceled = true; };
+  }, []);
+
+  // carrega funcionários quando logado
   useEffect(() => {
     if (!user) return;
     async function fetchFuncionarios() {
       try {
-        const res = await fetch(api("/folhapagamento/funcionarios"), { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setCategoriasCustos(cats => {
-            const novas = [...cats];
-            novas[1].funcionarios = Array.isArray(data) ? data : [];
-            return novas;
-          });
-        }
+        const res = await api.get("/folhapagamento/funcionarios");
+        setCategoriasCustos(cats => {
+          const novas = [...cats];
+          novas[1].funcionarios = Array.isArray(res.data) ? res.data : [];
+          return novas;
+        });
       } catch {
         setCategoriasCustos(cats => {
           const novas = [...cats];
@@ -166,81 +183,53 @@ export default function App() {
   }, [user]);
 
   async function handleAddFuncionario(novoFuncionario) {
-    const res = await fetch(api("/folhapagamento/funcionarios"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(novoFuncionario)
-    });
-    if (res.ok) {
-      const novo = await res.json();
+    try {
+      const { data } = await api.post("/folhapagamento/funcionarios", novoFuncionario);
       setCategoriasCustos(cats => {
         const novas = [...cats];
-        novas[1].funcionarios = [...novas[1].funcionarios, novo];
+        novas[1].funcionarios = [...novas[1].funcionarios, data];
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   async function handleEditarFuncionario(idx, funcionarioEditado) {
-    const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(funcionarioEditado)
-    });
-    if (res.ok) {
-      const atualizado = await res.json();
+    try {
+      const id = categoriasCustos[1].funcionarios[idx].id;
+      const { data } = await api.put(`/folhapagamento/funcionarios/${id}`, funcionarioEditado);
       setCategoriasCustos(cats => {
         const novas = [...cats];
-        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => i === idx ? atualizado : f);
+        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => (i === idx ? data : f));
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   async function handleExcluirFuncionario(idx) {
-    const id = categoriasCustos[1].funcionarios[idx].id;
-    const res = await fetch(api(`/folhapagamento/funcionarios/${id}`), {
-      method: "DELETE",
-      credentials: "include"
-    });
-    if (res.ok) {
+    try {
+      const id = categoriasCustos[1].funcionarios[idx].id;
+      await api.delete(`/folhapagamento/funcionarios/${id}`);
       setCategoriasCustos(cats => {
         const novas = [...cats];
         novas[1].funcionarios = novas[1].funcionarios.filter((_, i) => i !== idx);
         return novas;
       });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
   useEffect(() => {
     const navState = { aba, catIdx, subCatMarkup };
     localStorage.setItem("navState", JSON.stringify(navState));
   }, [aba, catIdx, subCatMarkup]);
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(api("/users/me"), {
-          method: "GET",
-          credentials: "include"
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch {}
-    }
-    fetchUser();
-  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -250,26 +239,17 @@ export default function App() {
     e.preventDefault();
     setMsg("Enviando...");
     try {
-      const res = await fetch(api("/users"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users", {
+        name: form.name,
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao cadastrar.");
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user);
+      setUser(data.user || data);
       setMsg("");
-    } catch {
-      setMsg("Erro de conexão ao cadastrar.");
+      if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
+    } catch (err) {
+      const text = err?.response?.data?.error || "Erro ao cadastrar.";
+      setMsg(text);
     }
   }
 
@@ -277,39 +257,37 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch(api("/users/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users/login", {
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao fazer login.");
-        return;
+      // Se o backend retornar token no corpo, guarda (ex.: bloqueio de 3rd-party cookies)
+      if (data?.token) {
+        try { localStorage.setItem("authToken", data.token); } catch {}
       }
-      const data = await res.json();
-      setUser(data.user);
+      setUser(data.user || data);
       setMsg("");
-    } catch {
-      setMsg("Erro ao fazer login.");
+      if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
+    } catch (err) {
+      const text = err?.response?.data?.error || "Erro ao fazer login.";
+      setMsg(text);
     }
   }
 
   async function handleLogout() {
-    await fetch(api("/users/logout"), {
-      method: "POST",
-      credentials: "include"
-    });
+    try { await api.post("/users/logout"); } catch {}
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("accessToken");
+    } catch {}
     setUser(null);
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
     setAba(0);
     setCatIdx(0);
     setSubCatMarkup(0);
+    if (typeof window !== "undefined") window.history.replaceState({}, "", "/login");
   }
 
   function getSelectedLabel(aba, catIdx, subCatMarkup) {
@@ -319,27 +297,13 @@ export default function App() {
     if (aba === 3) {
       return `Markup:${subCategoriasMarkup[subCatMarkup]?.label || ""}`;
     }
-    if (aba === "cadastros") {
-      return "Estoque:Cadastros";
-    }
-    if (aba === "entrada") {
-      return "Estoque:Entrada";
-    }
-    if (aba === "fornecedores") {
-      return "Estoque:Fornecedores";
-    }
-    if (aba === "saida") {
-      return "Estoque:Saída";
-    }
-    if (aba === "movimentacoes") {
-      return "Estoque:Movimentações";
-    }
-    if (aba === "central_receitas") {
-      return "Quadro de Receitas:Central de Receitas";
-    }
-    if (aba === "perfil_planos") {
-      return "Perfil:Planos";
-    }
+    if (aba === "cadastros") return "Estoque:Cadastros";
+    if (aba === "entrada") return "Estoque:Entrada";
+    if (aba === "fornecedores") return "Estoque:Fornecedores";
+    if (aba === "saida") return "Estoque:Saída";
+    if (aba === "movimentacoes") return "Estoque:Movimentações";
+    if (aba === "central_receitas") return "Quadro de Receitas:Central de Receitas";
+    if (aba === "perfil_planos") return "Perfil:Planos";
     return abasPrincipais[aba]?.label || "";
   }
 
@@ -376,8 +340,10 @@ export default function App() {
     }
   }
 
-  const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
-  const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
+  // ===== RENDER =====
+  if (!authChecked) {
+    return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ user, setUser, setAba }}>
@@ -469,67 +435,16 @@ export default function App() {
           </main>
         </div>
       ) : (
-        <div
-          style={{
-            maxWidth: 360,
-            margin: "2rem auto",
-            padding: 32,
-            border: "1px solid #ccc",
-            borderRadius: 16
-          }}
-        >
-          <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
-          <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
-            {screen === "register" && (
-              <input
-                name="name"
-                placeholder="Nome"
-                value={form.name}
-                onChange={handleChange}
-                style={{ display: "block", width: "100%", marginBottom: 8 }}
-                required
-              />
-            )}
-            <input
-              name="email"
-              type="email"
-              placeholder="E-mail"
-              value={form.email}
-              onChange={handleChange}
-              style={{ display: "block", width: "100%", marginBottom: 8 }}
-              required
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Senha"
-              value={form.password}
-              onChange={handleChange}
-              style={{ display: "block", width: "100%", marginBottom: 8 }}
-              required
-            />
-            <button type="submit" style={{ width: "100%", marginBottom: 8 }}>
-              {screen === "login" ? "Entrar" : "Cadastrar"}
-            </button>
-          </form>
-          <button
-            onClick={() => {
-              setScreen(screen === "login" ? "register" : "login");
-              setMsg("");
-            }}
-            style={{
-              width: "100%",
-              background: "#eee",
-              border: "none",
-              color: "#222"
-            }}
-          >
-            {screen === "login"
-              ? "Não tem conta? Cadastre-se"
-              : "Já tem conta? Faça login"}
-          </button>
-          <div style={{ color: "#900", marginTop: 8 }}>{msg}</div>
-        </div>
+        // ======= Usa a página de Login separada =======
+        <Login
+          screen={screen}
+          setScreen={setScreen}
+          form={form}
+          handleChange={handleChange}
+          handleLogin={handleLogin}
+          handleRegister={handleRegister}
+          msg={msg}
+        />
       )}
     </AuthContext.Provider>
   );
