@@ -257,15 +257,22 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const { data } = await api.post("/users/login", {
-        email: form.email,
-        password: form.password
+      const res = await fetch(api("/users/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password
+        })
       });
-      // Se o backend retornar token no corpo, guarda (ex.: bloqueio de 3rd-party cookies)
-      if (data?.token) {
-        try { localStorage.setItem("authToken", data.token); } catch {}
+      if (!res.ok) {
+        const errorData = await res.json();
+        setMsg(errorData.error || "Erro ao fazer login.");
+        return;
       }
-      setUser(data.user || data);
+      const data = await res.json();
+      setUser(data.user);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
     } catch (err) {
@@ -275,12 +282,10 @@ export default function App() {
   }
 
   async function handleLogout() {
-    try { await api.post("/users/logout"); } catch {}
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("accessToken");
-    } catch {}
+    await fetch(api("/users/logout"), {
+      method: "POST",
+      credentials: "include"
+    });
     setUser(null);
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
@@ -340,10 +345,8 @@ export default function App() {
     }
   }
 
-  // ===== RENDER =====
-  if (!authChecked) {
-    return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
-  }
+  const despesasFixasCarregadas = Array.isArray(categoriasCustos[0]?.subcategorias);
+  const funcionariosCarregados = Array.isArray(categoriasCustos[1]?.funcionarios);
 
   return (
     <AuthContext.Provider value={{ user, setUser, setAba }}>
@@ -435,16 +438,67 @@ export default function App() {
           </main>
         </div>
       ) : (
-        // ======= Usa a página de Login separada =======
-        <Login
-          screen={screen}
-          setScreen={setScreen}
-          form={form}
-          handleChange={handleChange}
-          handleLogin={handleLogin}
-          handleRegister={handleRegister}
-          msg={msg}
-        />
+        <div
+          style={{
+            maxWidth: 360,
+            margin: "2rem auto",
+            padding: 32,
+            border: "1px solid #ccc",
+            borderRadius: 16
+          }}
+        >
+          <h2>{screen === "login" ? "Login" : "Cadastro"}</h2>
+          <form onSubmit={screen === "login" ? handleLogin : handleRegister}>
+            {screen === "register" && (
+              <input
+                name="name"
+                placeholder="Nome"
+                value={form.name}
+                onChange={handleChange}
+                style={{ display: "block", width: "100%", marginBottom: 8 }}
+                required
+              />
+            )}
+            <input
+              name="email"
+              type="email"
+              placeholder="E-mail"
+              value={form.email}
+              onChange={handleChange}
+              style={{ display: "block", width: "100%", marginBottom: 8 }}
+              required
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="Senha"
+              value={form.password}
+              onChange={handleChange}
+              style={{ display: "block", width: "100%", marginBottom: 8 }}
+              required
+            />
+            <button type="submit" style={{ width: "100%", marginBottom: 8 }}>
+              {screen === "login" ? "Entrar" : "Cadastrar"}
+            </button>
+          </form>
+          <button
+            onClick={() => {
+              setScreen(screen === "login" ? "register" : "login");
+              setMsg("");
+            }}
+            style={{
+              width: "100%",
+              background: "#eee",
+              border: "none",
+              color: "#222"
+            }}
+          >
+            {screen === "login"
+              ? "Não tem conta? Cadastre-se"
+              : "Já tem conta? Faça login"}
+          </button>
+          <div style={{ color: "#900", marginTop: 8 }}>{msg}</div>
+        </div>
       )}
     </AuthContext.Provider>
   );
