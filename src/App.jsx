@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState, useEffect, createContext, useContext } from "react";
 import api from "./services/api";
 import Perfil from "./components/Perfil";
@@ -18,7 +19,7 @@ import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
-import Login from "./pages/Login";           // usa a tela de login estilizada
+import Login from "./pages/Login";
 import "./App.css";
 import "./AppContainer.css";
 
@@ -77,7 +78,6 @@ const initialEncargosState = {
   colaboradores: { percent: "", value: "" }
 };
 
-// >>> Atualizado: último item agora é "Sugestões"
 const abasPrincipais = [
   { label: "Perfil", component: Perfil },
   { label: "Configurações", component: Configuracoes },
@@ -109,11 +109,7 @@ function getNavState() {
     const navState = localStorage.getItem("navState");
     if (navState) {
       const { aba, catIdx, subCatMarkup } = JSON.parse(navState);
-      return {
-        aba: aba ?? 0,
-        catIdx: catIdx ?? 0,
-        subCatMarkup: subCatMarkup ?? 0,
-      };
+      return { aba: aba ?? 0, catIdx: catIdx ?? 0, subCatMarkup: subCatMarkup ?? 0 };
     }
   }
   return { aba: 0, catIdx: 0, subCatMarkup: 0 };
@@ -233,6 +229,7 @@ export default function App() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // ---------- CADASTRO: salva token e retorna { data } ----------
   async function handleRegister(e) {
     e.preventDefault();
     setMsg("Enviando...");
@@ -242,48 +239,52 @@ export default function App() {
         email: form.email,
         password: form.password
       });
+      if (data?.token) {
+        try { localStorage.setItem("token", data.token); } catch {}
+      }
       setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
+      return { data };
     } catch (err) {
       const text = err?.response?.data?.error || "Erro ao cadastrar.";
       setMsg(text);
+      throw err;
     }
   }
 
+  // ---------- LOGIN: salva token e retorna { data } ----------
   async function handleLogin(e) {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch(api("/users/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users/login", {
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao fazer login.");
-        return;
+      if (data?.token) {
+        try { localStorage.setItem("token", data.token); } catch {}
       }
-      const data = await res.json();
       setUser(data.user);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
+      return { data };
     } catch (err) {
       const text = err?.response?.data?.error || "Erro ao fazer login.";
       setMsg(text);
+      throw err;
     }
   }
 
   async function handleLogout() {
-    await fetch(api("/users/logout"), {
-      method: "POST",
-      credentials: "include"
-    });
+    try {
+      await api.post("/users/logout");
+    } catch {}
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("accessToken");
+    } catch {}
     setUser(null);
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
@@ -294,12 +295,8 @@ export default function App() {
   }
 
   function getSelectedLabel(aba, catIdx, subCatMarkup) {
-    if (aba === 2) {
-      return `Custos:${subCategoriasPrincipais[catIdx].label}`;
-    }
-    if (aba === 3) {
-      return `Markup:${subCategoriasMarkup[subCatMarkup]?.label || ""}`;
-    }
+    if (aba === 2) return `Custos:${subCategoriasPrincipais[catIdx].label}`;
+    if (aba === 3) return `Markup:${subCategoriasMarkup[subCatMarkup]?.label || ""}`;
     if (aba === "cadastros") return "Estoque:Cadastros";
     if (aba === "entrada") return "Estoque:Entrada";
     if (aba === "fornecedores") return "Estoque:Fornecedores";
@@ -433,7 +430,6 @@ export default function App() {
           </main>
         </div>
       ) : (
-        // >>>>> AQUI A CORREÇÃO: usa a sua tela Login bonitona
         <Login
           screen={screen}
           setScreen={setScreen}
