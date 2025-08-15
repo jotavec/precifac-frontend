@@ -5,24 +5,23 @@ import axios from "axios";
 
 /**
  * Lê as variáveis do Vite e normaliza.
- * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com
+ * - VITE_BACKEND_URL: ex. http://44.194.33.48
  * - VITE_API_PREFIX: ex. /api
  */
-const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL; // sem fallback!
+const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL; // defina em .env(.production)
 const RAW_API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
 
 // remove barras à direita da base e garante que o prefix tenha 1 barra à esquerda
 const BASE_URL = String(RAW_BASE_URL || "").replace(/\/+$/, "");
 const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
 
-// base final: https://.../api
-const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+// base final: http://44.194.33.48/api (por exemplo)
+export const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
 
-// (opcional) alerta claro se as envs não estiverem setadas
 if (!RAW_BASE_URL) {
-  // Evita cair em localhost silenciosamente
-  // Em produção, garanta VITE_BACKEND_URL configurada no Vercel.
-  console.error("[API] VITE_BACKEND_URL NÃO definida. Ajuste as variáveis de ambiente do Vercel.");
+  console.error(
+    "[API] VITE_BACKEND_URL NÃO definida. Ajuste seu arquivo .env(.production)."
+  );
 }
 
 /* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
@@ -48,16 +47,14 @@ function getToken() {
   }
 }
 
-/* Axios instance apontando DIRETO pro backend (Render) */
+/** Axios instance apontando para a API */
 const api = axios.create({
   baseURL: FINAL_BASE_URL,
-  withCredentials: true, // envia/recebe cookies (SameSite=None; Secure)
-  headers: {
-    "Content-Type": "application/json",
-  },
+  withCredentials: true, // envia/recebe cookies (SameSite=None; Secure) se houver
+  headers: { "Content-Type": "application/json" },
 });
 
-/* Interceptor: injeta Authorization: Bearer <token> (opcional, além do cookie) */
+/** Intercepta pedido para injetar Authorization se houver token */
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -70,9 +67,9 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* Interceptor de resposta: trata 401 e redireciona para /login */
+/** Intercepta resposta 401 e manda para /login */
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
     const status = error?.response?.status;
     if (status === 401) {
@@ -89,5 +86,43 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * ROTAS — funções SINCRONAS que retornam strings.
+ * Nada de async/await aqui (evita URL “[object Promise]”).
+ */
+export const routes = {
+  // usuários
+  users: () => "/users",
+  me: () => "/users/me",
+  login: () => "/users/login",
+
+  // exemplo de uploads ou outros recursos
+  uploads: (path = "") => (path ? `/uploads/${String(path).replace(/^\/+/, "")}` : "/uploads"),
+
+  // caso use outras entidades:
+  // receitas: () => "/receitas",
+  // sugestoes: () => "/sugestoes",
+};
+
+/** Helpers de requisição (opcionais) */
+export const http = {
+  get: (path, config) => api.get(path, config),
+  post: (path, data, config) => api.post(path, data, config),
+  put: (path, data, config) => api.put(path, data, config),
+  patch: (path, data, config) => api.patch(path, data, config),
+  delete: (path, config) => api.delete(path, config),
+};
+
+/** Exemplos de “endpoints prontos” (opcional) */
+export const authApi = {
+  login: (payload) => api.post(routes.login(), payload),
+  me: () => api.get(routes.me()),
+};
+
+export const usersApi = {
+  create: (payload) => api.post(routes.users(), payload),
+  list: () => api.get(routes.users()),
+};
+
 export default api;
-export { BASE_URL, API_PREFIX, FINAL_BASE_URL };
+export { BASE_URL, API_PREFIX };
