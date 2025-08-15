@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState, useEffect, createContext, useContext } from "react";
 import api from "./services/api";
+
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -20,6 +21,7 @@ import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
 import Login from "./pages/Login";
+
 import "./App.css";
 import "./AppContainer.css";
 
@@ -53,7 +55,7 @@ function parsePercentBR(str) {
 function calcularTotalFuncionarioObj(f) {
   const salarioNum = parseBR(f.salario);
   let total = salarioNum;
-  CAMPOS_PERCENTUAIS.forEach(item => {
+  CAMPOS_PERCENTUAIS.forEach((item) => {
     const percNum = parsePercentBR(f[item.key] || "0");
     total += salarioNum * (percNum / 100);
   });
@@ -117,6 +119,7 @@ function getNavState() {
 
 export default function App() {
   const navInit = getNavState();
+
   const [screen, setScreen] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
@@ -137,12 +140,12 @@ export default function App() {
 
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
-  // checa sessão uma vez
+  // ====== Checa sessão uma vez ======
   useEffect(() => {
     let canceled = false;
     async function fetchUser() {
       try {
-        const res = await api.get("/users/me");
+        const res = await api.get("/users/me"); // usa axios com Authorization de localStorage (api.js)
         if (!canceled) setUser(res.data);
       } catch {
         if (!canceled) setUser(null);
@@ -151,22 +154,24 @@ export default function App() {
       }
     }
     fetchUser();
-    return () => { canceled = true; };
+    return () => {
+      canceled = true;
+    };
   }, []);
 
-  // carrega funcionários quando logado
+  // ====== Carrega funcionários quando logado ======
   useEffect(() => {
     if (!user) return;
     async function fetchFuncionarios() {
       try {
         const res = await api.get("/folhapagamento/funcionarios");
-        setCategoriasCustos(cats => {
+        setCategoriasCustos((cats) => {
           const novas = [...cats];
           novas[1].funcionarios = Array.isArray(res.data) ? res.data : [];
           return novas;
         });
       } catch {
-        setCategoriasCustos(cats => {
+        setCategoriasCustos((cats) => {
           const novas = [...cats];
           novas[1].funcionarios = [];
           return novas;
@@ -176,50 +181,7 @@ export default function App() {
     fetchFuncionarios();
   }, [user]);
 
-  async function handleAddFuncionario(novoFuncionario) {
-    try {
-      const { data } = await api.post("/folhapagamento/funcionarios", novoFuncionario);
-      setCategoriasCustos(cats => {
-        const novas = [...cats];
-        novas[1].funcionarios = [...novas[1].funcionarios, data];
-        return novas;
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function handleEditarFuncionario(idx, funcionarioEditado) {
-    try {
-      const id = categoriasCustos[1].funcionarios[idx].id;
-      const { data } = await api.put(`/folhapagamento/funcionarios/${id}`, funcionarioEditado);
-      setCategoriasCustos(cats => {
-        const novas = [...cats];
-        novas[1].funcionarios = novas[1].funcionarios.map((f, i) => (i === idx ? data : f));
-        return novas;
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function handleExcluirFuncionario(idx) {
-    try {
-      const id = categoriasCustos[1].funcionarios[idx].id;
-      await api.delete(`/folhapagamento/funcionarios/${id}`);
-      setCategoriasCustos(cats => {
-        const novas = [...cats];
-        novas[1].funcionarios = novas[1].funcionarios.filter((_, i) => i !== idx);
-        return novas;
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
+  // ====== Persistência da navegação ======
   useEffect(() => {
     const navState = { aba, catIdx, subCatMarkup };
     localStorage.setItem("navState", JSON.stringify(navState));
@@ -229,7 +191,7 @@ export default function App() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  // ---------- CADASTRO: salva token e retorna { data } ----------
+  // ====== CADASTRO ======
   async function handleRegister(e) {
     e.preventDefault();
     setMsg("Enviando...");
@@ -240,12 +202,14 @@ export default function App() {
         password: form.password
       });
       if (data?.token) {
-        try { localStorage.setItem("token", data.token); } catch {}
+        try {
+          localStorage.setItem("token", data.token);
+        } catch {}
       }
       setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
-      return { data };
+      return { data }; // permite o Login.jsx persistir token também
     } catch (err) {
       const text = err?.response?.data?.error || "Erro ao cadastrar.";
       setMsg(text);
@@ -253,7 +217,7 @@ export default function App() {
     }
   }
 
-  // ---------- LOGIN: salva token e retorna { data } ----------
+  // ====== LOGIN ======
   async function handleLogin(e) {
     e.preventDefault();
     setMsg("Entrando...");
@@ -263,12 +227,14 @@ export default function App() {
         password: form.password
       });
       if (data?.token) {
-        try { localStorage.setItem("token", data.token); } catch {}
+        try {
+          localStorage.setItem("token", data.token);
+        } catch {}
       }
       setUser(data.user);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
-      return { data };
+      return { data }; // permite o Login.jsx persistir token também
     } catch (err) {
       const text = err?.response?.data?.error || "Erro ao fazer login.";
       setMsg(text);
@@ -276,6 +242,7 @@ export default function App() {
     }
   }
 
+  // ====== LOGOUT ======
   async function handleLogout() {
     try {
       await api.post("/users/logout");
@@ -311,12 +278,12 @@ export default function App() {
     if (label.startsWith("Custos:")) {
       setAba(2);
       const sub = label.split(":")[1];
-      const idx = subCategoriasPrincipais.findIndex(x => x.label === sub);
+      const idx = subCategoriasPrincipais.findIndex((x) => x.label === sub);
       setCatIdx(idx >= 0 ? idx : 0);
     } else if (label.startsWith("Markup:")) {
       setAba(3);
       const sub = label.split(":")[1];
-      const idx = subCategoriasMarkup.findIndex(x => x.label === sub);
+      const idx = subCategoriasMarkup.findIndex((x) => x.label === sub);
       setSubCatMarkup(idx >= 0 ? idx : 0);
     } else if (label === "Estoque:Cadastros") {
       setAba("cadastros");
@@ -333,7 +300,7 @@ export default function App() {
     } else if (label === "Perfil:Planos") {
       setAba("perfil_planos");
     } else {
-      const idx = abasPrincipais.findIndex(x => x.label === label);
+      const idx = abasPrincipais.findIndex((x) => x.label === label);
       setAba(idx >= 0 ? idx : 0);
       setCatIdx(0);
       setSubCatMarkup(0);
@@ -368,8 +335,8 @@ export default function App() {
               ) : catIdx === 1 ? (
                 <FolhaDePagamento
                   funcionarios={categoriasCustos[1].funcionarios}
-                  setFuncionarios={funcs =>
-                    setCategoriasCustos(cats => {
+                  setFuncionarios={(funcs) =>
+                    setCategoriasCustos((cats) => {
                       const novas = [...cats];
                       novas[1].funcionarios = funcs;
                       return novas;
