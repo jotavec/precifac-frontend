@@ -22,6 +22,41 @@ export default function Login({
   const isLoginScreen = screen === "login";
   const [showPassword, setShowPassword] = useState(false);
 
+  // ------- helpers para persistir token -------
+  const persistTokenFromResult = (result) => {
+    try {
+      const data = result?.data ?? result;
+      const token = data?.token;
+      if (token) {
+        localStorage.setItem("token", token);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Wrappers: chamam os handlers originais e salvam o token, se houver
+  const onSubmitLogin = async (e) => {
+    // evita submit nativo da página
+    try { e?.preventDefault?.(); } catch {}
+    try {
+      const res = await handleLogin(e);
+      persistTokenFromResult(res);
+    } catch {
+      // quem trata o erro é o handler pai (ou a prop msg)
+    }
+  };
+
+  const onSubmitRegister = async (e) => {
+    try { e?.preventDefault?.(); } catch {}
+    try {
+      const res = await handleRegister(e);
+      persistTokenFromResult(res);
+    } catch {
+      // idem
+    }
+  };
+
   return (
     <div className="login-root">
       {/* Botão de suporte (gradiente com ícone do WhatsApp) */}
@@ -78,7 +113,7 @@ export default function Login({
           <div className="login-card" role="form" aria-label="Login">
             <h1 className="login-title">{isLoginScreen ? "Entrar" : "Criar conta"}</h1>
 
-            <form onSubmit={isLoginScreen ? handleLogin : handleRegister}>
+            <form onSubmit={isLoginScreen ? onSubmitLogin : onSubmitRegister}>
               {!isLoginScreen && (
                 <>
                   <label className="login-label" htmlFor="name">Nome</label>
@@ -117,7 +152,7 @@ export default function Login({
                   value={form?.password || ""}
                   onChange={handleChange}
                   className="login-input"
-                  autoComplete="current-password"
+                  autoComplete={isLoginScreen ? "current-password" : "new-password"}
                   required
                 />
                 {/* Botão olho (mostrar/ocultar senha) */}
