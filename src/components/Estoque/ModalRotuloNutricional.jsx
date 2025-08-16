@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from "../../services/api";
 
 export default function ModalRotuloNutricional({
   open,
@@ -17,12 +18,11 @@ export default function ModalRotuloNutricional({
   // Carregar categorias nutricionais do backend ao abrir modal
   useEffect(() => {
     if (open) {
-      fetch("/api/categorias-nutricionais", { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
-          setCategoriasApi(Array.isArray(data) ? data : []);
-          setDescricoes(Array.from(new Set(data.map(d => d.descricao))));
-          setUnidades(Array.from(new Set(data.map(d => d.unidade))));
+      api.get("/categorias-nutricionais")
+        .then(res => {
+          setCategoriasApi(Array.isArray(res.data) ? res.data : []);
+          setDescricoes(Array.from(new Set(res.data.map(d => d.descricao))));
+          setUnidades(Array.from(new Set(res.data.map(d => d.unidade))));
         });
     }
   }, [open, setDescricoes, setUnidades]);

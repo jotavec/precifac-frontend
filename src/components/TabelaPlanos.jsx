@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 // Cole aqui os IDs retornados pelo script criarPlanosMercadoPago.js
 const planos = {
@@ -40,10 +40,9 @@ export default function TabelaPlanos({ userEmail }) {
       setLoading(true);
 
       // 🔴 IMPORTANTE: enviar os cookies da sessão (auth) para o backend
-      const { data } = await axios.post(
-        "/api/mercadopago/criar-assinatura",
-        { email, planoId },
-        { withCredentials: true }
+      const { data } = await api.post(
+        "/mercadopago/criar-assinatura",
+        { email, planoId }
       );
 
       // o backend pode retornar { url } ou { init_point }

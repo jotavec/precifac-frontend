@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import { FiX } from "react-icons/fi";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import api from "../../services/api";
 
 // Switch azul igual o do app
 function Switch({ checked, onChange }) {
@@ -55,12 +56,10 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      const userId = localStorage.getItem("user_id") || "1";
-      fetch(`http://localhost:3000/api/preferencias/colunas-cadastro/${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0)
-            setColunas(data);
+      api.get('/preferencias/colunas-cadastro')
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0)
+            setColunas(res.data);
           else
             setColunas(COLUNAS_CADASTRO.map(item => ({ ...item, visivel: true })));
         })
@@ -103,13 +102,7 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     }
     setErro("");
     try {
-      const userId = localStorage.getItem("user_id") || "1";
-      const res = await fetch("http://localhost:3000/api/preferencias/colunas-cadastro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, colunas }),
-      });
-      if (!res.ok) throw new Error("Falha ao salvar preferências");
+      await api.post('/preferencias/colunas-cadastro', { colunas });
       alert("Preferências salvas! (Agora no banco 😁)");
       onRequestClose();
     } catch (e) {
