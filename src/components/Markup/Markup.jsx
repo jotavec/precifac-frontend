@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from "../../services/api";
 import MarkupIdeal from "./MarkupIdeal";
 
 // Componente responsável por gerenciar o estado das despesas fixas e repassar para MarkupIdeal.
@@ -7,13 +8,12 @@ export default function Markup({ user }) {
   const [despesasFixasSubcats, setDespesasFixasSubcats] = useState([]);
 
   useEffect(() => {
-    // Aqui você deve buscar as categorias do backend usando o user.id
+    // Buscar as categorias do backend usando autenticação via cookie/JWT
     async function buscarCategorias() {
       if (!user) return;
       try {
-        const resp = await fetch(`http://localhost:3000/categorias?userId=${user.id}`);
-        const data = await resp.json();
-        setDespesasFixasSubcats(data[0]?.subcategorias || []);
+        const resp = await api.get('/categorias');
+        setDespesasFixasSubcats(resp.data[0]?.subcategorias || []);
       } catch {
         setDespesasFixasSubcats([]);
       }

@@ -22,22 +22,21 @@ export async function listarMarcas(params = {}) {
 }
 
 /**
- * Cria uma nova marca
- * @param {{ nome: string }} payload
+ * Adiciona uma nova marca
+ * @param {string} nome - Nome da marca
  */
-export async function criarMarca(payload) {
-  // payload: { nome }
-  const res = await api.post("/marcas", payload);
+export async function adicionarMarca(nome) {
+  const res = await api.post("/marcas", { nome });
   return res.data;
 }
 
 /**
- * Atualiza uma marca
+ * Edita uma marca
  * @param {string|number} id
- * @param {{ nome: string }} payload
+ * @param {string} novoNome
  */
-export async function atualizarMarca(id, payload) {
-  const res = await api.put(`/marcas/${id}`, payload);
+export async function editarMarca(id, novoNome) {
+  const res = await api.put(`/marcas/${id}`, { nome: novoNome });
   return res.data;
 }
 
@@ -45,7 +44,7 @@ export async function atualizarMarca(id, payload) {
  * Remove uma marca
  * @param {string|number} id
  */
-export async function removerMarca(id) {
+export async function deletarMarca(id) {
   const res = await api.delete(`/marcas/${id}`);
   return res.data;
 }

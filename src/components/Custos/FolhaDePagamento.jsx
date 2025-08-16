@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { FaTrashAlt } from "react-icons/fa";
+import api from "../../services/api";
 import './FolhaDePagamento.css';
 import ModalFuncionario from './ModalFuncionario';
 
@@ -103,13 +104,8 @@ export default function FolhaDePagamento() {
     async function fetchFuncionarios() {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:3000/api/folhapagamento/funcionarios", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setFuncionarios(Array.isArray(data) ? data : []);
-        } else {
-          setFuncionarios([]);
-        }
+        const res = await api.get("/folhapagamento/funcionarios");
+        setFuncionarios(Array.isArray(res.data) ? res.data : []);
       } catch {
         setFuncionarios([]);
       }
@@ -159,42 +155,21 @@ export default function FolhaDePagamento() {
 
   async function salvarFuncionario() {
     if (editando === null) {
-      const res = await fetch("http://localhost:3000/api/folhapagamento/funcionarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(funcionarioTemp)
-      });
-      if (res.ok) {
-        const novo = await res.json();
-        setFuncionarios(funcs => [...funcs, novo]);
-        setModalAberto(false);
-      }
+      const res = await api.post("/folhapagamento/funcionarios", funcionarioTemp);
+      setFuncionarios(funcs => [...funcs, res.data]);
+      setModalAberto(false);
     } else {
       const id = funcionarios[editando].id;
-      const res = await fetch(`http://localhost:3000/api/folhapagamento/funcionarios/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(funcionarioTemp)
-      });
-      if (res.ok) {
-        const atualizado = await res.json();
-        setFuncionarios(funcs => funcs.map(f => f.id === id ? atualizado : f));
-        setModalAberto(false);
-      }
+      const res = await api.put(`/folhapagamento/funcionarios/${id}`, funcionarioTemp);
+      setFuncionarios(funcs => funcs.map(f => f.id === id ? res.data : f));
+      setModalAberto(false);
     }
   }
 
   async function excluirFuncionario(idx) {
     const id = funcionarios[idx].id;
-    const res = await fetch(`http://localhost:3000/api/folhapagamento/funcionarios/${id}`, {
-      method: "DELETE",
-      credentials: "include"
-    });
-    if (res.ok) {
-      setFuncionarios(funcs => funcs.filter(f => f.id !== id));
-    }
+    await api.delete(`/folhapagamento/funcionarios/${id}`);
+    setFuncionarios(funcs => funcs.filter(f => f.id !== id));
   }
 
   useEffect(() => {
