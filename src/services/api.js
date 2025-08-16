@@ -1,34 +1,47 @@
 // src/services/api.js
-// Cliente HTTP centralizado para TODAS as requisições
+// -------------------------------------------------------------
+// Cliente HTTP centralizado (Vite + Axios), pronto para cookies
+// httpOnly e CORS. Funciona em DEV com proxy (/api) e em PROD
+// com VITE_BACKEND_URL + VITE_API_PREFIX.
+// -------------------------------------------------------------
 
 import axios from "axios";
 
 /**
- * Lê as variáveis do Vite e normaliza.
- * - VITE_BACKEND_URL: ex. http://44.194.33.48
- * - VITE_API_PREFIX: ex. /api
+ * Lê as envs do Vite
+ * - VITE_BACKEND_URL   -> ex.: https://api.calculaaiabr.com   (PROD)
+ *   (em DEV você pode deixar em branco para usar apenas o proxy /api)
+ * - VITE_API_PREFIX    -> ex.: /api
  */
-const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL; // defina em .env(.production)
+const IS_DEV = import.meta.env.DEV;
+const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";   // pode ficar vazio em DEV
 const RAW_API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
 
-// remove barras à direita da base e garante que o prefix tenha 1 barra à esquerda
-const BASE_URL = String(RAW_BASE_URL || "").replace(/\/+$/, "");
-const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
+// Normalizações
+const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, ""); // remove barras à direita
+const API_PREFIX = ("/" + String(RAW_API_PREFIX).replace(/^\/+/, "")).replace(/\/+$/, "");
 
-// base final: http://44.194.33.48/api (por exemplo)
-export const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+// Base final:
+// - Em DEV, se não houver BASE_URL, usamos só o prefixo "/api" para bater no proxy do Vite
+// - Em PROD, normalmente: "https://api.calculaaiabr.com/api"
+export const FINAL_BASE_URL =
+  IS_DEV && !BASE_URL ? API_PREFIX : `${BASE_URL}${API_PREFIX}`;
 
-if (!RAW_BASE_URL) {
-  console.error(
-    "[API] VITE_BACKEND_URL NÃO definida. Ajuste seu arquivo .env(.production)."
+// Aviso útil em DEV
+if (!BASE_URL && !IS_DEV) {
+  // Build de produção sem BACKEND_URL definido
+  // (não quebra o app, mas fica relativo a /api)
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[API] VITE_BACKEND_URL não está definido no build. Usando caminho relativo para /api."
   );
 }
 
-/* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
+/* Utilidades p/ token (se você também salvar no localStorage/cookie) */
 function getCookie(name) {
   if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-  return match ? decodeURIComponent(match[2]) : null;
+  const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  return m ? decodeURIComponent(m[2]) : null;
 }
 
 function getToken() {
@@ -47,14 +60,15 @@ function getToken() {
   }
 }
 
-/** Axios instance apontando para a API */
+/** Instância Axios única para todo o app */
 const api = axios.create({
   baseURL: FINAL_BASE_URL,
-  withCredentials: true, // envia/recebe cookies (SameSite=None; Secure) se houver
+  withCredentials: true, // necessário p/ cookies httpOnly entre subdomínios
   headers: { "Content-Type": "application/json" },
+  // timeout: 20000, // (opcional) ajuste se quiser
 });
 
-/** Intercepta pedido para injetar Authorization se houver token */
+/** Intercepta request para anexar Authorization se existir token */
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -67,7 +81,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/** Intercepta resposta 401 e manda para /login */
+/** Intercepta 401 para redirecionar ao login e limpar tokens locais */
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -78,7 +92,10 @@ api.interceptors.response.use(
         localStorage.removeItem("authToken");
         localStorage.removeItem("accessToken");
       } catch {}
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login")
+      ) {
         window.location.href = "/login";
       }
     }
@@ -87,24 +104,24 @@ api.interceptors.response.use(
 );
 
 /**
- * ROTAS — funções SINCRONAS que retornam strings.
- * Nada de async/await aqui (evita URL “[object Promise]”).
+ * ROTAS – retorne **apenas o caminho** (sem base).
+ * A base (/api) já está na instância via FINAL_BASE_URL.
  */
 export const routes = {
-  // usuários
+  // Auth / Usuário
   users: () => "/users",
   me: () => "/users/me",
   login: () => "/users/login",
 
-  // exemplo de uploads ou outros recursos
-  uploads: (path = "") => (path ? `/uploads/${String(path).replace(/^\/+/, "")}` : "/uploads"),
-
-  // caso use outras entidades:
+  // Exemplos de outros recursos
   // receitas: () => "/receitas",
   // sugestoes: () => "/sugestoes",
+
+  // Uploads via API
+  uploads: (p = "") => (p ? `/uploads/${String(p).replace(/^\/+/, "")}` : "/uploads"),
 };
 
-/** Helpers de requisição (opcionais) */
+/** Atalhos simples (opcionais) */
 export const http = {
   get: (path, config) => api.get(path, config),
   post: (path, data, config) => api.post(path, data, config),
@@ -113,7 +130,7 @@ export const http = {
   delete: (path, config) => api.delete(path, config),
 };
 
-/** Exemplos de “endpoints prontos” (opcional) */
+/** Endpoints prontos (opcional) */
 export const authApi = {
   login: (payload) => api.post(routes.login(), payload),
   me: () => api.get(routes.me()),
@@ -126,5 +143,3 @@ export const usersApi = {
 
 export default api;
 export { BASE_URL, API_PREFIX };
-
-
