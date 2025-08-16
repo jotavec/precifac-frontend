@@ -78,8 +78,8 @@ function toPublicUrl(url) {
 }
 function toStoredUrl(url) {
   if (!url) return url;
-  // remove o host com ou sem /api
-  if (url.startsWith(API_BASE)) return url.replace(API_BASE, "");
+  // remove o host
+  if (url.startsWith(FINAL_BASE_URL)) return url.replace(FINAL_BASE_URL, "");
   if (url.startsWith(BACKEND_URL)) return url.replace(BACKEND_URL, "");
   return url; // já relativo
 }
@@ -495,8 +495,6 @@ export default function CentralReceitas() {
       } else {
         alert("Erro ao salvar receita!");
       }
-    } catch {
-      alert("Erro de rede ao salvar receita.");
     }
   }
   // --------------------------------------------------------------

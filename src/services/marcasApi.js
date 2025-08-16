@@ -49,3 +49,8 @@ export async function removerMarca(id) {
   const res = await api.delete(`/marcas/${id}`);
   return res.data;
 }
+
+// Aliases for backward compatibility
+export { criarMarca as adicionarMarca };
+export { atualizarMarca as editarMarca };
+export { removerMarca as deletarMarca };
