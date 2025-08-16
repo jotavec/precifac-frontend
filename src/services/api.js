@@ -9,7 +9,7 @@ import axios from "axios";
 
 /**
  * Lê as envs do Vite
- * - VITE_BACKEND_URL   -> ex.: https://api.calculaaiabr.com   (PROD)
+ * - VITE_BACKEND_URL   -> ex.: https://api.calculaaibr.com   (PROD)
  *   (em DEV você pode deixar em branco para usar apenas o proxy /api)
  * - VITE_API_PREFIX    -> ex.: /api
  */
@@ -23,7 +23,7 @@ const API_PREFIX = ("/" + String(RAW_API_PREFIX).replace(/^\/+/, "")).replace(/\
 
 // Base final:
 // - Em DEV, se não houver BASE_URL, usamos só o prefixo "/api" para bater no proxy do Vite
-// - Em PROD, normalmente: "https://api.calculaaiabr.com/api"
+// - Em PROD, normalmente: "https://api.calculaaibr.com/api"
 export const FINAL_BASE_URL =
   IS_DEV && !BASE_URL ? API_PREFIX : `${BASE_URL}${API_PREFIX}`;
 
@@ -147,3 +147,4 @@ export const usersApi = {
 
 export default api;
 export { BASE_URL, API_PREFIX };
+
