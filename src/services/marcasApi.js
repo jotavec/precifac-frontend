@@ -1,9 +1,8 @@
 // src/services/marcasApi.js
 // -------------------------------------------------------------
 // Cliente de Marcas padronizado usando a instância central `api`.
-// - Sem header customizado (nada de "x-user-id").
-// - Baseia-se em cookie/JWT já configurado no backend.
-// - Endpoints em /api/marcas (ajuste aqui se seu backend for diferente).
+// Compatível com nomes antigos (adicionar/editar/deletar) e novos
+// (criar/atualizar/remover) para evitar quebrar componentes.
 // -------------------------------------------------------------
 
 import api from "./api";
@@ -16,7 +15,6 @@ export async function listarMarcas(params = {}) {
   const { page, limit, q } = params;
   const res = await api.get("/marcas", {
     params: { page, limit, q },
-    // credentials via axios + withCredentials já vêm do client central
   });
   return res.data;
 }
@@ -26,7 +24,6 @@ export async function listarMarcas(params = {}) {
  * @param {{ nome: string }} payload
  */
 export async function criarMarca(payload) {
-  // payload: { nome }
   const res = await api.post("/marcas", payload);
   return res.data;
 }
@@ -49,3 +46,11 @@ export async function removerMarca(id) {
   const res = await api.delete(`/marcas/${id}`);
   return res.data;
 }
+
+/* ======== ALIASES de compatibilidade (nomes antigos) ======== */
+/** alias para criarMarca */
+export const adicionarMarca = criarMarca;
+/** alias para atualizarMarca */
+export const editarMarca = atualizarMarca;
+/** alias para removerMarca */
+export const deletarMarca = removerMarca;
