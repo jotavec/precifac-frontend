@@ -11,13 +11,12 @@ import { pdf } from "@react-pdf/renderer";
 import FichaTecnicaPDF from "./FichaTecnicaPDF";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
+import apiClient, { FINAL_BASE_URL } from "../../services/api";
 import "./CentralReceitas.css";
 
 /** Bases do backend vindas do .env */
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
-const API_BASE = `${BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`; // usado para rotas da API (/api)
-const api = (path) => `${API_BASE}${path}`;
 
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
@@ -144,15 +143,15 @@ export default function CentralReceitas() {
 
   async function fetchReceitas() {
     try {
-      const res = await fetch(api("/receitas"), { credentials: "include" });
-      if (res.ok) setReceitas(await res.json());
+      const res = await apiClient.get("/receitas");
+      setReceitas(res.data);
     } catch {}
   }
 
   async function fetchBlocosMarkup() {
     try {
-      const res = await fetch(api("/markup-ideal"), { credentials: "include" });
-      if (res.ok) setBlocosMarkup(await res.json());
+      const res = await apiClient.get("/markup-ideal");
+      setBlocosMarkup(res.data);
     } catch {
       setBlocosMarkup([]);
     }
@@ -160,11 +159,11 @@ export default function CentralReceitas() {
 
   async function fetchPerfil() {
     try {
-      const resUser = await fetch(api("/users/me"), { credentials: "include" });
-      const user = resUser.ok ? await resUser.json() : {};
+      const resUser = await apiClient.get("/users/me");
+      const user = resUser.data;
 
-      const resConfig = await fetch(api("/company-config"), { credentials: "include" });
-      const empresa = resConfig.ok ? await resConfig.json() : {};
+      const resConfig = await apiClient.get("/company-config");
+      const empresa = resConfig.data;
 
       setPerfil({
         avatarUrl: user.avatarUrl,
@@ -223,11 +222,8 @@ export default function CentralReceitas() {
   async function confirmarDelete() {
     if (!receitaPraDeletar) return;
     try {
-      const res = await fetch(api(`/receitas/${receitaPraDeletar.id}`), {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (res.ok) fetchReceitas();
+      await apiClient.delete(`/receitas/${receitaPraDeletar.id}`);
+      fetchReceitas();
       setDeleteModalOpen(false);
       setReceitaPraDeletar(null);
     } catch {
@@ -403,7 +399,7 @@ export default function CentralReceitas() {
     if (selecionados.length === 0) return;
     for (const id of selecionados) {
       try {
-        await fetch(api(`/receitas/${id}`), { method: "DELETE", credentials: "include" });
+        await apiClient.delete(`/receitas/${id}`);
       } catch {}
     }
     await fetchReceitas();
@@ -483,28 +479,17 @@ export default function CentralReceitas() {
     };
 
     try {
-      let res;
       if (editandoId) {
-        res = await fetch(api(`/receitas/${editandoId}`), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(dadosReceita),
-        });
+        await apiClient.put(`/receitas/${editandoId}`, dadosReceita);
       } else {
-        res = await fetch(api(`/receitas`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(dadosReceita),
-        });
+        await apiClient.post(`/receitas`, dadosReceita);
       }
-      if (res.ok) {
-        await fetchReceitas();
-        setModalOpen(false);
-        setEditandoId(null);
-        setNumeroFicha("");
-      } else if (res.status === 403) {
+      await fetchReceitas();
+      setModalOpen(false);
+      setEditandoId(null);
+      setNumeroFicha("");
+    } catch (error) {
+      if (error.response && error.response.status === 403) {
         setShowUpgrade(true);
         return;
       } else {
