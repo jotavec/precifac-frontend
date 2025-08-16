@@ -27,10 +27,8 @@ const API_PREFIX = ("/" + String(RAW_API_PREFIX).replace(/^\/+/, "")).replace(/\
 export const FINAL_BASE_URL =
   IS_DEV && !BASE_URL ? API_PREFIX : `${BASE_URL}${API_PREFIX}`;
 
-// Aviso útil em DEV
+// Aviso útil em DEV/PROD sem BACKEND_URL
 if (!BASE_URL && !IS_DEV) {
-  // Build de produção sem BACKEND_URL definido
-  // (não quebra o app, mas fica relativo a /api)
   // eslint-disable-next-line no-console
   console.warn(
     "[API] VITE_BACKEND_URL não está definido no build. Usando caminho relativo para /api."
@@ -64,7 +62,10 @@ function getToken() {
 const api = axios.create({
   baseURL: FINAL_BASE_URL,
   withCredentials: true, // necessário p/ cookies httpOnly entre subdomínios
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest", // compat com backend
+  },
   // timeout: 20000, // (opcional) ajuste se quiser
 });
 
@@ -106,6 +107,9 @@ api.interceptors.response.use(
 /**
  * ROTAS – retorne **apenas o caminho** (sem base).
  * A base (/api) já está na instância via FINAL_BASE_URL.
+ *
+ * ⚠️ Importante: use SEMPRE as funções (ex.: routes.login())
+ * para evitar bugs do tipo "[object Promise]" na URL.
  */
 export const routes = {
   // Auth / Usuário
@@ -132,7 +136,7 @@ export const http = {
 
 /** Endpoints prontos (opcional) */
 export const authApi = {
-  login: (payload) => api.post(routes.login(), payload),
+  login: (payload) => api.post(routes.login(), payload), // <- use routes.login()
   me: () => api.get(routes.me()),
 };
 
