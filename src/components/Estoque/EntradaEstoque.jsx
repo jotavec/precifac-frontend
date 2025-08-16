@@ -4,6 +4,7 @@ import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
 import Select from "react-select";
+import api from "../../services/api";
 import "./EntradaEstoque.css";
 
 // ====== ESTILO REACT-SELECT ======
@@ -127,17 +128,15 @@ export default function EntradaEstoque() {
 
   // Buscar produtos do backend
   useEffect(() => {
-    fetch("/api/produtos")
-      .then(res => res.json())
-      .then(data => setProdutos(data))
+    api.get("/produtos")
+      .then(res => setProdutos(res.data))
       .catch(() => setMsg("Erro ao buscar produtos"));
   }, []);
 
   // Buscar fornecedores do backend
   useEffect(() => {
-    fetch("/api/fornecedores", { credentials: "include" })
-      .then(res => res.json())
-      .then(data => setFornecedores(data));
+    api.get("/fornecedores")
+      .then(res => setFornecedores(res.data));
   }, []);
 
   function handleAdicionarProduto() {
@@ -222,11 +221,7 @@ export default function EntradaEstoque() {
     try {
       for (const entrada of listaFinal) {
         if (!entrada.produtoId || !entrada.quantidade) continue;
-        await fetch("/api/produtos/entrada-estoque", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(entrada)
-        });
+        await api.post("/produtos/entrada-estoque", entrada);
       }
       setMsg("Entradas adicionadas com sucesso!");
       setProdutosList([{
@@ -430,13 +425,9 @@ export default function EntradaEstoque() {
           ingrediente={novoProduto}
           onSave={async (novoProd) => {
             try {
-              await fetch("/api/produtos", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(novoProd),
-              });
-              const data = await fetch("/api/produtos").then(r => r.json());
-              setProdutos(data);
+              await api.post("/produtos", novoProd);
+              const res = await api.get("/produtos");
+              setProdutos(res.data);
             } catch {
               alert("Erro ao cadastrar produto!");
             }
@@ -483,12 +474,9 @@ export default function EntradaEstoque() {
               fornecedor={novoFornecedor}
               onSave={async (novoForn) => {
                 try {
-                  await fetch("/api/fornecedores", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(novoForn),
-                  });
-                  const data = await fetch("/api/fornecedores", { credentials: "include" }).then(r => r.json());
+                  await api.post("/fornecedores", novoForn);
+                  const res = await api.get("/fornecedores");
+                  const data = res.data;
                   setFornecedores(data);
                   // Seleciona automaticamente o novo
                   const criado = data.find(f => f.cnpjCpf === novoForn.cnpjCpf && f.razaoSocial === novoForn.razaoSocial);

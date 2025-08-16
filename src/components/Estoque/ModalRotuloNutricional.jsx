@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from "../../services/api";
 
 export default function ModalRotuloNutricional({
   open,
@@ -17,9 +18,9 @@ export default function ModalRotuloNutricional({
   // Carregar categorias nutricionais do backend ao abrir modal
   useEffect(() => {
     if (open) {
-      fetch("/api/categorias-nutricionais", { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
+      api.get("/categorias-nutricionais")
+        .then(res => {
+          const data = res.data;
           setCategoriasApi(Array.isArray(data) ? data : []);
           setDescricoes(Array.from(new Set(data.map(d => d.descricao))));
           setUnidades(Array.from(new Set(data.map(d => d.unidade))));
@@ -35,14 +36,9 @@ export default function ModalRotuloNutricional({
       categoriasApi.some((d) => d.descricao.toLowerCase() === novaDesc.toLowerCase())
     )
       return;
-    fetch("/api/categorias-nutricionais", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ descricao: novaDesc, unidade: "" })
-    })
-      .then(res => res.json())
-      .then((cat) => {
+    api.post("/categorias-nutricionais", { descricao: novaDesc, unidade: "" })
+      .then(res => {
+        const cat = res.data;
         setCategoriasApi(prev => [...prev, cat]);
         setDescricoes(prev => [...prev, novaDesc]);
         setDescInput("");
@@ -65,14 +61,9 @@ export default function ModalRotuloNutricional({
     )
       return;
     if (!categoria) return;
-    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade })
-    })
-      .then(res => res.json())
-      .then((cat) => {
+    api.put(`/categorias-nutricionais/${categoria.id}`, { descricao: novaDesc, unidade: categoria.unidade })
+      .then(res => {
+        const cat = res.data;
         const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
         setCategoriasApi(cats);
         setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
@@ -88,10 +79,7 @@ export default function ModalRotuloNutricional({
     const desc = descricoes[idx];
     const categoria = categoriasApi.find(c => c.descricao === desc);
     if (!categoria) return;
-    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
-      method: "DELETE",
-      credentials: "include"
-    })
+    api.delete(`/categorias-nutricionais/${categoria.id}`)
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
         setDescricoes(prev => prev.filter((_, i) => i !== idx));
@@ -108,14 +96,9 @@ export default function ModalRotuloNutricional({
       categoriasApi.some((u) => u.unidade && u.unidade.toLowerCase() === novaUnid.toLowerCase())
     )
       return;
-    fetch("/api/categorias-nutricionais", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ descricao: "", unidade: novaUnid })
-    })
-      .then(res => res.json())
-      .then((cat) => {
+    api.post("/categorias-nutricionais", { descricao: "", unidade: novaUnid })
+      .then(res => {
+        const cat = res.data;
         setCategoriasApi(prev => [...prev, cat]);
         setUnidades(prev => [...prev, novaUnid]);
         setUnidInput("");
@@ -138,14 +121,9 @@ export default function ModalRotuloNutricional({
     )
       return;
     if (!categoria) return;
-    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ descricao: categoria.descricao, unidade: novaUnid })
-    })
-      .then(res => res.json())
-      .then((cat) => {
+    api.put(`/categorias-nutricionais/${categoria.id}`, { descricao: categoria.descricao, unidade: novaUnid })
+      .then(res => {
+        const cat = res.data;
         const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
         setCategoriasApi(cats);
         setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
@@ -161,10 +139,7 @@ export default function ModalRotuloNutricional({
     const unid = unidades[idx];
     const categoria = categoriasApi.find(c => c.unidade === unid);
     if (!categoria) return;
-    fetch(`/api/categorias-nutricionais/${categoria.id}`, {
-      method: "DELETE",
-      credentials: "include"
-    })
+    api.delete(`/categorias-nutricionais/${categoria.id}`)
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
         setUnidades(prev => prev.filter((_, i) => i !== idx));

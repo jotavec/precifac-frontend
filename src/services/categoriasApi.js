@@ -1,44 +1,45 @@
-const API_URL = "/api";
+// src/services/categoriasApi.js
+// -------------------------------------------------------------
+// Cliente de Categorias padronizado usando a instância central `api`.
+// - Sem header customizado (nada de "x-user-id").
+// - Baseia-se em cookie/JWT já configurado no backend.
+// - Endpoints em /api/categorias (ajuste aqui se seu backend for diferente).
+// -------------------------------------------------------------
 
-export async function listarCategorias(userId) {
-  const resp = await fetch(`${API_URL}/categorias`, {
-    headers: { "x-user-id": userId },
-    credentials: "include",
-  });
-  return resp.json();
+import api from "./api";
+
+/**
+ * Lista categorias
+ */
+export async function listarCategorias() {
+  const res = await api.get("/categorias");
+  return res.data;
 }
 
-export async function adicionarCategoria(nome, userId) {
-  const resp = await fetch(`${API_URL}/categorias`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome, userId }),
-  });
-  return resp.json();
+/**
+ * Adiciona uma nova categoria
+ * @param {string} nome
+ */
+export async function adicionarCategoria(nome) {
+  const res = await api.post("/categorias", { nome });
+  return res.data;
 }
 
-export async function deletarCategoria(id, userId) {
-  const resp = await fetch(`${API_URL}/categorias/${id}`, {
-    method: "DELETE",
-    headers: { "x-user-id": userId },
-    credentials: "include",
-  });
-  return resp.ok;
+/**
+ * Remove uma categoria
+ * @param {string|number} id
+ */
+export async function deletarCategoria(id) {
+  const res = await api.delete(`/categorias/${id}`);
+  return res.status === 200 || res.status === 204;
 }
 
-export async function editarCategoria(id, novoNome, userId) {
-  const resp = await fetch(`${API_URL}/categorias/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome: novoNome, userId }),
-  });
-  return resp.json();
+/**
+ * Edita uma categoria
+ * @param {string|number} id
+ * @param {string} novoNome
+ */
+export async function editarCategoria(id, novoNome) {
+  const res = await api.put(`/categorias/${id}`, { nome: novoNome });
+  return res.data;
 }

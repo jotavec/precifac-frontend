@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import AbasModal from "./AbasModal";
 import DespesasFixasModal from "./DespesasFixasModal";
 import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
@@ -552,8 +552,8 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     );
 
     try {
-      await axios.put(
-        `/api/markup-ideal/${bloco.id}`,
+      await api.put(
+        `/markup-ideal/${bloco.id}`,
         {
           markup: bloco.markup,
           markupIdeal: markupIdeal,
@@ -563,8 +563,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
           comissoes: comissoesTotais?.percent ?? 0,
           outros: outrosTotais?.percent ?? 0,
           totalEncargosReais: totalEncargosReais,
-        },
-        { withCredentials: true }
+        }
       );
     } catch (err) {
       alert("Erro ao salvar markup: " + err.message);
@@ -574,7 +573,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchFiltro() {
       try {
-        const res = await axios.get("/api/filtro-faturamento", { withCredentials: true });
+        const res = await api.get("/filtro-faturamento");
         if (res.data?.filtro) {
           setMediaTipo(res.data.filtro);
         } else {
@@ -589,7 +588,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchFaturamentos() {
       try {
-        const res = await axios.get("/api/sales-results", { withCredentials: true });
+        const res = await api.get("/sales-results");
         const lista = Array.isArray(res.data) ? res.data : [];
         setFaturamentoLista(lista);
         let listaFiltrada = mediaTipo === "all" ? lista : lista.slice(-Number(mediaTipo));
@@ -609,7 +608,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchBlocos() {
       try {
-        const response = await axios.get("/api/markup-ideal", { withCredentials: true });
+        const response = await api.get("/markup-ideal");
         setBlocos(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setBlocos([]);

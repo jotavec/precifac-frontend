@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
+import api from "../../services/api";
 import "./Movimentacoes.css";
 
 // Estilo dos selects igual aos inputs do sistema
@@ -144,9 +145,8 @@ export default function Movimentacoes() {
   // Busca movimentações
   function buscarMovs() {
     setCarregando(true);
-    fetch("/api/movimentacoes", { credentials: "include" })
-      .then(res => res.json())
-      .then(data => setMovs(data))
+    api.get("/movimentacoes")
+      .then(res => setMovs(res.data))
       .finally(() => setCarregando(false));
   }
 
@@ -155,9 +155,8 @@ export default function Movimentacoes() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/produtos", { credentials: "include" })
-      .then(res => res.json())
-      .then(setProdutos);
+    api.get("/produtos")
+      .then(res => setProdutos(res.data));
   }, []);
 
   // Filtragem (produto, tipo, busca por nome)
@@ -176,9 +175,8 @@ export default function Movimentacoes() {
 
     setDeletando(mov.id);
     try {
-      const rota = `/api/movimentacoes/${mov.tipo === "entrada" ? "entrada" : "saida"}/${mov.id}`;
-      const res = await fetch(rota, { method: "DELETE", credentials: "include" });
-      if (!res.ok) throw new Error("Erro ao deletar movimentação");
+      const rota = `/movimentacoes/${mov.tipo === "entrada" ? "entrada" : "saida"}/${mov.id}`;
+      await api.delete(rota);
       buscarMovs();
     } catch (e) {
       alert("Erro ao deletar movimentação!");

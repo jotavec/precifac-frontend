@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../../services/api";
 
 export default function ImportarNotaFiscalXML({ onUpload }) {
   const [file, setFile] = useState(null);
@@ -21,19 +22,16 @@ export default function ImportarNotaFiscalXML({ onUpload }) {
     const formData = new FormData();
     formData.append("xml", file);
     try {
-      const res = await fetch("/api/produtos/importar-xml-nfe", {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMsg("Arquivo enviado com sucesso!");
-        if (onUpload) onUpload(data); // Chama callback, se passar do pai
-      } else {
-        setMsg(data.error || "Erro ao processar o arquivo.");
-      }
+      const res = await api.post("/produtos/importar-xml-nfe", formData);
+      const data = res.data;
+      setMsg("Arquivo enviado com sucesso!");
+      if (onUpload) onUpload(data); // Chama callback, se passar do pai
     } catch (err) {
-      setMsg("Erro ao conectar ao servidor.");
+      if (err.response && err.response.data && err.response.data.error) {
+        setMsg(err.response.data.error);
+      } else {
+        setMsg("Erro ao conectar ao servidor.");
+      }
     }
     setCarregando(false);
   }

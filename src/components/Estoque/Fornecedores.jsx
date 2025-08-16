@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
+import api from "../../services/api";
 import "./Fornecedores.css";
 
 export default function Fornecedores() {
@@ -32,62 +33,43 @@ export default function Fornecedores() {
   const [carregando, setCarregando] = useState(true);
   const [confirmExcluirIdx, setConfirmExcluirIdx] = useState(null);
 
-  const API = "/api/fornecedores";
-
   useEffect(() => {
-    fetch(API, { credentials: "include" })
-      .then(res => {
-        if (!res.ok) throw new Error("Não autorizado ou erro no backend");
-        return res.json();
-      })
-      .then(setFornecedores)
+    api.get("/fornecedores")
+      .then(res => setFornecedores(res.data))
       .catch(() => setFornecedores([]))
       .finally(() => setCarregando(false));
   }, []);
 
   async function adicionarFornecedor(dados) {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(dados),
-    });
-    if (res.ok) {
-      const novo = await res.json();
+    try {
+      const res = await api.post("/fornecedores", dados);
+      const novo = res.data;
       setFornecedores(prev => [novo, ...prev]);
-    } else {
+    } catch {
       alert("Erro ao cadastrar fornecedor. Faça login ou tente novamente.");
     }
   }
 
   async function atualizarFornecedor(idx, dados) {
     const id = fornecedores[idx].id;
-    const res = await fetch(`${API}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(dados),
-    });
-    if (res.ok) {
-      const atualizado = await res.json();
+    try {
+      const res = await api.put(`/fornecedores/${id}`, dados);
+      const atualizado = res.data;
       setFornecedores(forns =>
         forns.map((f, i) => (i === idx ? atualizado : f))
       );
-    } else {
+    } catch {
       alert("Erro ao editar fornecedor.");
     }
   }
 
   async function excluirFornecedor(idx) {
     const id = fornecedores[idx].id;
-    const res = await fetch(`${API}/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (res.ok || res.status === 204) {
+    try {
+      await api.delete(`/fornecedores/${id}`);
       setFornecedores(forns => forns.filter((_, i) => i !== idx));
       setConfirmExcluirIdx(null);
-    } else {
+    } catch {
       alert("Erro ao excluir fornecedor.");
     }
   }

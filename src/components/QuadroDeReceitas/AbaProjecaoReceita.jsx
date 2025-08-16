@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { FaPlus, FaEdit, FaTrash, FaCalendarAlt } from "react-icons/fa";
+import api from "../../services/api";
 import "./AbaProjecaoReceita.css";
 
 function ModalNovoTipoProduto({ aberto, onClose, tipos, onAdd, onDelete, onEdit }) {
@@ -106,11 +107,10 @@ export default function AbaProjecaoReceita({
 
   async function fetchTiposProduto() {
     try {
-      const res = await fetch("/api/receitas/tipos-produto", { credentials: "include" });
-      const data = await res.json();
+      const res = await api.get("/receitas/tipos-produto");
       setTiposProduto(
-        Array.isArray(data)
-          ? data.map(tp => ({ value: tp.id, label: tp.nome }))
+        Array.isArray(res.data)
+          ? res.data.map(tp => ({ value: tp.id, label: tp.nome }))
           : []
       );
     } catch (error) {
@@ -120,18 +120,11 @@ export default function AbaProjecaoReceita({
 
   async function handleAddTipo(novoNome) {
     try {
-      const res = await fetch("/api/receitas/tipos-produto", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ nome: novoNome }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const novo = { value: data.id, label: data.nome };
-        setTiposProduto(prev => [...prev, novo]);
-        setTipoSelecionado(novo);
-      }
+      const res = await api.post("/receitas/tipos-produto", { nome: novoNome });
+      const data = res.data;
+      const novo = { value: data.id, label: data.nome };
+      setTiposProduto(prev => [...prev, novo]);
+      setTipoSelecionado(novo);
     } catch (error) {
       alert("Erro ao adicionar tipo de produto.");
     }
@@ -141,15 +134,10 @@ export default function AbaProjecaoReceita({
     const tipo = tiposProduto[idx];
     if (!tipo) return;
     try {
-      const res = await fetch(`/api/receitas/tipos-produto/${tipo.value}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (res.ok) {
-        setTiposProduto(arr => arr.filter((_, i) => i !== idx));
-        if (tipoSelecionado && tipoSelecionado.value === tipo.value) {
-          setTipoSelecionado(null);
-        }
+      await api.delete(`/receitas/tipos-produto/${tipo.value}`);
+      setTiposProduto(arr => arr.filter((_, i) => i !== idx));
+      if (tipoSelecionado && tipoSelecionado.value === tipo.value) {
+        setTipoSelecionado(null);
       }
     } catch (error) {
       alert("Erro ao remover tipo de produto.");
@@ -186,18 +174,16 @@ export default function AbaProjecaoReceita({
   }
   async function fetchProfissoesDiretas() {
     try {
-      const res = await fetch("/api/folhapagamento/funcionarios/profissoes-diretas", { credentials: "include" });
-      const data = await res.json();
-      setProfissoesDiretas(Array.isArray(data) ? data.map(cargo => ({ value: cargo, label: cargo })) : []);
+      const res = await api.get("/folhapagamento/funcionarios/profissoes-diretas");
+      setProfissoesDiretas(Array.isArray(res.data) ? res.data.map(cargo => ({ value: cargo, label: cargo })) : []);
     } catch (error) {
       setProfissoesDiretas([]);
     }
   }
   async function fetchCargosValorHora() {
     try {
-      const res = await fetch("/api/folhapagamento/funcionarios", { credentials: "include" });
-      const data = await res.json();
-      const cargos = Array.isArray(data) ? data.map(f => ({ cargo: f.cargo, valorHora: calcularValorHoraFuncionario(f) })) : [];
+      const res = await api.get("/folhapagamento/funcionarios");
+      const cargos = Array.isArray(res.data) ? res.data.map(f => ({ cargo: f.cargo, valorHora: calcularValorHoraFuncionario(f) })) : [];
       setCargosComValorHora(cargos);
     } catch (error) {
       setCargosComValorHora([]);
