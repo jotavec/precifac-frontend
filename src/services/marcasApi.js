@@ -1,44 +1,51 @@
-const API_URL = "/api";
+// src/services/marcasApi.js
+// -------------------------------------------------------------
+// Cliente de Marcas padronizado usando a instância central `api`.
+// - Sem header customizado (nada de "x-user-id").
+// - Baseia-se em cookie/JWT já configurado no backend.
+// - Endpoints em /api/marcas (ajuste aqui se seu backend for diferente).
+// -------------------------------------------------------------
 
-export async function listarMarcas(userId) {
-  const resp = await fetch(`${API_URL}/marcas`, {
-    headers: { "x-user-id": userId },
-    credentials: "include",
+import api from "./api";
+
+/**
+ * Lista marcas (com paginação/termo se aplicável)
+ * @param {{ page?: number, limit?: number, q?: string }} params
+ */
+export async function listarMarcas(params = {}) {
+  const { page, limit, q } = params;
+  const res = await api.get("/marcas", {
+    params: { page, limit, q },
+    // credentials via axios + withCredentials já vêm do client central
   });
-  return resp.json();
+  return res.data;
 }
 
-export async function adicionarMarca(nome, userId) {
-  const resp = await fetch(`${API_URL}/marcas`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome, userId }),
-  });
-  return resp.json();
+/**
+ * Cria uma nova marca
+ * @param {{ nome: string }} payload
+ */
+export async function criarMarca(payload) {
+  // payload: { nome }
+  const res = await api.post("/marcas", payload);
+  return res.data;
 }
 
-export async function deletarMarca(id, userId) {
-  const resp = await fetch(`${API_URL}/marcas/${id}`, {
-    method: "DELETE",
-    headers: { "x-user-id": userId },
-    credentials: "include",
-  });
-  return resp.ok;
+/**
+ * Atualiza uma marca
+ * @param {string|number} id
+ * @param {{ nome: string }} payload
+ */
+export async function atualizarMarca(id, payload) {
+  const res = await api.put(`/marcas/${id}`, payload);
+  return res.data;
 }
 
-export async function editarMarca(id, novoNome, userId) {
-  const resp = await fetch(`${API_URL}/marcas/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome: novoNome, userId }),
-  });
-  return resp.json();
+/**
+ * Remove uma marca
+ * @param {string|number} id
+ */
+export async function removerMarca(id) {
+  const res = await api.delete(`/marcas/${id}`);
+  return res.data;
 }
