@@ -2,10 +2,44 @@ import { useState, useEffect } from "react";
 import api, { BASE_URL } from "../services/api";
 import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
+import Cropper from "react-easy-crop";
 import TabelaPlanos from "./TabelaPlanos";
 import "./Perfil.css";
 
-/* ==================== Helpers ==================== */
+/* ==================== Masks ==================== */
+function formatCNPJ(value) {
+  value = value.replace(/\D/g, "");
+  if (value.length > 14) value = value.slice(0, 14);
+  value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+  value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+  value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+  value = value.replace(/(\d{4})(\d)/, "$1-$2");
+  return value;
+}
+function formatCPF(value) {
+  value = value.replace(/\D/g, "");
+  if (value.length > 11) value = value.slice(0, 11);
+  value = value.replace(/(\d{3})(\d)/, "$1.$2");
+  value = value.replace(/(\d{3})(\d)/, "$1.$2");
+  value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  return value;
+}
+function formatPhone(value) {
+  value = value.replace(/\D/g, "");
+  if (value.length > 11) value = value.slice(0, 11);
+  value = value.replace(/^(\d{2})(\d)/g, "($1) $2");
+  if (value.length > 10) value = value.replace(/(\d{5})(\d)/, "$1-$2");
+  else value = value.replace(/(\d{4})(\d)/, "$1-$2");
+  return value;
+}
+function formatCEP(value) {
+  value = value.replace(/\D/g, "");
+  if (value.length > 8) value = value.slice(0, 8);
+  value = value.replace(/(\d{5})(\d)/, "$1-$2");
+  return value;
+}
+
+/* ==================== Avatar helpers ==================== */
 function pickAvatarFrom(data) {
   return (
     data?.avatarUrl ||
@@ -20,17 +54,42 @@ function pickAvatarFrom(data) {
 // normaliza caminho e monta URL final
 function getFullAvatarUrl(avatarUrl) {
   if (!avatarUrl) return null;
+
   let raw = String(avatarUrl);
-  if (/^https?:\/\//i.test(raw)) return raw;
-  return `/avatars/${raw}`;
+
+  // se já vier de /public/avatars (frontend), usa direto
+  const frontMatch = raw.replace(/\\/g, "/");
+  if (/^\/?avatars\//i.test(frontMatch)) {
+    // garante a barra inicial
+    return frontMatch.startsWith("/") ? frontMatch : `/${frontMatch}`;
+  }
+
+  // separa query (?t=123)
+  const qIndex = raw.indexOf("?");
+  const query = qIndex >= 0 ? raw.slice(qIndex + 1) : "";
+  let pathOnly = qIndex >= 0 ? raw.slice(0, qIndex) : raw;
+
+  // normaliza barras
+  pathOnly = pathOnly.replace(/\\/g, "/");
+
+  // já é absoluta?
+  if (/^https?:\/\//i.test(pathOnly)) {
+    return query ? `${pathOnly}?${query}` : pathOnly;
+  }
+
+  // se vier só o nome, prefixa uploads/avatars/ (fluxo antigo do backend)
+  if (!pathOnly.includes("/")) {
+    pathOnly = `uploads/avatars/${pathOnly}`;
+  }
+
+  const base = String(BASE_URL || "").replace(/\/$/, "");
+  const full = `${base}/${pathOnly.replace(/^\//, "")}`;
+  return query ? `${full}?${query}` : full;
 }
 
 function AvatarSidebar({ avatarUrl }) {
   return (
-    <div
-      className="perfil-avatar-branco"
-      style={{ position: "relative", width: 120, height: 120 }}
-    >
+    <div className="perfil-avatar-branco" style={{ position: "relative", width: 120, height: 120 }}>
       {avatarUrl ? (
         <img
           src={getFullAvatarUrl(avatarUrl)}
@@ -47,15 +106,7 @@ function AvatarSidebar({ avatarUrl }) {
       ) : (
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="60" fill="#ececec" />
-          <text
-            x="50%"
-            y="58%"
-            textAnchor="middle"
-            fontSize="52"
-            fill="#bbb"
-            dy=".3em"
-            fontWeight="bold"
-          >
+          <text x="50%" y="58%" textAnchor="middle" fontSize="52" fill="#bbb" dy=".3em" fontWeight="bold">
             👤
           </text>
         </svg>
@@ -90,6 +141,42 @@ function EditIcon() {
   );
 }
 
+function getCroppedImg(imageSrc, crop, zoom, aspect) {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.crossOrigin = "anonymous";
+    image.src = imageSrc;
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cropX = (crop.x / 100) * image.width;
+      const cropY = (crop.y / 100) * image.height;
+      const side = Math.min(image.width, image.height) / zoom;
+
+      const sx = (image.width - side) / 2 + cropX;
+      const sy = (image.height - side) / 2 + cropY;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(128, 128, 128, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.drawImage(image, sx, sy, side, side, 0, 0, 256, 256);
+      ctx.restore();
+
+      canvas.toBlob((blob) => {
+        resolve({ blob, url: URL.createObjectURL(blob) });
+      }, "image/png");
+    };
+    image.onerror = reject;
+  });
+}
+
 /* ==================== Component ==================== */
 export default function Perfil({ onLogout, abaInicial }) {
   const [editando, setEditando] = useState(false);
@@ -116,13 +203,19 @@ export default function Perfil({ onLogout, abaInicial }) {
 
   const [user, setUser] = useState({});
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+
+  const [showCrop, setShowCrop] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [cropFileUrl, setCropFileUrl] = useState(null);
 
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("success");
 
+  // >>> NOVO: controle do modal de avatares e lista dos bonequinhos
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-
   const AVATARS = [
     { id: "CHEFE.png", label: "Chefe", src: "/avatars/CHEFE.png" },
     { id: "CONFEITEIRO.png", label: "Confeiteiro", src: "/avatars/CONFEITEIRO.png" },
@@ -131,6 +224,12 @@ export default function Perfil({ onLogout, abaInicial }) {
     { id: "GARCOM.png", label: "Garçom", src: "/avatars/GARCOM.png" },
     { id: "GARCONETE.png", label: "Garçonete", src: "/avatars/GARCONETE.png" },
   ];
+  // <<< NOVO
+
+  useEffect(() => {
+    if (abaInicial && abaInicial !== aba) setAba(abaInicial);
+    // eslint-disable-next-line
+  }, [abaInicial]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -184,22 +283,95 @@ export default function Perfil({ onLogout, abaInicial }) {
       setLoading(false);
     }
     fetchUser();
-  }, [abaInicial]);
+    // eslint-disable-next-line
+  }, []);
 
-  async function handleAvatarPick(avatar) {
+  useEffect(() => {
+    if (!avatarFile) return;
+    const url = URL.createObjectURL(avatarFile);
+    setCropFileUrl(url);
+    setShowCrop(true);
+  }, [avatarFile]);
+
+  async function onCropConfirm() {
+    const cropped = await getCroppedImg(cropFileUrl, crop, zoom, 1);
+
+    // Faz o upload
+    const formData = new FormData();
+    formData.append("avatar", cropped.blob, "avatar.png");
+    const { data } = await api.post("/users/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    // Monta URL ABSOLUTA + cache-buster
+    const absolute = getFullAvatarUrl(data.avatarUrl);
+    const cacheBusted = absolute + (absolute.includes("?") ? "&" : "?") + "t=" + Date.now();
+
+    // Atualiza preview e user
+    setAvatarPreview(cacheBusted);
+    setUser((prev) => ({ ...prev, avatarUrl: data.avatarUrl }));
+
+    setShowCrop(false);
+    setAvatarFile(null);
+    URL.revokeObjectURL(cropFileUrl);
+  }
+
+  function onCropCancel() {
+    setShowCrop(false);
+    setAvatarFile(null);
+    if (cropFileUrl) URL.revokeObjectURL(cropFileUrl);
+  }
+
+  function onCropChange(newCrop) {
+    setCrop(newCrop);
+  }
+  function onZoomChange(newZoom) {
+    setZoom(newZoom);
+  }
+
+  async function buscarCep() {
+    if (!form.cep || form.cep.replace(/\D/g, "").length < 8) return;
+    setForm((f) => ({ ...f, rua: "Buscando...", bairro: "", cidade: "", estado: "" }));
     try {
-      await api.put("/users/me", { avatarUrl: avatar.id });
-      setAvatarPreview(avatar.id);
-      setUser((prev) => ({ ...prev, avatarUrl: avatar.id }));
-      setToastMsg("Avatar atualizado!");
-      setToastType("success");
-      setShowToast(true);
+      const resp = await fetch(`https://viacep.com.br/ws/${form.cep.replace(/\D/g, "")}/json/`);
+      const data = await resp.json();
+      setForm((f) => ({
+        ...f,
+        rua: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.localidade || "",
+        estado: data.uf || "",
+      }));
     } catch {
-      setToastMsg("Erro ao salvar avatar");
-      setToastType("error");
+      setForm((f) => ({ ...f, rua: "", bairro: "", cidade: "", estado: "" }));
+      setToastMsg("CEP não encontrado!");
+      setToastType("warn");
       setShowToast(true);
     }
-    setShowAvatarPicker(false);
+  }
+
+  function handleChange(e) {
+    const { name, value, type, checked } = e.target;
+    let val = value;
+    if (name === "cnpj") val = formatCNPJ(value);
+    if (name === "cpf") val = formatCPF(value);
+    if (name === "cep") val = formatCEP(value);
+    if (name === "telefoneEmpresa" || name === "telefone") val = formatPhone(value);
+
+    setForm((f) => ({
+      ...f,
+      [name]: type === "checkbox" ? checked : val,
+      ...(name === "semNumero" && checked ? { numero: "" } : {}),
+    }));
+  }
+
+  function handleSemNumeroClick() {
+    if (!editando) return;
+    setForm((f) => ({
+      ...f,
+      semNumero: !f.semNumero,
+      numero: !f.semNumero ? "" : f.numero,
+    }));
   }
 
   async function handleSalvar() {
@@ -210,7 +382,6 @@ export default function Perfil({ onLogout, abaInicial }) {
         name: form.nome,
         cpf: form.cpf,
         telefone: form.telefone,
-        avatarUrl: user.avatarUrl,
       });
 
       await api.post("/company-config", {
@@ -241,25 +412,148 @@ export default function Perfil({ onLogout, abaInicial }) {
   function handleCancelar() {
     setEditando(false);
     setForm(backup);
+    setAvatarFile(null);
     setAvatarPreview(user.avatarUrl || null);
   }
+
+  function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (file) setAvatarFile(file);
+  }
+
+  // >>> NOVO: escolher um avatar pré-definido (salva direto)
+  async function handleAvatarPick(preset) {
+    try {
+      // vamos salvar como caminho de frontend (/avatars/XYZ.png)
+      const chosen = `/avatars/${preset.id}`;
+      await api.put("/users/me", { avatarUrl: chosen });
+      setUser((prev) => ({ ...prev, avatarUrl: chosen }));
+      setAvatarPreview(chosen);
+      setToastMsg("Avatar atualizado!");
+      setToastType("success");
+      setShowToast(true);
+    } catch {
+      setToastMsg("Erro ao salvar avatar");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setShowAvatarPicker(false);
+    }
+  }
+  // <<< NOVO
 
   if (loading) return <div style={{ color: "#333", margin: 24 }}>Carregando...</div>;
 
   return (
     <>
+      {showCrop && (
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            left: 0,
+            top: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(10,16,40,0.58)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              boxShadow: "0 4px 40px #0002",
+              padding: 36,
+              minWidth: 340,
+              minHeight: 370,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: 280,
+                height: 280,
+                background: "#f7fafb",
+                borderRadius: "50%",
+                overflow: "hidden",
+              }}
+            >
+              <Cropper
+                image={cropFileUrl}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={onCropChange}
+                onCropComplete={() => {}}
+                onZoomChange={onZoomChange}
+                style={{ containerStyle: { borderRadius: "50%", overflow: "hidden" } }}
+              />
+            </div>
+            <div style={{ marginTop: 24, display: "flex", gap: 20 }}>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.01}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ width: 140 }}
+              />
+              <span style={{ fontSize: 15, color: "#0094e7", fontWeight: 600 }}>Zoom</span>
+            </div>
+            <div style={{ marginTop: 32, display: "flex", gap: 18 }}>
+              <button
+                onClick={onCropCancel}
+                style={{
+                  padding: "9px 22px",
+                  background: "#fff",
+                  color: "#222",
+                  borderRadius: 12,
+                  border: "2px solid #ddd",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={onCropConfirm}
+                style={{
+                  padding: "10px 26px",
+                  background: "#00b1ff",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 12,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                  boxShadow: "0 3px 24px #00cfff21",
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="perfil-titulo-header">Perfil</div>
 
       <div className="perfil-branco-main">
-        <ModalToast
-          show={showToast}
-          message={toastMsg}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
+        <ModalToast show={showToast} message={toastMsg} type={toastType} onClose={() => setShowToast(false)} />
 
         <div className="perfil-branco-side">
-          <div
+          <label
+            htmlFor="avatar-upload"
             style={{
               cursor: editando ? "pointer" : "default",
               display: "block",
@@ -268,18 +562,29 @@ export default function Perfil({ onLogout, abaInicial }) {
               height: 120,
               margin: "0 auto",
             }}
-            onClick={() => editando && setShowAvatarPicker(true)}
+            // >>> NOVO: intercepta o clique para abrir o seletor de bonequinhos
+            onClick={(e) => {
+              if (editando) {
+                e.preventDefault(); // evita abrir o file picker
+                setShowAvatarPicker(true);
+              }
+            }}
           >
             <AvatarSidebar avatarUrl={avatarPreview || user.avatarUrl} />
             {editando && <EditIcon />}
-          </div>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+              disabled={!editando}
+            />
+          </label>
 
           <div className="perfil-branco-nome">{form.nome || "Seu Nome"}</div>
           <div className="perfil-branco-cargo">Usuário</div>
-          <button
-            className={`perfil-branco-btn-info${aba === "dados" ? " ativo" : ""}`}
-            onClick={() => setAba("dados")}
-          >
+          <button className={`perfil-branco-btn-info${aba === "dados" ? " ativo" : ""}`} onClick={() => setAba("dados")}>
             Dados Pessoais
           </button>
           <button
@@ -303,22 +608,113 @@ export default function Perfil({ onLogout, abaInicial }) {
 
         <div className="perfil-branco-content">
           {aba === "dados" && (
-            <form
-              autoComplete="off"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSalvar();
-              }}
-            >
-              {/* ... resto do formulário igual ao seu código ... */}
+            <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSalvar(); }}>
+              <h2 className="perfil-branco-titulo">Dados Pessoais</h2>
+              <div className="perfil-branco-form">
+                <div className="perfil-branco-form-row">
+                  <div>
+                    <label>Nome</label>
+                    <input type="text" name="nome" disabled={!editando} value={form.nome} onChange={handleChange} placeholder="Seu nome" />
+                  </div>
+                  <div>
+                    <label>CPF</label>
+                    <input type="text" name="cpf" disabled={!editando} value={form.cpf} onChange={handleChange} placeholder="CPF" />
+                  </div>
+                </div>
+                <div className="perfil-branco-form-row">
+                  <div style={{ flex: 1 }}>
+                    <label>Telefone</label>
+                    <input type="text" name="telefone" disabled={!editando} value={form.telefone} onChange={handleChange} placeholder="Telefone" />
+                  </div>
+                </div>
+
+                <h2 className="perfil-branco-titulo" style={{ marginTop: 32, marginBottom: 0 }}>
+                  Dados Empresariais
+                </h2>
+
+                <div className="perfil-branco-form-row" style={{ alignItems: "flex-end" }}>
+                  <div>
+                    <label>CEP</label>
+                    <input type="text" name="cep" disabled={!editando} value={form.cep} onChange={handleChange} placeholder="CEP" />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end", height: "100%" }}>
+                    <button
+                      className="perfil-branco-btn-buscar"
+                      type="button"
+                      onClick={buscarCep}
+                      disabled={!editando}
+                      style={{ width: "100%", minHeight: 44 }}
+                    >
+                      Buscar CEP
+                    </button>
+                  </div>
+                </div>
+
+                <div className="perfil-branco-form-row">
+                  <div style={{ flex: 2 }}>
+                    <label>Endereço</label>
+                    <input type="text" name="rua" disabled={!editando} value={form.rua} onChange={handleChange} placeholder="Rua" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                      <label style={{ margin: 0 }}>Número</label>
+                      <label style={{ display: "flex", alignItems: "center", fontSize: 12, fontWeight: 500, color: "#8b8b8b" }}>
+                        <input
+                          type="checkbox"
+                          checked={form.semNumero}
+                          disabled={!editando}
+                          onChange={handleSemNumeroClick}
+                          style={{ marginRight: 5, marginTop: 0 }}
+                        />
+                        Sem número
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      name="numero"
+                      disabled={!editando || form.semNumero}
+                      value={form.numero}
+                      onChange={handleChange}
+                      placeholder="Nº"
+                    />
+                  </div>
+                </div>
+                <div className="perfil-branco-form-row">
+                  <div>
+                    <label>Bairro</label>
+                    <input type="text" name="bairro" disabled={!editando} value={form.bairro} onChange={handleChange} placeholder="Bairro" />
+                  </div>
+                  <div>
+                    <label>Cidade</label>
+                    <input type="text" name="cidade" disabled={!editando} value={form.cidade} onChange={handleChange} placeholder="Cidade" />
+                  </div>
+                  <div>
+                    <label>Estado</label>
+                    <input type="text" name="estado" disabled={!editando} value={form.estado} onChange={handleChange} placeholder="Estado" />
+                  </div>
+                </div>
+                <div className="perfil-branco-form-row">
+                  <div>
+                    <label>Razão Social</label>
+                    <input
+                      type="text"
+                      name="empresaNome"
+                      disabled={!editando}
+                      value={form.empresaNome}
+                      onChange={handleChange}
+                      placeholder="Razão Social"
+                    />
+                  </div>
+                  <div>
+                    <label>CNPJ</label>
+                    <input type="text" name="cnpj" disabled={!editando} value={form.cnpj} onChange={handleChange} placeholder="CNPJ" />
+                  </div>
+                </div>
+              </div>
               <div className="perfil-branco-actions">
                 {editando ? (
                   <>
-                    <button
-                      type="button"
-                      className="perfil-branco-btn-discard"
-                      onClick={handleCancelar}
-                    >
+                    <button type="button" className="perfil-branco-btn-discard" onClick={handleCancelar}>
                       Cancelar
                     </button>
                     <button type="submit" className="perfil-branco-btn-save">
@@ -326,11 +722,7 @@ export default function Perfil({ onLogout, abaInicial }) {
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="perfil-branco-btn-save"
-                    onClick={() => setEditando(true)}
-                  >
+                  <button type="button" className="perfil-branco-btn-save" onClick={() => setEditando(true)}>
                     Editar
                   </button>
                 )}
@@ -339,75 +731,94 @@ export default function Perfil({ onLogout, abaInicial }) {
           )}
 
           {aba === "login" && <PerfilLoginSenha email={form.email} />}
-          {aba === "planos" && (
-            <TabelaPlanos userEmail={form.email || user?.email} />
-          )}
+          {aba === "planos" && <TabelaPlanos userEmail={form.email || user?.email} />}
         </div>
       </div>
 
-      {/* Modal de escolha de avatar */}
+      {/* >>> NOVO: Mini‑modal para escolher um dos bonequinhos */}
       {showAvatarPicker && (
         <div
+          onClick={() => setShowAvatarPicker(false)}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0,0,0,.45)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
           }}
-          onClick={() => setShowAvatarPicker(false)}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               background: "#fff",
               borderRadius: 16,
-              padding: 24,
-              maxWidth: 500,
-              width: "90%",
+              padding: 20,
+              width: "min(680px, 92vw)",
+              boxShadow: "0 20px 60px rgba(0,0,0,.18)",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginBottom: 16 }}>Escolha seu avatar</h3>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 12 }}>
+              Escolha seu avatar
+            </div>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                gap: 16,
+                gap: 12,
               }}
             >
               {AVATARS.map((a) => (
-                <div
+                <button
                   key={a.id}
-                  style={{
-                    textAlign: "center",
-                    cursor: "pointer",
-                    border:
-                      avatarPreview === a.id
-                        ? "3px solid #00b1ff"
-                        : "2px solid transparent",
-                    borderRadius: 12,
-                    padding: 6,
-                  }}
                   onClick={() => handleAvatarPick(a)}
+                  style={{
+                    cursor: "pointer",
+                    border: "2px solid transparent",
+                    borderRadius: 12,
+                    padding: 8,
+                    background: "#fafafa",
+                  }}
+                  title={a.label}
                 >
                   <img
                     src={a.src}
                     alt={a.label}
-                    style={{
-                      width: "100%",
-                      height: 100,
-                      objectFit: "contain",
-                    }}
+                    style={{ width: "100%", height: 110, objectFit: "contain" }}
                   />
-                  <div style={{ marginTop: 6, fontSize: 14 }}>{a.label}</div>
-                </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textAlign: "center",
+                      color: "#333",
+                    }}
+                  >
+                    {a.label}
+                  </div>
+                </button>
               ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+              <button
+                onClick={() => setShowAvatarPicker(false)}
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: 10,
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
       )}
+      {/* <<< NOVO */}
     </>
   );
 }
