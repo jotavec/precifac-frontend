@@ -4,26 +4,19 @@
 import axios from "axios";
 
 /**
- * Lê as variáveis do Vite e normaliza.
+ * Config do Vite:
  * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com
  * - VITE_API_PREFIX: ex. /api
  */
-const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL; // sem fallback!
-const RAW_API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
+const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "";
+const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
 
-// remove barras à direita da base e garante que o prefix tenha 1 barra à esquerda
-const BASE_URL = String(RAW_BASE_URL || "").replace(/\/+$/, "");
+// normaliza
+const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
 const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
 
 // base final: https://.../api
 const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
-
-// (opcional) alerta claro se as envs não estiverem setadas
-if (!RAW_BASE_URL) {
-  // Evita cair em localhost silenciosamente
-  // Em produção, garanta VITE_BACKEND_URL configurada no Vercel.
-  console.error("[API] VITE_BACKEND_URL NÃO definida. Ajuste as variáveis de ambiente do Vercel.");
-}
 
 /* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
 function getCookie(name) {
@@ -70,19 +63,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* Interceptor de resposta: trata 401 e redireciona para /login */
+/* Interceptor de resposta:
+   >>> NÃO redireciona mais automaticamente em 401.
+   Dispara um evento opcional para o app ouvir, mas não dá window.location.
+*/
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
     if (status === 401) {
+      // limpa tokens locais (se existirem)
       try {
         localStorage.removeItem("token");
         localStorage.removeItem("authToken");
         localStorage.removeItem("accessToken");
       } catch {}
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-        window.location.href = "/login";
+
+      // deixa o App decidir o que fazer:
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("api-unauthorized"));
       }
     }
     return Promise.reject(error);

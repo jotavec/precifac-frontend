@@ -18,7 +18,7 @@ import SidebarMenu from "./SidebarMenu";
 import FolhaDePagamento from "./components/Custos/FolhaDePagamento";
 import CentralReceitas from "./components/QuadroDeReceitas/CentralReceitas";
 import Sugestoes from "./components/Sugestoes/Sugestoes";
-import Login from "./pages/Login";           // usa a tela de login estilizada
+import Login from "./pages/Login";
 import "./App.css";
 import "./AppContainer.css";
 
@@ -141,6 +141,18 @@ export default function App() {
 
   const AbaComponent = typeof aba === "number" ? abasPrincipais[aba].component : null;
 
+  // escuta 401 globais (emitidos no api.js)
+  useEffect(() => {
+    function onUnauthorized() {
+      // não derruba automaticamente; poderia mostrar toast, etc.
+      // se quiser derrubar, descomente as duas linhas abaixo:
+      // setUser(null);
+      // if (typeof window !== "undefined") window.history.replaceState({}, "", "/login");
+    }
+    window.addEventListener("api-unauthorized", onUnauthorized);
+    return () => window.removeEventListener("api-unauthorized", onUnauthorized);
+  }, []);
+
   // checa sessão uma vez
   useEffect(() => {
     let canceled = false;
@@ -242,6 +254,10 @@ export default function App() {
         email: form.email,
         password: form.password
       });
+      // se backend devolver token, injeta em memória (opcional)
+      if (data?.token) {
+        api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+      }
       setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
@@ -251,26 +267,22 @@ export default function App() {
     }
   }
 
+  // >>> AQUI O PULO DO GATO: após login, injeta Authorization em memória
   async function handleLogin(e) {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const res = await fetch(api("/users/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        })
+      const { data } = await api.post("/users/login", {
+        email: form.email,
+        password: form.password
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        setMsg(errorData.error || "Erro ao fazer login.");
-        return;
+
+      if (data?.token) {
+        // mantém só em memória (sem localStorage)
+        api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
       }
-      const data = await res.json();
-      setUser(data.user);
+
+      setUser(data.user || data);
       setMsg("");
       if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
     } catch (err) {
@@ -280,10 +292,13 @@ export default function App() {
   }
 
   async function handleLogout() {
-    await fetch(api("/users/logout"), {
-      method: "POST",
-      credentials: "include"
-    });
+    try {
+      await api.post("/users/logout");
+    } catch {}
+    // limpa o header em memória
+    try {
+      delete api.defaults.headers.common.Authorization;
+    } catch {}
     setUser(null);
     setScreen("login");
     setForm({ name: "", email: "", password: "" });
@@ -433,7 +448,6 @@ export default function App() {
           </main>
         </div>
       ) : (
-        // >>>>> AQUI A CORREÇÃO: usa a sua tela Login bonitona
         <Login
           screen={screen}
           setScreen={setScreen}
