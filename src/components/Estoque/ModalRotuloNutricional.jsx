@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 export default function ModalRotuloNutricional({
   open,
@@ -13,18 +13,56 @@ export default function ModalRotuloNutricional({
   const [descEditIdx, setDescEditIdx] = useState(null);
   const [unidInput, setUnidInput] = useState("");
   const [unidEditIdx, setUnidEditIdx] = useState(null);
+  const didLoadRef = useRef(false);
 
-  // Carregar categorias nutricionais do backend ao abrir modal
+  // Carregar categorias nutricionais do backend ao abrir modal (uma vez por abertura)
   useEffect(() => {
-    if (open) {
-      fetch("/api/categorias-nutricionais", { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
-          setCategoriasApi(Array.isArray(data) ? data : []);
-          setDescricoes(Array.from(new Set(data.map(d => d.descricao))));
-          setUnidades(Array.from(new Set(data.map(d => d.unidade))));
-        });
+    if (!open) {
+      didLoadRef.current = false;
+      return;
     }
+    if (didLoadRef.current) return;
+    didLoadRef.current = true;
+
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch("/api/categorias-nutricionais", {
+          credentials: "include",
+          cache: "no-store",
+          signal: ac.signal,
+          headers: {
+            "Accept": "application/json",
+          },
+        });
+
+        // 304 não tem body — não tente res.json()
+        if (res.status === 304) return;
+
+        if (!res.ok) {
+          // evita loop em erro de cache/infra
+          return;
+        }
+
+        // só tenta parsear se vier JSON
+        const ct = res.headers.get("content-type") || "";
+        const data = ct.includes("application/json")
+          ? await res.json()
+          : [];
+
+        const arr = Array.isArray(data) ? data : [];
+
+        setCategoriasApi(arr);
+        // dedupe e ignora vazios
+        setDescricoes(Array.from(new Set(arr.map(d => d?.descricao).filter(Boolean))));
+        setUnidades(Array.from(new Set(arr.map(d => d?.unidade).filter(Boolean))));
+      } catch (err) {
+        if (err?.name === "AbortError") return;
+        // silencia para não gerar rerender-loop
+      }
+    })();
+
+    return () => ac.abort();
   }, [open, setDescricoes, setUnidades]);
 
   // --------- DESCRIÇÃO ---------
@@ -32,27 +70,36 @@ export default function ModalRotuloNutricional({
     const novaDesc = descInput.trim();
     if (
       !novaDesc ||
-      categoriasApi.some((d) => d.descricao.toLowerCase() === novaDesc.toLowerCase())
-    )
+      categoriasApi.some((d) => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase())
+    ) {
       return;
+    }
     fetch("/api/categorias-nutricionais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ descricao: novaDesc, unidade: "" })
     })
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const ct = res.headers.get("content-type") || "";
+        return ct.includes("application/json") ? res.json() : null;
+      })
       .then((cat) => {
-        setCategoriasApi(prev => [...prev, cat]);
-        setDescricoes(prev => [...prev, novaDesc]);
+        if (!cat) return;
+        setCategoriasApi((prev) => [...prev, cat]);
+        setDescricoes((prev) => Array.from(new Set([...prev, novaDesc])));
         setDescInput("");
         setDescEditIdx(null);
-      });
+      })
+      .catch(() => {});
   }
+
   function handleEditDescricao(idx) {
     setDescEditIdx(idx);
     setDescInput(descricoes[idx]);
   }
+
   function handleSaveEditDescricao(idx) {
     const novaDesc = descInput.trim();
     const oldDesc = descricoes[idx];
@@ -60,34 +107,43 @@ export default function ModalRotuloNutricional({
     if (
       !novaDesc ||
       categoriasApi.some(
-        (d) => d.descricao.toLowerCase() === novaDesc.toLowerCase() && d.descricao !== oldDesc
+        (d) => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase() && d.descricao !== oldDesc
       )
-    )
-      return;
+    ) return;
     if (!categoria) return;
+
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade })
+      body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade || "" })
     })
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const ct = res.headers.get("content-type") || "";
+        return ct.includes("application/json") ? res.json() : null;
+      })
       .then((cat) => {
+        if (!cat) return;
         const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
         setCategoriasApi(cats);
         setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
         setDescEditIdx(null);
         setDescInput("");
-      });
+      })
+      .catch(() => {});
   }
+
   function handleCancelEditDescricao() {
     setDescEditIdx(null);
     setDescInput("");
   }
+
   function handleDeleteDescricao(idx) {
     const desc = descricoes[idx];
     const categoria = categoriasApi.find(c => c.descricao === desc);
     if (!categoria) return;
+
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
       credentials: "include"
@@ -97,7 +153,8 @@ export default function ModalRotuloNutricional({
         setDescricoes(prev => prev.filter((_, i) => i !== idx));
         setDescEditIdx(null);
         setDescInput("");
-      });
+      })
+      .catch(() => {});
   }
 
   // --------- UNIDADE ---------
@@ -105,27 +162,36 @@ export default function ModalRotuloNutricional({
     const novaUnid = unidInput.trim();
     if (
       !novaUnid ||
-      categoriasApi.some((u) => u.unidade && u.unidade.toLowerCase() === novaUnid.toLowerCase())
-    )
+      categoriasApi.some((u) => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase())
+    ) {
       return;
+    }
     fetch("/api/categorias-nutricionais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ descricao: "", unidade: novaUnid })
     })
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const ct = res.headers.get("content-type") || "";
+        return ct.includes("application/json") ? res.json() : null;
+      })
       .then((cat) => {
+        if (!cat) return;
         setCategoriasApi(prev => [...prev, cat]);
-        setUnidades(prev => [...prev, novaUnid]);
+        setUnidades(prev => Array.from(new Set([...prev, novaUnid])));
         setUnidInput("");
         setUnidEditIdx(null);
-      });
+      })
+      .catch(() => {});
   }
+
   function handleEditUnidade(idx) {
     setUnidEditIdx(idx);
     setUnidInput(unidades[idx]);
   }
+
   function handleSaveEditUnidade(idx) {
     const novaUnid = unidInput.trim();
     const oldUnid = unidades[idx];
@@ -133,34 +199,43 @@ export default function ModalRotuloNutricional({
     if (
       !novaUnid ||
       categoriasApi.some(
-        (u) => u.unidade && u.unidade.toLowerCase() === novaUnid.toLowerCase() && u.unidade !== oldUnid
+        (u) => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase() && u.unidade !== oldUnid
       )
-    )
-      return;
+    ) return;
     if (!categoria) return;
+
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ descricao: categoria.descricao, unidade: novaUnid })
+      body: JSON.stringify({ descricao: categoria.descricao || "", unidade: novaUnid })
     })
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const ct = res.headers.get("content-type") || "";
+        return ct.includes("application/json") ? res.json() : null;
+      })
       .then((cat) => {
+        if (!cat) return;
         const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
         setCategoriasApi(cats);
         setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
         setUnidEditIdx(null);
         setUnidInput("");
-      });
+      })
+      .catch(() => {});
   }
+
   function handleCancelEditUnidade() {
     setUnidEditIdx(null);
     setUnidInput("");
   }
+
   function handleDeleteUnidade(idx) {
     const unid = unidades[idx];
     const categoria = categoriasApi.find(c => c.unidade === unid);
     if (!categoria) return;
+
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
       credentials: "include"
@@ -170,7 +245,8 @@ export default function ModalRotuloNutricional({
         setUnidades(prev => prev.filter((_, i) => i !== idx));
         setUnidEditIdx(null);
         setUnidInput("");
-      });
+      })
+      .catch(() => {});
   }
 
   if (!open) return null;
@@ -215,6 +291,7 @@ export default function ModalRotuloNutricional({
           }}
           onClick={onClose}
         >×</button>
+
         <h2 style={{
           color: "#2196f3",
           margin: 0,
@@ -225,6 +302,7 @@ export default function ModalRotuloNutricional({
         }}>
           Categorias Nutricionais
         </h2>
+
         <div style={{
           display: "flex",
           gap: 40,
@@ -262,10 +340,11 @@ export default function ModalRotuloNutricional({
                 title="Adicionar descrição"
               >
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="#fff">
-                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
+                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0-32-14.3-32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
                 </svg>
               </button>
             </div>
+
             <div style={{
               background: "#f8fafd",
               minHeight: 130,
@@ -278,6 +357,7 @@ export default function ModalRotuloNutricional({
               {descricoes.length === 0 && descEditIdx !== -1 && (
                 <div style={{ color: "#8fb9e7" }}>Nenhuma descrição.</div>
               )}
+
               {descricoes.map((desc, idx) =>
                 descEditIdx === idx ? (
                   <div key={idx} style={{ display: "flex", gap: 7, marginBottom: 10 }}>
@@ -330,9 +410,7 @@ export default function ModalRotuloNutricional({
                     </button>
                   </div>
                 ) : (
-                  <div key={idx} style={{
-                    display: "flex", alignItems: "center", gap: 11, marginBottom: 9
-                  }}>
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 9 }}>
                     <span style={{
                       flex: 1,
                       overflow: "hidden",
@@ -371,6 +449,7 @@ export default function ModalRotuloNutricional({
                   </div>
                 )
               )}
+
               {descEditIdx === -1 && (
                 <div style={{ display: "flex", gap: 7, marginBottom: 8, marginTop: 5 }}>
                   <input
@@ -421,6 +500,7 @@ export default function ModalRotuloNutricional({
               )}
             </div>
           </div>
+
           {/* UNIDADE DE MEDIDA */}
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{
@@ -451,10 +531,11 @@ export default function ModalRotuloNutricional({
                 title="Adicionar unidade"
               >
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="#fff">
-                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
+                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0-32-14.3-32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
                 </svg>
               </button>
             </div>
+
             <div style={{
               background: "#f8fafd",
               minHeight: 130,
@@ -467,6 +548,7 @@ export default function ModalRotuloNutricional({
               {unidades.length === 0 && unidEditIdx !== -1 && (
                 <div style={{ color: "#8fb9e7" }}>Nenhuma unidade.</div>
               )}
+
               {unidades.map((unid, idx) =>
                 unidEditIdx === idx ? (
                   <div key={idx} style={{ display: "flex", gap: 7, marginBottom: 10 }}>
@@ -515,9 +597,7 @@ export default function ModalRotuloNutricional({
                     >✖</button>
                   </div>
                 ) : (
-                  <div key={idx} style={{
-                    display: "flex", alignItems: "center", gap: 11, marginBottom: 9
-                  }}>
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 9 }}>
                     <span style={{
                       flex: 1,
                       overflow: "hidden",
@@ -556,6 +636,7 @@ export default function ModalRotuloNutricional({
                   </div>
                 )
               )}
+
               {unidEditIdx === -1 && (
                 <div style={{ display: "flex", gap: 7, marginBottom: 8, marginTop: 5 }}>
                   <input
@@ -607,6 +688,7 @@ export default function ModalRotuloNutricional({
             </div>
           </div>
         </div>
+
         <div style={{ textAlign: "right", marginTop: 18 }}>
           <button
             type="button"
