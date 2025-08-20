@@ -27,16 +27,15 @@ export default function ModalCategorias({ open, onClose, refresh }) {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    listarCategorias().then((cats) => {
-      setCategorias(cats);
-      setLoading(false);
-    });
+    listarCategorias()
+      .then((cats) => setCategorias(cats))
+      .finally(() => setLoading(false));
   }, [open, refresh]);
 
   async function handleAdicionarCategoria() {
     const nome = novaCategoria.trim();
     if (!nome) return;
-    if (categorias.some((cat) => cat.nome && cat.nome.toLowerCase() === nome.toLowerCase())) {
+    if (categorias.some((c) => c.nome && c.nome.toLowerCase() === nome.toLowerCase())) {
       alert("Categoria já existe!");
       return;
     }
@@ -47,7 +46,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
         setCategorias((prev) => [...prev, cat]);
       }
       setNovaCategoria("");
-    } catch (err) {
+    } catch {
       alert("Erro ao adicionar categoria!");
     }
     setLoading(false);
@@ -81,8 +80,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
     if (!novoNome) return;
     if (
       categorias.some(
-        (c, i) =>
-          i !== editIdx && c.nome && c.nome.toLowerCase() === novoNome.toLowerCase()
+        (c, i) => i !== editIdx && c.nome && c.nome.toLowerCase() === novoNome.toLowerCase()
       )
     ) {
       alert("Já existe uma categoria com esse nome!");
@@ -96,7 +94,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
       );
       setEditIdx(null);
       setEditNome("");
-    } catch (err) {
+    } catch {
       alert("Erro ao editar categoria!");
     }
     setLoading(false);
@@ -125,16 +123,23 @@ export default function ModalCategorias({ open, onClose, refresh }) {
           fontFamily: "Roboto, Arial, sans-serif",
         }}
       >
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10
-        }}>
-          <h2 style={{
-            color: TITLE,
-            fontSize: 23,
-            margin: 0,
-            fontWeight: 900,
-            letterSpacing: 0.3
-          }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <h2
+            style={{
+              color: TITLE,
+              fontSize: 23,
+              margin: 0,
+              fontWeight: 900,
+              letterSpacing: 0.3,
+            }}
+          >
             Categorias
           </h2>
           <button
@@ -147,38 +152,48 @@ export default function ModalCategorias({ open, onClose, refresh }) {
               cursor: "pointer",
               fontWeight: 800,
               marginLeft: 16,
-              lineHeight: 1
+              lineHeight: 1,
             }}
             title="Fechar"
-          >×</button>
+          >
+            ×
+          </button>
         </div>
+
         <div style={{ margin: "18px 0 18px 0", minHeight: 120 }}>
           {loading && <div style={{ color: "#bbb" }}>Carregando...</div>}
           {!loading &&
-            categorias.filter(cat => cat.nome && cat.nome.trim() !== "").length === 0 && (
-              <div style={{ color: "#bbb", fontSize: 15 }}>Nenhuma categoria cadastrada ainda.</div>
+            categorias.filter((c) => c.nome && c.nome.trim() !== "").length === 0 && (
+              <div style={{ color: "#bbb", fontSize: 15 }}>
+                Nenhuma categoria cadastrada ainda.
+              </div>
             )}
+
           {categorias
-            .filter(cat => cat.nome && cat.nome.trim() !== "")
+            .filter((c) => c.nome && c.nome.trim() !== "")
             .map((cat, idx) => (
-              <div key={cat.id} style={{
-                display: "flex",
-                alignItems: "center",
-                background: CARD_BG,
-                borderRadius: 12,
-                border: `1.5px solid ${BORDER}`,
-                boxShadow: "0 2px 8px #a0cef520",
-                padding: "10px 0 10px 14px",
-                marginBottom: 10,
-                gap: 8,
-                minHeight: 36,
-                transition: "border 0.17s",
-              }}>
+              <div
+                key={cat.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: CARD_BG,
+                  borderRadius: 12,
+                  border: `1.5px solid ${BORDER}`,
+                  boxShadow: "0 2px 8px #a0cef520",
+                  padding: "10px 0 10px 14px",
+                  marginBottom: 10,
+                  gap: 8,
+                  minHeight: 36,
+                  transition: "border 0.17s",
+                  opacity: loading ? 0.6 : 1,
+                }}
+              >
                 {editIdx === idx ? (
                   <>
                     <input
                       value={editNome}
-                      onChange={e => setEditNome(e.target.value)}
+                      onChange={(e) => setEditNome(e.target.value)}
                       autoFocus
                       style={{
                         flex: 1,
@@ -192,7 +207,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                         fontWeight: 600,
                         marginRight: 4,
                       }}
-                      onKeyDown={e => {
+                      onKeyDown={(e) => {
                         if (e.key === "Enter") saveEdit(cat);
                         if (e.key === "Escape") cancelEdit();
                       }}
@@ -214,11 +229,13 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                         justifyContent: "center",
                         marginLeft: 2,
                         boxShadow: "0 2px 8px #00cfff33",
-                        transition: "background .13s"
+                        transition: "background .13s",
                       }}
                       title="Salvar"
                       disabled={loading}
-                    ><FaCheck /></button>
+                    >
+                      <FaCheck />
+                    </button>
                     <button
                       onClick={cancelEdit}
                       style={{
@@ -233,71 +250,89 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginLeft: 3
+                        marginLeft: 3,
                       }}
                       title="Cancelar"
                       disabled={loading}
-                    ><FaTimes /></button>
+                    >
+                      <FaTimes />
+                    </button>
                   </>
                 ) : (
                   <>
-                    <span style={{
-                      fontSize: 16,
-                      flex: 1,
-                      color: TEXT_COLOR,
-                      fontWeight: 600,
-                      letterSpacing: 0.05,
-                      marginRight: 5
-                    }}>{cat.nome}</span>
+                    <span
+                      style={{
+                        fontSize: 16,
+                        flex: 1,
+                        color: TEXT_COLOR,
+                        fontWeight: 600,
+                        letterSpacing: 0.05,
+                        marginRight: 5,
+                      }}
+                    >
+                      {cat.nome}
+                    </span>
+
+                    {/* ÍCONE EDITAR (apenas ícone) */}
                     <button
                       onClick={() => startEdit(idx, cat.nome)}
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "#fff",
+                        border: `1.6px solid ${BTN_AZUL}`,
                         color: BTN_AZUL,
-                        fontSize: 20,
+                        borderRadius: 9,
                         cursor: "pointer",
                         height: 32,
-                        width: 32,
+                        width: 36,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         marginLeft: 2,
-                        transition: "color 0.15s"
+                        transition: "filter .15s",
                       }}
                       title="Editar"
                       disabled={loading}
+                      onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
+                      onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
                     >
                       <FaEdit />
                     </button>
+
+                    {/* ÍCONE REMOVER (apenas ícone) */}
                     <button
                       onClick={() => handleRemoverCategoria(cat.id)}
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "#fff",
+                        border: `1.6px solid ${BTN_VERMELHO}`,
                         color: BTN_VERMELHO,
-                        fontSize: 21,
+                        borderRadius: 9,
                         cursor: "pointer",
                         height: 32,
-                        width: 32,
+                        width: 36,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginLeft: 3
+                        marginLeft: 3,
+                        transition: "filter .15s",
                       }}
                       title={`Remover "${cat.nome}"`}
                       disabled={loading}
-                    ><FaTrash /></button>
+                      onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
+                      onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
+                    >
+                      <FaTrash />
+                    </button>
                   </>
                 )}
               </div>
             ))}
         </div>
+
         <div style={{ display: "flex", gap: 8 }}>
           <input
             type="text"
             value={novaCategoria}
-            onChange={e => setNovaCategoria(e.target.value)}
+            onChange={(e) => setNovaCategoria(e.target.value)}
             placeholder="Nova categoria"
             style={{
               flex: 1,
@@ -311,7 +346,9 @@ export default function ModalCategorias({ open, onClose, refresh }) {
               fontWeight: 600,
               marginRight: 0,
             }}
-            onKeyDown={e => { if (e.key === "Enter") handleAdicionarCategoria(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdicionarCategoria();
+            }}
             disabled={loading}
           />
           <button
@@ -333,10 +370,10 @@ export default function ModalCategorias({ open, onClose, refresh }) {
               minWidth: 112,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center"
+              justifyContent: "center",
             }}
-            onMouseOver={e => e.currentTarget.style.background = BTN_AZUL_HOVER}
-            onMouseOut={e => e.currentTarget.style.background = BTN_AZUL}
+            onMouseOver={(e) => (e.currentTarget.style.background = BTN_AZUL_HOVER)}
+            onMouseOut={(e) => (e.currentTarget.style.background = BTN_AZUL)}
           >
             Adicionar
           </button>
