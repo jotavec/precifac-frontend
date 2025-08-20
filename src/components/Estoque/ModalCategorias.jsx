@@ -42,9 +42,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
     setLoading(true);
     try {
       const cat = await adicionarCategoria(nome);
-      if (cat && cat.nome && cat.nome.trim() !== "") {
-        setCategorias((prev) => [...prev, cat]);
-      }
+      if (cat && cat.nome && cat.nome.trim() !== "") setCategorias((p) => [...p, cat]);
       setNovaCategoria("");
     } catch {
       alert("Erro ao adicionar categoria!");
@@ -123,27 +121,11 @@ export default function ModalCategorias({ open, onClose, refresh }) {
           fontFamily: "Roboto, Arial, sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <h2
-            style={{
-              color: TITLE,
-              fontSize: 23,
-              margin: 0,
-              fontWeight: 900,
-              letterSpacing: 0.3,
-            }}
-          >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h2 style={{ color: TITLE, fontSize: 23, margin: 0, fontWeight: 900, letterSpacing: 0.3 }}>
             Categorias
           </h2>
           <button
-            type="button"
             onClick={onClose}
             style={{
               fontSize: 28,
@@ -165,9 +147,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
           {loading && <div style={{ color: "#bbb" }}>Carregando...</div>}
           {!loading &&
             categorias.filter((c) => c.nome && c.nome.trim() !== "").length === 0 && (
-              <div style={{ color: "#bbb", fontSize: 15 }}>
-                Nenhuma categoria cadastrada ainda.
-              </div>
+              <div style={{ color: "#bbb", fontSize: 15 }}>Nenhuma categoria cadastrada ainda.</div>
             )}
 
           {categorias
@@ -186,8 +166,6 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                   marginBottom: 10,
                   gap: 8,
                   minHeight: 36,
-                  transition: "border 0.17s",
-                  opacity: loading ? 0.6 : 1,
                 }}
               >
                 {editIdx === idx ? (
@@ -215,14 +193,11 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       disabled={loading}
                     />
                     <button
-                      type="button"
                       onClick={() => saveEdit(cat)}
                       style={{
                         background: BTN_AZUL,
                         border: "none",
                         color: "#fff",
-                        fontSize: 20,
-                        lineHeight: 0,
                         borderRadius: 9,
                         cursor: "pointer",
                         height: 32,
@@ -237,17 +212,14 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       title="Salvar"
                       disabled={loading}
                     >
-                      <FaCheck size={16} color="#fff" />
+                      <FaCheck size={18} color="#fff" style={{ display: "block", pointerEvents: "none" }} />
                     </button>
                     <button
-                      type="button"
                       onClick={cancelEdit}
                       style={{
                         background: "#fff",
                         border: `1.1px solid ${BORDER}`,
                         color: BTN_VERMELHO,
-                        fontSize: 20,
-                        lineHeight: 0,
                         borderRadius: 9,
                         cursor: "pointer",
                         height: 32,
@@ -260,7 +232,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       title="Cancelar"
                       disabled={loading}
                     >
-                      <FaTimes size={16} color={BTN_VERMELHO} />
+                      <FaTimes size={18} color={BTN_VERMELHO} style={{ display: "block", pointerEvents: "none" }} />
                     </button>
                   </>
                 ) : (
@@ -278,60 +250,63 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       {cat.nome}
                     </span>
 
-                    {/* EDITAR */}
+                    {/* ÍCONE-ONLY: EDITAR */}
                     <button
-                      type="button"
                       onClick={() => startEdit(idx, cat.nome)}
                       style={{
                         background: "#fff",
-                        border: `1.6px solid ${BTN_AZUL}`,
+                        border: `1.4px solid ${BTN_AZUL}`,
                         color: BTN_AZUL,
-                        fontSize: 20,
-                        lineHeight: 0,
-                        borderRadius: 9,
                         cursor: "pointer",
-                        height: 32,
+                        height: 36,
                         width: 36,
-                        display: "flex",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        borderRadius: 9,
                         marginLeft: 2,
-                        transition: "filter .15s",
+                        boxShadow: "0 2px 8px #00cfff1a",
+                        transition: "background .13s, border-color .13s, color .13s",
+                        fontSize: 0, // força ícone-only
                       }}
                       title="Editar"
+                      aria-label="Editar"
                       disabled={loading}
-                      onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
-                      onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
+                      onMouseOver={(e) => (e.currentTarget.style.background = "#f0fbff")}
+                      onMouseOut={(e) => (e.currentTarget.style.background = "#fff")}
                     >
-                      <FaEdit size={16} color={BTN_AZUL} />
+                      <span style={{ lineHeight: 0, display: "inline-flex" }}>
+                        <FaEdit size={18} color={BTN_AZUL} style={{ display: "block", pointerEvents: "none" }} />
+                      </span>
                     </button>
 
-                    {/* REMOVER */}
+                    {/* ÍCONE-ONLY: REMOVER */}
                     <button
-                      type="button"
                       onClick={() => handleRemoverCategoria(cat.id)}
                       style={{
                         background: "#fff",
-                        border: `1.6px solid ${BTN_VERMELHO}`,
+                        border: `1.4px solid ${BTN_VERMELHO}`,
                         color: BTN_VERMELHO,
-                        fontSize: 20,
-                        lineHeight: 0,
-                        borderRadius: 9,
                         cursor: "pointer",
-                        height: 32,
+                        height: 36,
                         width: 36,
-                        display: "flex",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginLeft: 3,
-                        transition: "filter .15s",
+                        borderRadius: 9,
+                        marginLeft: 6,
+                        transition: "background .13s, border-color .13s, color .13s",
+                        fontSize: 0,
                       }}
                       title={`Remover "${cat.nome}"`}
+                      aria-label={`Remover ${cat.nome}`}
                       disabled={loading}
-                      onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
-                      onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
+                      onMouseOver={(e) => (e.currentTarget.style.background = "#fff5f5")}
+                      onMouseOut={(e) => (e.currentTarget.style.background = "#fff")}
                     >
-                      <FaTrash size={16} color={BTN_VERMELHO} />
+                      <span style={{ lineHeight: 0, display: "inline-flex" }}>
+                        <FaTrash size={18} color={BTN_VERMELHO} style={{ display: "block", pointerEvents: "none" }} />
+                      </span>
                     </button>
                   </>
                 )}
@@ -363,7 +338,6 @@ export default function ModalCategorias({ open, onClose, refresh }) {
             disabled={loading}
           />
           <button
-            type="button"
             onClick={handleAdicionarCategoria}
             disabled={loading || !novaCategoria.trim()}
             style={{
