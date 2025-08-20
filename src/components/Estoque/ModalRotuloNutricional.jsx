@@ -13,10 +13,40 @@ export default function ModalRotuloNutricional({
   const [descEditIdx, setDescEditIdx] = useState(null);
   const [unidInput, setUnidInput] = useState("");
   const [unidEditIdx, setUnidEditIdx] = useState(null);
-  const [loadingInit, setLoadingInit] = useState(false);
   const didLoadRef = useRef(false);
 
-  // Carregar categorias nutricionais do backend ao abrir modal (uma vez por abertura)
+  // util: pega token de localStorage/cookies
+  function getCookie(name) {
+    if (typeof document === "undefined") return null;
+    const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+  function getToken() {
+    try {
+      return (
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("accessToken") ||
+        getCookie("token") ||
+        getCookie("authToken") ||
+        getCookie("accessToken") ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  }
+  function authHeaders(extra = {}) {
+    const token = getToken();
+    return {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extra,
+    };
+  }
+
+  // Carrega categorias (uma vez por abertura do modal)
   useEffect(() => {
     if (!open) {
       didLoadRef.current = false;
@@ -28,51 +58,38 @@ export default function ModalRotuloNutricional({
     const ac = new AbortController();
     (async () => {
       try {
-        setLoadingInit(true);
         const res = await fetch("/api/categorias-nutricionais", {
+          method: "GET",
           credentials: "include",
           cache: "no-store",
           signal: ac.signal,
-          headers: {
-            Accept: "application/json",
-            "Cache-Control": "no-cache"
-          },
+          headers: authHeaders({ "x-no-cache": "1" }),
         });
 
-        // 304 não tem body — não tente res.json()
-        if (res.status === 304) {
+        if (res.status === 401) {
+          // sem sessão -> mantém listas vazias
           setCategoriasApi([]);
           setDescricoes([]);
           setUnidades([]);
           return;
         }
+        if (!res.ok) return;
 
-        if (!res.ok) {
-          setCategoriasApi([]);
-          setDescricoes([]);
-          setUnidades([]);
-          return;
-        }
-
-        // só tenta parsear se vier JSON
         const ct = res.headers.get("content-type") || "";
-        const data = ct.includes("application/json")
-          ? await res.json()
-          : [];
-
+        const data = ct.includes("application/json") ? await res.json() : [];
         const arr = Array.isArray(data) ? data : [];
 
         setCategoriasApi(arr);
-        // dedupe e ignora vazios
-        setDescricoes(Array.from(new Set(arr.map(d => d?.descricao).filter(Boolean))));
-        setUnidades(Array.from(new Set(arr.map(d => d?.unidade).filter(Boolean))));
+        setDescricoes(
+          Array.from(new Set(arr.map(d => d?.descricao).filter(Boolean)))
+        );
+        setUnidades(
+          Array.from(new Set(arr.map(d => d?.unidade).filter(Boolean)))
+        );
       } catch (err) {
-        if (err?.name === "AbortError") return;
-        setCategoriasApi([]);
-        setDescricoes([]);
-        setUnidades([]);
-      } finally {
-        setLoadingInit(false);
+        if (err?.name !== "AbortError") {
+          // silenciar pra não ficar em loop
+        }
       }
     })();
 
@@ -82,27 +99,25 @@ export default function ModalRotuloNutricional({
   // --------- DESCRIÇÃO ---------
   function handleAddDescricao() {
     const novaDesc = descInput.trim();
-    if (
-      !novaDesc ||
-      categoriasApi.some((d) => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase())
-    ) {
+    if (!novaDesc ||
+        categoriasApi.some(d => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase())) {
       return;
     }
     fetch("/api/categorias-nutricionais", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      headers: authHeaders(),
       body: JSON.stringify({ descricao: novaDesc, unidade: "" })
     })
-      .then(async (res) => {
+      .then(async res => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then((cat) => {
+      .then(cat => {
         if (!cat) return;
-        setCategoriasApi((prev) => [...prev, cat]);
-        setDescricoes((prev) => Array.from(new Set([...prev, novaDesc])));
+        setCategoriasApi(prev => [...prev, cat]);
+        setDescricoes(prev => Array.from(new Set([...prev, novaDesc])));
         setDescInput("");
         setDescEditIdx(null);
       })
@@ -118,29 +133,27 @@ export default function ModalRotuloNutricional({
     const novaDesc = descInput.trim();
     const oldDesc = descricoes[idx];
     const categoria = categoriasApi.find(c => c.descricao === oldDesc);
-    if (
-      !novaDesc ||
-      categoriasApi.some(
-        (d) => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase() && d.descricao !== oldDesc
-      )
-    ) return;
+    if (!novaDesc ||
+        categoriasApi.some(d =>
+          (d.descricao || "").toLowerCase() === novaDesc.toLowerCase() &&
+          d.descricao !== oldDesc
+        )) return;
     if (!categoria) return;
 
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      headers: authHeaders(),
       body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade || "" })
     })
-      .then(async (res) => {
+      .then(async res => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then((cat) => {
+      .then(cat => {
         if (!cat) return;
-        const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
-        setCategoriasApi(cats);
+        setCategoriasApi(prev => prev.map(c => (c.id === cat.id ? cat : c)));
         setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
         setDescEditIdx(null);
         setDescInput("");
@@ -160,7 +173,8 @@ export default function ModalRotuloNutricional({
 
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
-      credentials: "include"
+      credentials: "include",
+      headers: authHeaders(),
     })
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
@@ -174,24 +188,24 @@ export default function ModalRotuloNutricional({
   // --------- UNIDADE ---------
   function handleAddUnidade() {
     const novaUnid = unidInput.trim();
-    if (
-      !novaUnid ||
-      categoriasApi.some((u) => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase())
-    ) {
+    if (!novaUnid ||
+        categoriasApi.some(u =>
+          (u.unidade || "").toLowerCase() === novaUnid.toLowerCase()
+        )) {
       return;
     }
     fetch("/api/categorias-nutricionais", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      headers: authHeaders(),
       body: JSON.stringify({ descricao: "", unidade: novaUnid })
     })
-      .then(async (res) => {
+      .then(async res => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then((cat) => {
+      .then(cat => {
         if (!cat) return;
         setCategoriasApi(prev => [...prev, cat]);
         setUnidades(prev => Array.from(new Set([...prev, novaUnid])));
@@ -210,29 +224,27 @@ export default function ModalRotuloNutricional({
     const novaUnid = unidInput.trim();
     const oldUnid = unidades[idx];
     const categoria = categoriasApi.find(c => c.unidade === oldUnid);
-    if (
-      !novaUnid ||
-      categoriasApi.some(
-        (u) => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase() && u.unidade !== oldUnid
-      )
-    ) return;
+    if (!novaUnid ||
+        categoriasApi.some(u =>
+          (u.unidade || "").toLowerCase() === novaUnid.toLowerCase() &&
+          u.unidade !== oldUnid
+        )) return;
     if (!categoria) return;
 
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      headers: authHeaders(),
       body: JSON.stringify({ descricao: categoria.descricao || "", unidade: novaUnid })
     })
-      .then(async (res) => {
+      .then(async res => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then((cat) => {
+      .then(cat => {
         if (!cat) return;
-        const cats = categoriasApi.map(c => c.id === cat.id ? cat : c);
-        setCategoriasApi(cats);
+        setCategoriasApi(prev => prev.map(c => (c.id === cat.id ? cat : c)));
         setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
         setUnidEditIdx(null);
         setUnidInput("");
@@ -252,7 +264,8 @@ export default function ModalRotuloNutricional({
 
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
-      credentials: "include"
+      credentials: "include",
+      headers: authHeaders(),
     })
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
@@ -317,10 +330,6 @@ export default function ModalRotuloNutricional({
           Categorias Nutricionais
         </h2>
 
-        {loadingInit ? (
-          <div style={{ color: "#8fb9e7", fontSize: 16, marginBottom: 12 }}>Carregando categorias…</div>
-        ) : null}
-
         <div style={{
           display: "flex",
           gap: 40,
@@ -358,7 +367,7 @@ export default function ModalRotuloNutricional({
                 title="Adicionar descrição"
               >
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="#fff">
-                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
+                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
                 </svg>
               </button>
             </div>
@@ -372,7 +381,7 @@ export default function ModalRotuloNutricional({
               boxShadow: "0 1px 14px #a0cef540",
               marginBottom: 2
             }}>
-              {descricoes.length === 0 && descEditIdx !== -1 && !loadingInit && (
+              {descricoes.length === 0 && descEditIdx !== -1 && (
                 <div style={{ color: "#8fb9e7" }}>Nenhuma descrição.</div>
               )}
 
@@ -563,7 +572,7 @@ export default function ModalRotuloNutricional({
               boxShadow: "0 1px 14px #a0cef540",
               marginBottom: 2
             }}>
-              {unidades.length === 0 && unidEditIdx !== -1 && !loadingInit && (
+              {unidades.length === 0 && unidEditIdx !== -1 && (
                 <div style={{ color: "#8fb9e7" }}>Nenhuma unidade.</div>
               )}
 
