@@ -249,45 +249,67 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                       letterSpacing: 0.05,
                       marginRight: 5
                     }}>{marca.nome}</span>
+
+                    {/* Botão EDITAR com texto + ícone */}
                     <button
                       onClick={() => startEdit(idx, marca.nome)}
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "#fff",
+                        border: `1.4px solid ${BTN_AZUL}`,
                         color: BTN_AZUL,
-                        fontSize: 20,
+                        fontSize: 14,
+                        fontWeight: 800,
                         cursor: "pointer",
-                        height: 32,
-                        width: 32,
-                        display: "flex",
+                        height: 36,
+                        padding: "0 12px",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        gap: 8,
+                        borderRadius: 9,
                         marginLeft: 2,
-                        transition: "color 0.15s"
+                        boxShadow: "0 2px 8px #00cfff1a",
+                        transition: "border-color .13s, color .13s, background .13s"
                       }}
                       title="Editar"
+                      aria-label="Editar"
                       disabled={loading}
+                      onMouseOver={e => { e.currentTarget.style.background = "#f0fbff"; }}
+                      onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
                     >
                       <FaEdit />
+                      <span>Editar</span>
                     </button>
+
+                    {/* Botão REMOVER com texto + ícone */}
                     <button
                       onClick={() => handleRemoverMarca(marca.id)}
                       style={{
-                        background: "none",
-                        border: "none",
+                        background: "#fff",
+                        border: `1.4px solid ${BTN_VERMELHO}`,
                         color: BTN_VERMELHO,
-                        fontSize: 21,
+                        fontSize: 14,
+                        fontWeight: 800,
                         cursor: "pointer",
-                        height: 32,
-                        width: 32,
-                        display: "flex",
+                        height: 36,
+                        padding: "0 12px",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginLeft: 3
+                        gap: 8,
+                        borderRadius: 9,
+                        marginLeft: 6,
+                        transition: "border-color .13s, color .13s, background .13s"
                       }}
                       title={`Remover "${marca.nome}"`}
+                      aria-label={`Remover ${marca.nome}`}
                       disabled={loading}
-                    ><FaTrash /></button>
+                      onMouseOver={e => { e.currentTarget.style.background = "#fff5f5"; }}
+                      onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
+                    >
+                      <FaTrash />
+                      <span>Remover</span>
+                    </button>
                   </>
                 )}
               </div>
