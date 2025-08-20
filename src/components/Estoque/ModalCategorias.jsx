@@ -143,6 +143,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
             Categorias
           </h2>
           <button
+            type="button"
             onClick={onClose}
             style={{
               fontSize: 28,
@@ -214,13 +215,14 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       disabled={loading}
                     />
                     <button
+                      type="button"
                       onClick={() => saveEdit(cat)}
                       style={{
                         background: BTN_AZUL,
                         border: "none",
                         color: "#fff",
-                        fontSize: 20,        // garante tamanho do ícone (1em)
-                        lineHeight: 0,        // evita influências externas
+                        fontSize: 20,
+                        lineHeight: 0,
                         borderRadius: 9,
                         cursor: "pointer",
                         height: 32,
@@ -235,9 +237,10 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       title="Salvar"
                       disabled={loading}
                     >
-                      <FaCheck size={16} />
+                      <FaCheck size={16} color="#fff" />
                     </button>
                     <button
+                      type="button"
                       onClick={cancelEdit}
                       style={{
                         background: "#fff",
@@ -257,7 +260,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       title="Cancelar"
                       disabled={loading}
                     >
-                      <FaTimes size={16} />
+                      <FaTimes size={16} color={BTN_VERMELHO} />
                     </button>
                   </>
                 ) : (
@@ -275,8 +278,9 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       {cat.nome}
                     </span>
 
-                    {/* ÍCONE EDITAR */}
+                    {/* EDITAR */}
                     <button
+                      type="button"
                       onClick={() => startEdit(idx, cat.nome)}
                       style={{
                         background: "#fff",
@@ -299,11 +303,12 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
                       onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
                     >
-                      <FaEdit size={16} />
+                      <FaEdit size={16} color={BTN_AZUL} />
                     </button>
 
-                    {/* ÍCONE REMOVER */}
+                    {/* REMOVER */}
                     <button
+                      type="button"
                       onClick={() => handleRemoverCategoria(cat.id)}
                       style={{
                         background: "#fff",
@@ -326,7 +331,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
                       onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.97)")}
                       onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
                     >
-                      <FaTrash size={16} />
+                      <FaTrash size={16} color={BTN_VERMELHO} />
                     </button>
                   </>
                 )}
@@ -358,6 +363,7 @@ export default function ModalCategorias({ open, onClose, refresh }) {
             disabled={loading}
           />
           <button
+            type="button"
             onClick={handleAdicionarCategoria}
             disabled={loading || !novaCategoria.trim()}
             style={{
