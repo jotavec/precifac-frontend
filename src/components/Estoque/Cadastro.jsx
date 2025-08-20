@@ -11,6 +11,7 @@ import { listarMarcas, adicionarMarca } from "../../services/marcasApi";
 import { listarCategorias, adicionarCategoria } from "../../services/categoriasApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import api from "../../services/api"; // <<< NOVO: cliente axios centralizado
 
 // Switch totalmente funcional para Chrome/Edge/Safari/Firefox
 function SwitchAtivo({ checked, onChange, loading }) {
@@ -125,17 +126,19 @@ export default function Cadastro() {
 
   async function fetchColunasPreferidas() {
     const userId = localStorage.getItem("user_id") || "1";
-    const res = await fetch(`http://localhost:3000/api/preferencias/colunas-cadastro/${userId}`);
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) setColunasPreferidas(data);
-    else setColunasPreferidas(null);
+    try {
+      const { data } = await api.get(`/preferencias/colunas-cadastro/${userId}`);
+      if (Array.isArray(data) && data.length > 0) setColunasPreferidas(data);
+      else setColunasPreferidas(null);
+    } catch {
+      setColunasPreferidas(null);
+    }
   }
 
   async function fetchProdutos() {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/api/produtos");
-      const data = await res.json();
+      const { data } = await api.get("/produtos");
       setIngredientes(Array.isArray(data) ? data : []);
     } catch {
       setIngredientes([]);
@@ -221,23 +224,14 @@ export default function Cadastro() {
     };
 
     try {
-      let res;
+      let produtoSalvo;
       if (ingrediente.id) {
-        res = await fetch(`http://localhost:3000/api/produtos/${ingrediente.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const { data } = await api.put(`/produtos/${ingrediente.id}`, payload);
+        produtoSalvo = data;
       } else {
-        res = await fetch("http://localhost:3000/api/produtos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const { data } = await api.post("/produtos", payload);
+        produtoSalvo = data;
       }
-
-      if (!res.ok) throw new Error("Erro ao salvar produto");
-      const produtoSalvo = await res.json();
 
       setIngredientes((prev) => {
         const idx = prev.findIndex(item => item.id === produtoSalvo.id);
@@ -265,12 +259,7 @@ export default function Cadastro() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:3000/api/produtos/${itemDelete.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok && res.status !== 204) {
-        throw new Error("Erro ao excluir produto!");
-      }
+      await api.delete(`/produtos/${itemDelete.id}`);
       setIngredientes(prev =>
         prev.filter(item => item.id !== itemDelete.id)
       );
@@ -311,13 +300,7 @@ export default function Cadastro() {
         }
       }
 
-      const response = await fetch("http://localhost:3000/api/produtos/importar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ produtos }),
-      });
-      const result = await response.json();
+      const { data: result } = await api.post("/produtos/importar", { produtos });
       if (result.erros && result.erros.length > 0) {
         alert(
           "Alguns produtos não foram importados:\n" +
@@ -365,13 +348,10 @@ export default function Cadastro() {
   async function handleToggleAtivo(item) {
     setAtivandoId(item.id);
     try {
-      const res = await fetch(`http://localhost:3000/api/produtos/${item.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...item, ativo: !item.ativo }),
+      const { data: produtoAtualizado } = await api.put(`/produtos/${item.id}`, {
+        ...item,
+        ativo: !item.ativo,
       });
-      if (!res.ok) throw new Error("Erro ao atualizar ativo");
-      const produtoAtualizado = await res.json();
       setIngredientes(prev =>
         prev.map((i) => (i.id === item.id ? produtoAtualizado : i))
       );
