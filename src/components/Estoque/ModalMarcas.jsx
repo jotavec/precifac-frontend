@@ -250,26 +250,23 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                       marginRight: 5
                     }}>{marca.nome}</span>
 
-                    {/* Botão EDITAR com texto + ícone */}
+                    {/* ÍCONE-ONLY: EDITAR */}
                     <button
                       onClick={() => startEdit(idx, marca.nome)}
                       style={{
                         background: "#fff",
                         border: `1.4px solid ${BTN_AZUL}`,
                         color: BTN_AZUL,
-                        fontSize: 14,
-                        fontWeight: 800,
                         cursor: "pointer",
                         height: 36,
-                        padding: "0 12px",
+                        width: 36,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
                         borderRadius: 9,
                         marginLeft: 2,
                         boxShadow: "0 2px 8px #00cfff1a",
-                        transition: "border-color .13s, color .13s, background .13s"
+                        transition: "background .13s, border-color .13s, color .13s",
                       }}
                       title="Editar"
                       aria-label="Editar"
@@ -278,28 +275,24 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                       onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
                     >
                       <FaEdit />
-                      <span>Editar</span>
                     </button>
 
-                    {/* Botão REMOVER com texto + ícone */}
+                    {/* ÍCONE-ONLY: REMOVER */}
                     <button
                       onClick={() => handleRemoverMarca(marca.id)}
                       style={{
                         background: "#fff",
                         border: `1.4px solid ${BTN_VERMELHO}`,
                         color: BTN_VERMELHO,
-                        fontSize: 14,
-                        fontWeight: 800,
                         cursor: "pointer",
                         height: 36,
-                        padding: "0 12px",
+                        width: 36,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
                         borderRadius: 9,
                         marginLeft: 6,
-                        transition: "border-color .13s, color .13s, background .13s"
+                        transition: "background .13s, border-color .13s, color .13s",
                       }}
                       title={`Remover "${marca.nome}"`}
                       aria-label={`Remover ${marca.nome}`}
@@ -308,7 +301,6 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                       onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
                     >
                       <FaTrash />
-                      <span>Remover</span>
                     </button>
                   </>
                 )}
