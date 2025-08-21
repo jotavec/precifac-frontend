@@ -11,7 +11,7 @@ import { listarMarcas, adicionarMarca } from "../../services/marcasApi";
 import { listarCategorias, adicionarCategoria } from "../../services/categoriasApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import api from "../../services/api"; // <<< NOVO: cliente axios centralizado
+import api from "../../services/api";
 
 // Switch totalmente funcional para Chrome/Edge/Safari/Firefox
 function SwitchAtivo({ checked, onChange, loading }) {
@@ -23,12 +23,7 @@ function SwitchAtivo({ checked, onChange, loading }) {
         disabled={loading}
         onChange={onChange}
         tabIndex={0}
-        style={{
-          position: "absolute",
-          left: "-9999px",
-          width: 1,
-          height: 1,
-        }}
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1 }}
       />
     </label>
   );
@@ -205,47 +200,51 @@ export default function Cadastro() {
     setManualModalOpen(true);
   }
 
+  // >>> NÃO enviamos mais `rotuloNutricional` por enquanto (feature pausada)
   async function handleSalvarIngrediente(ingrediente) {
-    const { id, rotuloNutricional = [], ...outros } = ingrediente;
+    const { id, /* rotuloNutricional = [] */ _omit, ...outros } = ingrediente;
+
     const custoUnitario =
       Number(ingrediente.totalEmbalagem) > 0 && Number(ingrediente.custoTotal) > 0
-        ? (Number(ingrediente.custoTotal) / Number(ingrediente.totalEmbalagem))
+        ? Number(ingrediente.custoTotal) / Number(ingrediente.totalEmbalagem)
         : 0;
 
     const payload = {
       ...outros,
-      rotuloNutricional,
+      // rotuloNutricional: <pausado>,
       estoque: Number(ingrediente.estoque || 0),
       custoTotal: Number(ingrediente.custoTotal || 0),
       custoUnitario: custoUnitario.toString(),
       ativo: !!ingrediente.ativo,
-      totalEmbalagem: ingrediente.totalEmbalagem,
-      estoqueMinimo: ingrediente.estoqueMinimo
+      totalEmbalagem: ingrediente.totalEmbalagem ?? "",
+      estoqueMinimo: ingrediente.estoqueMinimo ?? ""
     };
 
     try {
       let produtoSalvo;
-      if (ingrediente.id) {
-        const { data } = await api.put(`/produtos/${ingrediente.id}`, payload);
+      if (id) {
+        const { data } = await api.put(`/produtos/${id}`, payload);
         produtoSalvo = data;
       } else {
         const { data } = await api.post("/produtos", payload);
         produtoSalvo = data;
       }
 
-      setIngredientes((prev) => {
+      setIngredientes(prev => {
         const idx = prev.findIndex(item => item.id === produtoSalvo.id);
         if (idx !== -1) {
-          const novaLista = [...prev];
-          novaLista[idx] = produtoSalvo;
-          return novaLista;
+          const nova = [...prev];
+          nova[idx] = produtoSalvo;
+          return nova;
         }
         return [...prev, produtoSalvo];
       });
     } catch (e) {
+      console.error(e);
       alert("Erro ao salvar produto!");
+    } finally {
+      setManualModalOpen(false);
     }
-    setManualModalOpen(false);
   }
 
   function handleExcluirIngrediente() {
@@ -260,9 +259,7 @@ export default function Cadastro() {
     }
     try {
       await api.delete(`/produtos/${itemDelete.id}`);
-      setIngredientes(prev =>
-        prev.filter(item => item.id !== itemDelete.id)
-      );
+      setIngredientes(prev => prev.filter(item => item.id !== itemDelete.id));
     } catch (err) {
       alert("Erro ao excluir produto!");
     }
@@ -382,7 +379,7 @@ export default function Cadastro() {
             <span key={idx} style={{
               display: "flex",
               alignItems: "center",
-              color: "#222", // preto
+              color: "#222",
               fontWeight: 500,
               fontSize: 15,
               lineHeight: "18px"
@@ -392,7 +389,7 @@ export default function Cadastro() {
                   display: "inline-block",
                   width: 7,
                   height: 7,
-                  background: "#222", // preto
+                  background: "#222",
                   borderRadius: "50%",
                   marginRight: 8,
                   marginBottom: 1
@@ -422,23 +419,14 @@ export default function Cadastro() {
         <h2>Cadastros</h2>
         <div
           className="cadastro-header-actions"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px"
-          }}
+          style={{ display: "flex", alignItems: "center", gap: "16px" }}
         >
           <button className="btn-novo-cadastro" onClick={handleNovoCadastro}>
             + Novo Cadastro
           </button>
           <div
             className="cadastro-header-icones"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-              marginLeft: "20px"
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "16px", marginLeft: "20px" }}
           >
             <button
               className="btn-icone-cadastro"
@@ -542,10 +530,8 @@ export default function Cadastro() {
               </tr>
             ) : (
               ingredientesFiltrados.map((item, i) => (
-                <React.Fragment key={item.codigo}>
-                  <tr
-                    className={item.ativo ? "linha-ativo" : "linha-inativo"}
-                  >
+                <React.Fragment key={item.id || item.codigo}>
+                  <tr className={item.ativo ? "linha-ativo" : "linha-inativo"}>
                     {colunasTabela.map(coluna => (
                       <td key={coluna.key}>{renderCelula(coluna, item)}</td>
                     ))}
