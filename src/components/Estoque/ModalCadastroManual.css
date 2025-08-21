@@ -949,3 +949,26 @@ div[class*="react-select"] .input-form-brabo__option--is-selected,
   max-height: none !important;
   height: auto !important;
 }
+
+/* === TEMPORÁRIO: esconder tudo do Rótulo Nutricional === */
+
+/* 1) Esconde a ABA (o botão da aba).
+   Se sua aba tiver uma classe/atributo específico, essas linhas já cobrem.
+   A última linha (nth-child) é fallback caso não tenha: esconde a 2ª aba. */
+.abas-cadastro .aba-btn[data-aba="rotulo"],
+.abas-cadastro .aba-btn.aba-rotulo,
+.abas-cadastro .aba-rotulo,
+.abas-cadastro .aba-btn:nth-child(2) {
+  display: none !important;
+}
+
+/* 2) Esconde o conteúdo da aba de rótulo. */
+.bloco-rotulo-nutricional,
+.rotulo-table,
+.rotulo-table + .acoes-rotulo-btns {
+  display: none !important;
+}
+
+/* (opcional) se existir algum botão solto que abre o modal de rótulo, esconda: */
+.modal-cadastro-manual .btn-rotulo,
+.modal-cadastro-manual .btn-rotulo-nutricional { display: none !important; }
