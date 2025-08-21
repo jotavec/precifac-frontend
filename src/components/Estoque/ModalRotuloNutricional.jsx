@@ -15,43 +15,9 @@ export default function ModalRotuloNutricional({
   const [unidEditIdx, setUnidEditIdx] = useState(null);
   const didLoadRef = useRef(false);
 
-  // util: pega token de localStorage/cookies
-  function getCookie(name) {
-    if (typeof document === "undefined") return null;
-    const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-    return m ? decodeURIComponent(m[2]) : null;
-  }
-  function getToken() {
-    try {
-      return (
-        localStorage.getItem("token") ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("accessToken") ||
-        getCookie("token") ||
-        getCookie("authToken") ||
-        getCookie("accessToken") ||
-        null
-      );
-    } catch {
-      return null;
-    }
-  }
-  function authHeaders(extra = {}) {
-    const token = getToken();
-    return {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...extra,
-    };
-  }
-
-  // Carrega categorias (uma vez por abertura do modal)
+  // Carrega uma única vez a cada abertura
   useEffect(() => {
-    if (!open) {
-      didLoadRef.current = false;
-      return;
-    }
+    if (!open) { didLoadRef.current = false; return; }
     if (didLoadRef.current) return;
     didLoadRef.current = true;
 
@@ -59,62 +25,45 @@ export default function ModalRotuloNutricional({
     (async () => {
       try {
         const res = await fetch("/api/categorias-nutricionais", {
-          method: "GET",
           credentials: "include",
           cache: "no-store",
           signal: ac.signal,
-          headers: authHeaders({ "x-no-cache": "1" }),
+          headers: { Accept: "application/json" },
         });
-
-        if (res.status === 401) {
-          // sem sessão -> mantém listas vazias
-          setCategoriasApi([]);
-          setDescricoes([]);
-          setUnidades([]);
-          return;
-        }
-        if (!res.ok) return;
+        if (!res.ok) return; // evita loop se der 500
 
         const ct = res.headers.get("content-type") || "";
         const data = ct.includes("application/json") ? await res.json() : [];
         const arr = Array.isArray(data) ? data : [];
 
         setCategoriasApi(arr);
-        setDescricoes(
-          Array.from(new Set(arr.map(d => d?.descricao).filter(Boolean)))
-        );
-        setUnidades(
-          Array.from(new Set(arr.map(d => d?.unidade).filter(Boolean)))
-        );
-      } catch (err) {
-        if (err?.name !== "AbortError") {
-          // silenciar pra não ficar em loop
-        }
-      }
+        setDescricoes(Array.from(new Set(arr.map(d => d?.descricao).filter(Boolean))));
+        setUnidades(Array.from(new Set(arr.map(d => d?.unidade).filter(Boolean))));
+      } catch {}
     })();
 
     return () => ac.abort();
   }, [open, setDescricoes, setUnidades]);
 
-  // --------- DESCRIÇÃO ---------
+  // ---------- DESCRIÇÃO ----------
   function handleAddDescricao() {
-    const novaDesc = descInput.trim();
-    if (!novaDesc ||
-        categoriasApi.some(d => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase())) {
-      return;
-    }
+    const novaDesc = (descInput || "").trim();
+    if (!novaDesc) return;
+    if (categoriasApi.some(d => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase())) return;
+
+    // 🔑 Envia SOMENTE descricao
     fetch("/api/categorias-nutricionais", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      headers: authHeaders(),
-      body: JSON.stringify({ descricao: novaDesc, unidade: "" })
+      body: JSON.stringify({ descricao: novaDesc }),
     })
-      .then(async res => {
+      .then(async (res) => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then(cat => {
+      .then((cat) => {
         if (!cat) return;
         setCategoriasApi(prev => [...prev, cat]);
         setDescricoes(prev => Array.from(new Set([...prev, novaDesc])));
@@ -130,28 +79,27 @@ export default function ModalRotuloNutricional({
   }
 
   function handleSaveEditDescricao(idx) {
-    const novaDesc = descInput.trim();
+    const novaDesc = (descInput || "").trim();
     const oldDesc = descricoes[idx];
-    const categoria = categoriasApi.find(c => c.descricao === oldDesc);
-    if (!novaDesc ||
-        categoriasApi.some(d =>
-          (d.descricao || "").toLowerCase() === novaDesc.toLowerCase() &&
-          d.descricao !== oldDesc
-        )) return;
-    if (!categoria) return;
+    if (!novaDesc) return;
 
+    const categoria = categoriasApi.find(c => c.descricao === oldDesc);
+    if (!categoria) return;
+    if (categoriasApi.some(d => (d.descricao || "").toLowerCase() === novaDesc.toLowerCase() && d.descricao !== oldDesc)) return;
+
+    // 🔑 Atualiza SOMENTE descricao
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      headers: authHeaders(),
-      body: JSON.stringify({ descricao: novaDesc, unidade: categoria.unidade || "" })
+      body: JSON.stringify({ descricao: novaDesc }),
     })
-      .then(async res => {
+      .then(async (res) => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then(cat => {
+      .then((cat) => {
         if (!cat) return;
         setCategoriasApi(prev => prev.map(c => (c.id === cat.id ? cat : c)));
         setDescricoes(prev => prev.map((d, i) => (i === idx ? novaDesc : d)));
@@ -174,7 +122,6 @@ export default function ModalRotuloNutricional({
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
       credentials: "include",
-      headers: authHeaders(),
     })
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
@@ -185,27 +132,25 @@ export default function ModalRotuloNutricional({
       .catch(() => {});
   }
 
-  // --------- UNIDADE ---------
+  // ---------- UNIDADE ----------
   function handleAddUnidade() {
-    const novaUnid = unidInput.trim();
-    if (!novaUnid ||
-        categoriasApi.some(u =>
-          (u.unidade || "").toLowerCase() === novaUnid.toLowerCase()
-        )) {
-      return;
-    }
+    const novaUnid = (unidInput || "").trim();
+    if (!novaUnid) return;
+    if (categoriasApi.some(u => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase())) return;
+
+    // 🔑 Envia SOMENTE unidade
     fetch("/api/categorias-nutricionais", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      headers: authHeaders(),
-      body: JSON.stringify({ descricao: "", unidade: novaUnid })
+      body: JSON.stringify({ unidade: novaUnid }),
     })
-      .then(async res => {
+      .then(async (res) => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then(cat => {
+      .then((cat) => {
         if (!cat) return;
         setCategoriasApi(prev => [...prev, cat]);
         setUnidades(prev => Array.from(new Set([...prev, novaUnid])));
@@ -221,28 +166,27 @@ export default function ModalRotuloNutricional({
   }
 
   function handleSaveEditUnidade(idx) {
-    const novaUnid = unidInput.trim();
+    const novaUnid = (unidInput || "").trim();
     const oldUnid = unidades[idx];
-    const categoria = categoriasApi.find(c => c.unidade === oldUnid);
-    if (!novaUnid ||
-        categoriasApi.some(u =>
-          (u.unidade || "").toLowerCase() === novaUnid.toLowerCase() &&
-          u.unidade !== oldUnid
-        )) return;
-    if (!categoria) return;
+    if (!novaUnid) return;
 
+    const categoria = categoriasApi.find(c => c.unidade === oldUnid);
+    if (!categoria) return;
+    if (categoriasApi.some(u => (u.unidade || "").toLowerCase() === novaUnid.toLowerCase() && u.unidade !== oldUnid)) return;
+
+    // 🔑 Atualiza SOMENTE unidade
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      headers: authHeaders(),
-      body: JSON.stringify({ descricao: categoria.descricao || "", unidade: novaUnid })
+      body: JSON.stringify({ unidade: novaUnid }),
     })
-      .then(async res => {
+      .then(async (res) => {
         if (!res.ok) return null;
         const ct = res.headers.get("content-type") || "";
         return ct.includes("application/json") ? res.json() : null;
       })
-      .then(cat => {
+      .then((cat) => {
         if (!cat) return;
         setCategoriasApi(prev => prev.map(c => (c.id === cat.id ? cat : c)));
         setUnidades(prev => prev.map((u, i) => (i === idx ? novaUnid : u)));
@@ -265,7 +209,6 @@ export default function ModalRotuloNutricional({
     fetch(`/api/categorias-nutricionais/${categoria.id}`, {
       method: "DELETE",
       credentials: "include",
-      headers: authHeaders(),
     })
       .then(() => {
         setCategoriasApi(prev => prev.filter(c => c.id !== categoria.id));
@@ -319,35 +262,15 @@ export default function ModalRotuloNutricional({
           onClick={onClose}
         >×</button>
 
-        <h2 style={{
-          color: "#2196f3",
-          margin: 0,
-          marginBottom: 28,
-          fontSize: 30,
-          fontWeight: 800,
-          letterSpacing: "-1.2px"
-        }}>
+        <h2 style={{ color: "#2196f3", margin: 0, marginBottom: 28, fontSize: 30, fontWeight: 800, letterSpacing: "-1.2px" }}>
           Categorias Nutricionais
         </h2>
 
-        <div style={{
-          display: "flex",
-          gap: 40,
-          alignItems: "flex-start",
-          width: "100%",
-          marginBottom: 16
-        }}>
+        <div style={{ display: "flex", gap: 40, alignItems: "flex-start", width: "100%", marginBottom: 16 }}>
           {/* DESCRIÇÃO */}
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 12,
-            }}>
-              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>
-                Descrição
-              </b>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>Descrição</b>
               <button
                 type="button"
                 style={{
@@ -367,112 +290,36 @@ export default function ModalRotuloNutricional({
                 title="Adicionar descrição"
               >
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="#fff">
-                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
+                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0-32-14.3-32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
                 </svg>
               </button>
             </div>
 
-            <div style={{
-              background: "#f8fafd",
-              minHeight: 130,
-              borderRadius: 14,
-              padding: 15,
-              fontSize: 18,
-              boxShadow: "0 1px 14px #a0cef540",
-              marginBottom: 2
-            }}>
-              {descricoes.length === 0 && descEditIdx !== -1 && (
-                <div style={{ color: "#8fb9e7" }}>Nenhuma descrição.</div>
-              )}
+            <div style={{ background: "#f8fafd", minHeight: 130, borderRadius: 14, padding: 15, fontSize: 18, boxShadow: "0 1px 14px #a0cef540", marginBottom: 2 }}>
+              {descricoes.length === 0 && descEditIdx !== -1 && (<div style={{ color: "#8fb9e7" }}>Nenhuma descrição.</div>)}
 
               {descricoes.map((desc, idx) =>
                 descEditIdx === idx ? (
                   <div key={idx} style={{ display: "flex", gap: 7, marginBottom: 10 }}>
                     <input
-                      style={{
-                        flex: 1,
-                        background: "#f8fafd",
-                        color: "#237be7",
-                        border: "2px solid #00cfff",
-                        borderRadius: 8,
-                        padding: "8px 11px",
-                        fontSize: 17
-                      }}
+                      style={{ flex: 1, background: "#f8fafd", color: "#237be7", border: "2px solid #00cfff", borderRadius: 8, padding: "8px 11px", fontSize: 17 }}
                       value={descInput}
                       onChange={e => setDescInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") handleSaveEditDescricao(idx);
-                        if (e.key === "Escape") handleCancelEditDescricao();
-                      }}
+                      onKeyDown={e => { if (e.key === "Enter") handleSaveEditDescricao(idx); if (e.key === "Escape") handleCancelEditDescricao(); }}
                       autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleSaveEditDescricao(idx)}
-                      title="Salvar"
-                      style={{
-                        background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
-                        border: "none",
-                        color: "#fff",
-                        borderRadius: 7,
-                        fontSize: 17,
-                        padding: "0 12px"
-                      }}
-                    >
-                      ✔
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelEditDescricao}
-                      title="Cancelar"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#8fb9e7",
-                        fontSize: 17,
-                        padding: "0 10px"
-                      }}
-                    >
-                      ✖
-                    </button>
+                    <button type="button" onClick={() => handleSaveEditDescricao(idx)} title="Salvar"
+                      style={{ background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)", border: "none", color: "#fff", borderRadius: 7, fontSize: 17, padding: "0 12px" }}>✔</button>
+                    <button type="button" onClick={handleCancelEditDescricao} title="Cancelar"
+                      style={{ background: "none", border: "none", color: "#8fb9e7", fontSize: 17, padding: "0 10px" }}>✖</button>
                   </div>
                 ) : (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 9 }}>
-                    <span style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      color: "#237be7",
-                    }}>
-                      {desc}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleEditDescricao(idx)}
-                      title="Editar"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#00cfff",
-                        cursor: "pointer",
-                        fontSize: 19,
-                        padding: "0 7px"
-                      }}
-                    >✎</button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDescricao(idx)}
-                      title="Excluir"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                        fontSize: 19,
-                        padding: "0 7px"
-                      }}
-                    >🗑</button>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#237be7" }}>{desc}</span>
+                    <button type="button" onClick={() => handleEditDescricao(idx)} title="Editar"
+                      style={{ background: "none", border: "none", color: "#00cfff", cursor: "pointer", fontSize: 19, padding: "0 7px" }}>✎</button>
+                    <button type="button" onClick={() => handleDeleteDescricao(idx)} title="Excluir"
+                      style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 19, padding: "0 7px" }}>🗑</button>
                   </div>
                 )
               )}
@@ -480,65 +327,26 @@ export default function ModalRotuloNutricional({
               {descEditIdx === -1 && (
                 <div style={{ display: "flex", gap: 7, marginBottom: 8, marginTop: 5 }}>
                   <input
-                    style={{
-                      flex: 1,
-                      background: "#f8fafd",
-                      color: "#237be7",
-                      border: "2px solid #00cfff",
-                      borderRadius: 8,
-                      padding: "8px 11px",
-                      fontSize: 17
-                    }}
+                    style={{ flex: 1, background: "#f8fafd", color: "#237be7", border: "2px solid #00cfff", borderRadius: 8, padding: "8px 11px", fontSize: 17 }}
                     placeholder="Nova descrição"
                     value={descInput}
                     onChange={e => setDescInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") handleAddDescricao();
-                      if (e.key === "Escape") handleCancelEditDescricao();
-                    }}
+                    onKeyDown={e => { if (e.key === "Enter") handleAddDescricao(); if (e.key === "Escape") handleCancelEditDescricao(); }}
                     autoFocus
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddDescricao}
-                    title="Salvar"
-                    style={{
-                      background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
-                      border: "none",
-                      color: "#fff",
-                      borderRadius: 7,
-                      fontSize: 17,
-                      padding: "0 12px"
-                    }}
-                  >✔</button>
-                  <button
-                    type="button"
-                    onClick={handleCancelEditDescricao}
-                    title="Cancelar"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#8fb9e7",
-                      fontSize: 17,
-                      padding: "0 10px"
-                    }}
-                  >✖</button>
+                  <button type="button" onClick={handleAddDescricao} title="Salvar"
+                    style={{ background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)", border: "none", color: "#fff", borderRadius: 7, fontSize: 17, padding: "0 12px" }}>✔</button>
+                  <button type="button" onClick={handleCancelEditDescricao} title="Cancelar"
+                    style={{ background: "none", border: "none", color: "#8fb9e7", fontSize: 17, padding: "0 10px" }}>✖</button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* UNIDADE DE MEDIDA */}
+          {/* UNIDADE */}
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 12,
-            }}>
-              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>
-                Unidade de Medida
-              </b>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <b style={{ fontSize: 23, color: "#2196f3", letterSpacing: "-0.5px" }}>Unidade de Medida</b>
               <button
                 type="button"
                 style={{
@@ -558,108 +366,36 @@ export default function ModalRotuloNutricional({
                 title="Adicionar unidade"
               >
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="#fff">
-                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0 32-14.3 32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
+                  <path d="M256 0C114.6 0 0 114.6 0 256c0 141.4 114.6 256 256 256s256-114.6 256-256c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 105.9-86.1 192-192 192S64 361.9 64 256 150.1 64 256 64c44.1 0 86.4 15.1 120 43.3 13.5 11.2 33.4 9.3 44.6-4.2s9.3-33.4-4.2-44.6C367.6 39.2 313.1 16 256 16zm0 120c-17.7 0-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c-17.7 0-32-14.3-32-32s-14.3-32-32-32h-64v-64c0-17.7-14.3-32-32-32z" />
                 </svg>
               </button>
             </div>
 
-            <div style={{
-              background: "#f8fafd",
-              minHeight: 130,
-              borderRadius: 14,
-              padding: 15,
-              fontSize: 18,
-              boxShadow: "0 1px 14px #a0cef540",
-              marginBottom: 2
-            }}>
-              {unidades.length === 0 && unidEditIdx !== -1 && (
-                <div style={{ color: "#8fb9e7" }}>Nenhuma unidade.</div>
-              )}
+            <div style={{ background: "#f8fafd", minHeight: 130, borderRadius: 14, padding: 15, fontSize: 18, boxShadow: "0 1px 14px #a0cef540", marginBottom: 2 }}>
+              {unidades.length === 0 && unidEditIdx !== -1 && (<div style={{ color: "#8fb9e7" }}>Nenhuma unidade.</div>)}
 
               {unidades.map((unid, idx) =>
                 unidEditIdx === idx ? (
                   <div key={idx} style={{ display: "flex", gap: 7, marginBottom: 10 }}>
                     <input
-                      style={{
-                        flex: 1,
-                        background: "#f8fafd",
-                        color: "#237be7",
-                        border: "2px solid #00cfff",
-                        borderRadius: 8,
-                        padding: "8px 11px",
-                        fontSize: 17
-                      }}
+                      style={{ flex: 1, background: "#f8fafd", color: "#237be7", border: "2px solid #00cfff", borderRadius: 8, padding: "8px 11px", fontSize: 17 }}
                       value={unidInput}
                       onChange={e => setUnidInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") handleSaveEditUnidade(idx);
-                        if (e.key === "Escape") handleCancelEditUnidade();
-                      }}
+                      onKeyDown={e => { if (e.key === "Enter") handleSaveEditUnidade(idx); if (e.key === "Escape") handleCancelEditUnidade(); }}
                       autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleSaveEditUnidade(idx)}
-                      title="Salvar"
-                      style={{
-                        background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
-                        border: "none",
-                        color: "#fff",
-                        borderRadius: 7,
-                        fontSize: 17,
-                        padding: "0 12px"
-                      }}
-                    >✔</button>
-                    <button
-                      type="button"
-                      onClick={handleCancelEditUnidade}
-                      title="Cancelar"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#8fb9e7",
-                        fontSize: 17,
-                        padding: "0 10px"
-                      }}
-                    >✖</button>
+                    <button type="button" onClick={() => handleSaveEditUnidade(idx)} title="Salvar"
+                      style={{ background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)", border: "none", color: "#fff", borderRadius: 7, fontSize: 17, padding: "0 12px" }}>✔</button>
+                    <button type="button" onClick={handleCancelEditUnidade} title="Cancelar"
+                      style={{ background: "none", border: "none", color: "#8fb9e7", fontSize: 17, padding: "0 10px" }}>✖</button>
                   </div>
                 ) : (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 9 }}>
-                    <span style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      color: "#237be7",
-                    }}>
-                      {unid}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleEditUnidade(idx)}
-                      title="Editar"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#00cfff",
-                        cursor: "pointer",
-                        fontSize: 19,
-                        padding: "0 7px"
-                      }}
-                    >✎</button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteUnidade(idx)}
-                      title="Excluir"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                        fontSize: 19,
-                        padding: "0 7px"
-                      }}
-                    >🗑</button>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#237be7" }}>{unid}</span>
+                    <button type="button" onClick={() => handleEditUnidade(idx)} title="Editar"
+                      style={{ background: "none", border: "none", color: "#00cfff", cursor: "pointer", fontSize: 19, padding: "0 7px" }}>✎</button>
+                    <button type="button" onClick={() => handleDeleteUnidade(idx)} title="Excluir"
+                      style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 19, padding: "0 7px" }}>🗑</button>
                   </div>
                 )
               )}
@@ -667,49 +403,17 @@ export default function ModalRotuloNutricional({
               {unidEditIdx === -1 && (
                 <div style={{ display: "flex", gap: 7, marginBottom: 8, marginTop: 5 }}>
                   <input
-                    style={{
-                      flex: 1,
-                      background: "#f8fafd",
-                      color: "#237be7",
-                      border: "2px solid #00cfff",
-                      borderRadius: 8,
-                      padding: "8px 11px",
-                      fontSize: 17
-                    }}
+                    style={{ flex: 1, background: "#f8fafd", color: "#237be7", border: "2px solid #00cfff", borderRadius: 8, padding: "8px 11px", fontSize: 17 }}
                     placeholder="Nova unidade"
                     value={unidInput}
                     onChange={e => setUnidInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") handleAddUnidade();
-                      if (e.key === "Escape") handleCancelEditUnidade();
-                    }}
+                    onKeyDown={e => { if (e.key === "Enter") handleAddUnidade(); if (e.key === "Escape") handleCancelEditUnidade(); }}
                     autoFocus
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddUnidade}
-                    title="Salvar"
-                    style={{
-                      background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)",
-                      border: "none",
-                      color: "#fff",
-                      borderRadius: 7,
-                      fontSize: 17,
-                      padding: "0 12px"
-                    }}
-                  >✔</button>
-                  <button
-                    type="button"
-                    onClick={handleCancelEditUnidade}
-                    title="Cancelar"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#8fb9e7",
-                      fontSize: 17,
-                      padding: "0 10px"
-                    }}
-                  >✖</button>
+                  <button type="button" onClick={handleAddUnidade} title="Salvar"
+                    style={{ background: "linear-gradient(90deg,#00cfff 60%,#2196f3 100%)", border: "none", color: "#fff", borderRadius: 7, fontSize: 17, padding: "0 12px" }}>✔</button>
+                  <button type="button" onClick={handleCancelEditUnidade} title="Cancelar"
+                    style={{ background: "none", border: "none", color: "#8fb9e7", fontSize: 17, padding: "0 10px" }}>✖</button>
                 </div>
               )}
             </div>
