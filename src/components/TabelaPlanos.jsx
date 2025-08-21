@@ -1,32 +1,66 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import axios from "axios";
 
-// Cole aqui os IDs retornados pelo script criarPlanosMercadoPago.js
-const planos = {
+// IDs de planos do Mercado Pago
+// Mensal (já existentes no seu arquivo atual)
+const planosMensal = {
   gratuito: null,
   padrao: "b05758cf2d2844c0b1e807e4c6768618",
   premium: "37036273772c472d894fbbcee4ae32d8",
 };
 
+// Anual (crie no Mercado Pago e cole os IDs aqui)
+const planosAnual = {
+  gratuito: null,
+  padrao: "COLE_ID_ANUAL_PADRAO_AQUI",
+  premium: "COLE_ID_ANUAL_PREMIUM_AQUI",
+};
+
+// Preços exibidos na UI (edite conforme sua tabela de preços)
+// Mantive os mensais como no seu layout atual.
+// Os anuais, por padrão, mostram 20% de desconto no valor “por mês”.
+const PRECO_MENSAL = { padrao: 39.9, premium: 59.9 };
+const PRECO_ANUAL_POR_MES = {
+  padrao: +(PRECO_MENSAL.padrao * 0.8).toFixed(2),
+  premium: +(PRECO_MENSAL.premium * 0.8).toFixed(2),
+};
+
+function currencyBRL(value) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
+
 export default function TabelaPlanos({ userEmail }) {
   const [loading, setLoading] = useState(false);
+  const [ciclo, setCiclo] = useState("mensal"); // 'mensal' | 'anual'
 
-  async function handleAssinar(plano) {
-    if (plano === "Gratuito") {
+  const precos = useMemo(
+    () => (ciclo === "anual" ? PRECO_ANUAL_POR_MES : PRECO_MENSAL),
+    [ciclo]
+  );
+
+  async function handleAssinar(planoRotulo) {
+    if (planoRotulo === "Gratuito") {
       alert("Plano gratuito ativado!");
-      // se quiser, chame seu backend para marcar o plano "gratuito" no usuário
+      // Se quiser, chame seu backend para gravar o plano gratuito no usuário
       return;
     }
 
+    const chave =
+      planoRotulo === "Padrão" ? "padrao" : planoRotulo === "Premium" ? "premium" : null;
+
     const planoId =
-      plano === "Padrão"
-        ? planos.padrao
-        : plano === "Premium"
-        ? planos.premium
-        : null;
+      ciclo === "anual" ? planosAnual[chave] : planosMensal[chave];
 
     if (!planoId) {
-      alert("Plano ainda não disponível. Tente novamente mais tarde.");
+      alert(
+        "Plano ainda não disponível. Cole o ID correto do plano " +
+          (ciclo === "anual" ? "ANUAL" : "MENSAL") +
+          " do Mercado Pago no arquivo."
+      );
       return;
     }
 
@@ -38,15 +72,12 @@ export default function TabelaPlanos({ userEmail }) {
 
     try {
       setLoading(true);
-
-      // 🔴 IMPORTANTE: enviar os cookies da sessão (auth) para o backend
       const { data } = await axios.post(
         "/api/mercadopago/criar-assinatura",
         { email, planoId },
         { withCredentials: true }
       );
 
-      // o backend pode retornar { url } ou { init_point }
       const url = data?.url || data?.init_point || data?.sandbox_init_point;
       if (!url) {
         console.error("Resposta inesperada do backend:", data);
@@ -68,6 +99,12 @@ export default function TabelaPlanos({ userEmail }) {
     }
   }
 
+  const notaCiclo = (plano) => {
+    if (ciclo === "mensal") return "no plano mensal";
+    const totalAno = (precos[plano] * 12).toFixed(2);
+    return `no plano anual • ${currencyBRL(+totalAno)} cobrados 1x/ano`;
+  };
+
   return (
     <div style={{ padding: 32, width: "100%", maxWidth: 1200, margin: "0 auto" }}>
       <h2
@@ -76,12 +113,81 @@ export default function TabelaPlanos({ userEmail }) {
           textAlign: "center",
           fontWeight: 900,
           fontSize: 28,
-          marginBottom: 32,
+          marginBottom: 24,
           letterSpacing: 1,
         }}
       >
         Compare os Planos
       </h2>
+
+      {/* Toggle Mensal/Anual */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
+        <div
+          style={{
+            position: "relative",
+            display: "inline-flex",
+            gap: 6,
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 999,
+            padding: 6,
+          }}
+          role="tablist"
+          aria-label="Alternar ciclo de cobrança"
+        >
+          <button
+            role="tab"
+            aria-selected={ciclo === "mensal"}
+            onClick={() => setCiclo("mensal")}
+            style={{
+              border: 0,
+              background: ciclo === "mensal" ? "#f8fafc" : "transparent",
+              color: ciclo === "mensal" ? "#111827" : "#6b7280",
+              fontWeight: 700,
+              borderRadius: 999,
+              padding: "10px 16px",
+              cursor: "pointer",
+            }}
+          >
+            Mensal
+          </button>
+          <button
+            role="tab"
+            aria-selected={ciclo === "anual"}
+            onClick={() => setCiclo("anual")}
+            style={{
+              border: 0,
+              background: ciclo === "anual" ? "#f8fafc" : "transparent",
+              color: ciclo === "anual" ? "#111827" : "#6b7280",
+              fontWeight: 700,
+              borderRadius: 999,
+              padding: "10px 16px",
+              cursor: "pointer",
+            }}
+          >
+            Anual
+          </button>
+
+          {ciclo === "anual" && (
+            <span
+              style={{
+                position: "absolute",
+                top: -14,
+                right: -16,
+                background: "linear-gradient(135deg,#7c3aed,#f97316)",
+                color: "#fff",
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 999,
+                fontWeight: 800,
+                letterSpacing: ".2px",
+              }}
+            >
+              Economize 20%
+            </span>
+          )}
+        </div>
+      </div>
 
       {loading && (
         <div
@@ -127,26 +233,14 @@ export default function TabelaPlanos({ userEmail }) {
             justifyContent: "flex-start",
           }}
         >
-          <div
-            style={{
-              color: "#2091e9",
-              fontWeight: 900,
-              fontSize: 24,
-              marginBottom: 10,
-            }}
-          >
+          <div style={{ color: "#2091e9", fontWeight: 900, fontSize: 24, marginBottom: 10 }}>
             Gratuito
           </div>
-          <div
-            style={{
-              color: "#2196f3",
-              fontWeight: 900,
-              fontSize: 20,
-              marginBottom: 26,
-            }}
-          >
-            R$0
+          <div style={{ color: "#2196f3", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
+            {currencyBRL(0)} <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
           </div>
+          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("padrao")}</div>
+
           <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
             <li>✅ 30 cadastros de matéria-prima</li>
             <li>✅ 5 receitas</li>
@@ -155,6 +249,7 @@ export default function TabelaPlanos({ userEmail }) {
             <li>✅ 1 bloco de markup</li>
             <li>✅ Suporte humanizado</li>
           </ul>
+
           <button
             onClick={() => handleAssinar("Gratuito")}
             style={{
@@ -176,7 +271,7 @@ export default function TabelaPlanos({ userEmail }) {
           </button>
         </div>
 
-        {/* PADRÃO */}
+        {/* PADRÃO (destaque) */}
         <div
           style={{
             background: "#fff",
@@ -208,16 +303,12 @@ export default function TabelaPlanos({ userEmail }) {
           >
             Padrão
           </div>
-          <div
-            style={{
-              color: "#2196f3",
-              fontWeight: 900,
-              fontSize: 20,
-              marginBottom: 26,
-            }}
-          >
-            R$39,90
+
+          <div style={{ color: "#2196f3", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
+            {currencyBRL(precos.padrao)} <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
           </div>
+          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("padrao")}</div>
+
           <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
             <li>✅ Cadastro ilimitado de matéria-prima</li>
             <li>✅ Movimentação de estoque</li>
@@ -228,6 +319,7 @@ export default function TabelaPlanos({ userEmail }) {
             <li>✅ Suporte humanizado</li>
             <li>✅ Sistema em desenvolvimento: acompanhe novidades e sugira melhorias</li>
           </ul>
+
           <button
             onClick={() => handleAssinar("Padrão")}
             style={{
@@ -281,16 +373,13 @@ export default function TabelaPlanos({ userEmail }) {
           >
             Premium
           </div>
-          <div
-            style={{
-              color: "#fdab00",
-              fontWeight: 900,
-              fontSize: 20,
-              marginBottom: 26,
-            }}
-          >
-            R$59,90
+
+          <div style={{ color: "#fdab00", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
+            {currencyBRL(precos.premium)}{" "}
+            <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
           </div>
+          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("premium")}</div>
+
           <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
             <li>✅ Cadastro ilimitado de matéria-prima</li>
             <li>✅ Movimentação de estoque</li>
@@ -301,6 +390,7 @@ export default function TabelaPlanos({ userEmail }) {
             <li>✅ Suporte humanizado</li>
             <li>✅ Sistema em desenvolvimento: acompanhe novidades e sugira melhorias</li>
           </ul>
+
           <button
             onClick={() => handleAssinar("Premium")}
             style={{
@@ -325,7 +415,7 @@ export default function TabelaPlanos({ userEmail }) {
       </div>
 
       <div style={{ textAlign: "center", marginTop: 36, color: "#8b8b8b", fontSize: 14 }}>
-        <b>Dica:</b> Basta clicar no botão para migrar ou assinar seu novo plano 😉
+        <b>Dica:</b> alterne entre mensal e anual para ver o preço por mês. No anual, a cobrança é feita 1x ao ano.
       </div>
 
       <style>{`
