@@ -4,26 +4,21 @@ import axios from "axios";
 // IDs de planos do Mercado Pago
 // Mensal (já existentes no seu arquivo atual)
 const planosMensal = {
-  gratuito: null,
-  padrao: "b05758cf2d2844c0b1e807e4c6768618",
-  premium: "37036273772c472d894fbbcee4ae32d8",
+  free: null,
+  pro: "b05758cf2d2844c0b1e807e4c6768618",
+  enterprise: "37036273772c472d894fbbcee4ae32d8",
 };
 
 // Anual (crie no Mercado Pago e cole os IDs aqui)
 const planosAnual = {
-  gratuito: null,
-  padrao: "COLE_ID_ANUAL_PADRAO_AQUI",
-  premium: "COLE_ID_ANUAL_PREMIUM_AQUI",
+  free: null,
+  pro: "COLE_ID_ANUAL_PROFISSIONAL_AQUI",
+  enterprise: "COLE_ID_ANUAL_EMPRESARIAL_AQUI",
 };
 
-// Preços exibidos na UI (edite conforme sua tabela de preços)
-// Mantive os mensais como no seu layout atual.
-// Os anuais, por padrão, mostram 20% de desconto no valor “por mês”.
-const PRECO_MENSAL = { padrao: 39.9, premium: 59.9 };
-const PRECO_ANUAL_POR_MES = {
-  padrao: +(PRECO_MENSAL.padrao * 0.8).toFixed(2),
-  premium: +(PRECO_MENSAL.premium * 0.8).toFixed(2),
-};
+// Preços exibidos na UI (por mês)
+const PRECO_MENSAL = { pro: 49.9, enterprise: 89.9 };
+const PRECO_ANUAL_POR_MES = { pro: 39.9, enterprise: 69.9 };
 
 function currencyBRL(value) {
   return value.toLocaleString("pt-BR", {
@@ -36,30 +31,29 @@ function currencyBRL(value) {
 export default function TabelaPlanos({ userEmail }) {
   const [loading, setLoading] = useState(false);
   const [ciclo, setCiclo] = useState("mensal"); // 'mensal' | 'anual'
+  const isAnnual = ciclo === "anual";
 
   const precos = useMemo(
-    () => (ciclo === "anual" ? PRECO_ANUAL_POR_MES : PRECO_MENSAL),
-    [ciclo]
+    () => (isAnnual ? PRECO_ANUAL_POR_MES : PRECO_MENSAL),
+    [isAnnual]
   );
 
-  async function handleAssinar(planoRotulo) {
-    if (planoRotulo === "Gratuito") {
+  const notaCiclo = (chave) => {
+    if (!isAnnual) return "no plano mensal";
+    const totalAno = (precos[chave] * 12).toFixed(2);
+    return `no plano anual • ${currencyBRL(+totalAno)} cobrados 1x/ano`;
+  };
+
+  async function handleAssinar(planoChave) {
+    if (planoChave === "free") {
       alert("Plano gratuito ativado!");
-      // Se quiser, chame seu backend para gravar o plano gratuito no usuário
       return;
     }
 
-    const chave =
-      planoRotulo === "Padrão" ? "padrao" : planoRotulo === "Premium" ? "premium" : null;
-
-    const planoId =
-      ciclo === "anual" ? planosAnual[chave] : planosMensal[chave];
-
+    const planoId = isAnnual ? planosAnual[planoChave] : planosMensal[planoChave];
     if (!planoId) {
       alert(
-        "Plano ainda não disponível. Cole o ID correto do plano " +
-          (ciclo === "anual" ? "ANUAL" : "MENSAL") +
-          " do Mercado Pago no arquivo."
+        `Plano ainda não disponível. Cole o ID do plano ${isAnnual ? "ANUAL" : "MENSAL"} do Mercado Pago.`
       );
       return;
     }
@@ -77,14 +71,12 @@ export default function TabelaPlanos({ userEmail }) {
         { email, planoId },
         { withCredentials: true }
       );
-
       const url = data?.url || data?.init_point || data?.sandbox_init_point;
       if (!url) {
-        console.error("Resposta inesperada do backend:", data);
-        alert("Não foi possível iniciar o checkout (resposta inválida).");
+        console.error("Resposta inesperada:", data);
+        alert("Não foi possível iniciar o checkout.");
         return;
       }
-
       window.location.href = url;
     } catch (err) {
       console.error("Erro ao iniciar assinatura:", err?.response?.data || err);
@@ -99,22 +91,102 @@ export default function TabelaPlanos({ userEmail }) {
     }
   }
 
-  const notaCiclo = (plano) => {
-    if (ciclo === "mensal") return "no plano mensal";
-    const totalAno = (precos[plano] * 12).toFixed(2);
-    return `no plano anual • ${currencyBRL(+totalAno)} cobrados 1x/ano`;
+  // Helpers visuais (borda gradiente + superfície neutra)
+  const cardStyle = (gradStart, gradEnd, emphasized = false) => ({
+    background: `linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, ${gradStart}, ${gradEnd}) border-box`,
+    border: emphasized ? "2.5px solid transparent" : "2px solid transparent",
+    borderRadius: 16,
+    boxShadow: emphasized
+      ? "0 12px 28px rgba(0,0,0,.12)"
+      : "0 8px 22px rgba(0,0,0,.08)",
+    padding: "28px 22px 32px 22px",
+    minWidth: 280,
+    maxWidth: 360,
+    minHeight: 430,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    textAlign: "left",
+  });
+
+  const titleStyle = (gradStart, gradEnd) => ({
+    fontSize: 22,
+    fontWeight: 900,
+    margin: 0,
+    background: `linear-gradient(135deg, ${gradStart}, ${gradEnd})`,
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent",
+  });
+
+  const priceStyle = (accent) => ({
+    color: accent,
+    fontSize: 28,
+    fontWeight: 900,
+    marginTop: 10,
+    display: "flex",
+    alignItems: "baseline",
+    gap: 6,
+  });
+
+  const noteStyle = { color: "#6b7280", fontSize: 12, marginTop: 6 };
+
+  const featureListStyle = {
+    listStyle: "none",
+    padding: 0,
+    margin: "16px 0 18px 0",
+    display: "grid",
+    gap: 8,
+    color: "#1f2937",
   };
+
+  const buttonGradient = (start, end) => ({
+    background: `linear-gradient(135deg, ${start}, ${end})`,
+    color: "#fff",
+    fontWeight: 800,
+    border: "none",
+    borderRadius: 12,
+    padding: "12px 16px",
+    cursor: "pointer",
+    textAlign: "center",
+    width: "100%",
+    boxShadow: "0 6px 18px rgba(0,0,0,.12)",
+  });
+
+  const buttonOutline = (start, end) => ({
+    background: `linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, ${start}, ${end}) border-box`,
+    color: "#0f172a",
+    fontWeight: 800,
+    border: "2px solid transparent",
+    borderRadius: 12,
+    padding: "12px 16px",
+    cursor: "pointer",
+    textAlign: "center",
+    width: "100%",
+  });
+
+  const check = (
+    <svg width="18" height="18" viewBox="0 0 24 24" style={{ color: "#16a34a" }}>
+      <path
+        fill="currentColor"
+        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+      />
+    </svg>
+  );
 
   return (
     <div style={{ padding: 32, width: "100%", maxWidth: 1200, margin: "0 auto" }}>
       <h2
         style={{
-          color: "#2196f3",
           textAlign: "center",
           fontWeight: 900,
           fontSize: 28,
-          marginBottom: 24,
-          letterSpacing: 1,
+          marginBottom: 20,
+          letterSpacing: 0.4,
+          background: "linear-gradient(135deg,#7c3aed,#f97316)",
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          color: "transparent",
         }}
       >
         Compare os Planos
@@ -127,8 +199,9 @@ export default function TabelaPlanos({ userEmail }) {
             position: "relative",
             display: "inline-flex",
             gap: 6,
-            background: "#fff",
-            border: "1px solid #e5e7eb",
+            background:
+              "linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg,#a78bfa,#fb923c) border-box",
+            border: "2px solid transparent",
             borderRadius: 999,
             padding: 6,
           }}
@@ -137,13 +210,13 @@ export default function TabelaPlanos({ userEmail }) {
         >
           <button
             role="tab"
-            aria-selected={ciclo === "mensal"}
+            aria-selected={!isAnnual}
             onClick={() => setCiclo("mensal")}
             style={{
               border: 0,
-              background: ciclo === "mensal" ? "#f8fafc" : "transparent",
-              color: ciclo === "mensal" ? "#111827" : "#6b7280",
-              fontWeight: 700,
+              background: !isAnnual ? "#f8fafc" : "transparent",
+              color: !isAnnual ? "#111827" : "#6b7280",
+              fontWeight: 800,
               borderRadius: 999,
               padding: "10px 16px",
               cursor: "pointer",
@@ -153,13 +226,13 @@ export default function TabelaPlanos({ userEmail }) {
           </button>
           <button
             role="tab"
-            aria-selected={ciclo === "anual"}
+            aria-selected={isAnnual}
             onClick={() => setCiclo("anual")}
             style={{
               border: 0,
-              background: ciclo === "anual" ? "#f8fafc" : "transparent",
-              color: ciclo === "anual" ? "#111827" : "#6b7280",
-              fontWeight: 700,
+              background: isAnnual ? "#f8fafc" : "transparent",
+              color: isAnnual ? "#111827" : "#6b7280",
+              fontWeight: 800,
               borderRadius: 999,
               padding: "10px 16px",
               cursor: "pointer",
@@ -168,24 +241,22 @@ export default function TabelaPlanos({ userEmail }) {
             Anual
           </button>
 
-          {ciclo === "anual" && (
-            <span
-              style={{
-                position: "absolute",
-                top: -14,
-                right: -16,
-                background: "linear-gradient(135deg,#7c3aed,#f97316)",
-                color: "#fff",
-                fontSize: 12,
-                padding: "4px 10px",
-                borderRadius: 999,
-                fontWeight: 800,
-                letterSpacing: ".2px",
-              }}
-            >
-              Economize 20%
-            </span>
-          )}
+          <span
+            style={{
+              position: "absolute",
+              top: -14,
+              right: -16,
+              background: "linear-gradient(135deg,#ef5da8,#fb923c)",
+              color: "#fff",
+              fontSize: 12,
+              padding: "4px 10px",
+              borderRadius: 999,
+              fontWeight: 900,
+              letterSpacing: ".2px",
+            }}
+          >
+            Economize 20%
+          </span>
         </div>
       </div>
 
@@ -194,12 +265,12 @@ export default function TabelaPlanos({ userEmail }) {
           style={{
             background: "#fffbe8",
             color: "#f3aa13",
-            padding: "18px 0",
+            padding: "14px 0",
             borderRadius: 9,
             textAlign: "center",
-            fontWeight: 700,
-            marginBottom: 20,
-            fontSize: 17,
+            fontWeight: 800,
+            marginBottom: 16,
+            fontSize: 15,
           }}
         >
           Aguarde, direcionando para pagamento...
@@ -211,211 +282,133 @@ export default function TabelaPlanos({ userEmail }) {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 36,
-          justifyItems: "center",
+          gap: 28,
+          justifyItems: "stretch",
           alignItems: "stretch",
         }}
       >
-        {/* GRATUITO */}
-        <div
-          style={{
-            background: "#f8fafc",
-            borderRadius: 18,
-            boxShadow: "0 2px 14px #00cfff11",
-            padding: "32px 24px 36px 24px",
-            textAlign: "center",
-            border: "2.5px solid #2091e9",
-            minWidth: 280,
-            maxWidth: 350,
-            minHeight: 420,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-          }}
-        >
-          <div style={{ color: "#2091e9", fontWeight: 900, fontSize: 24, marginBottom: 10 }}>
-            Gratuito
-          </div>
-          <div style={{ color: "#2196f3", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
-            {currencyBRL(0)} <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
-          </div>
-          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("padrao")}</div>
+        {/* FREE */}
+        <div style={cardStyle("#94a3b8", "#64748b")}>
+          <h3 style={titleStyle("#94a3b8", "#64748b")}>Free</h3>
+          <p style={{ color: "#6b7280", margin: "6px 0 0 0" }}>
+            Para quem está começando.
+          </p>
 
-          <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
-            <li>✅ 30 cadastros de matéria-prima</li>
-            <li>✅ 5 receitas</li>
-            <li>✅ Monitore seu lucro</li>
-            <li>✅ Simulação de preço</li>
-            <li>✅ 1 bloco de markup</li>
-            <li>✅ Suporte humanizado</li>
-          </ul>
-
-          <button
-            onClick={() => handleAssinar("Gratuito")}
-            style={{
-              marginTop: 22,
-              background: "#e1ecfa",
-              color: "#2091e9",
-              fontWeight: 700,
-              fontSize: 16,
-              border: "none",
-              borderRadius: 10,
-              padding: "12px 0",
-              width: "100%",
-              cursor: "pointer",
-              transition: "background .18s",
-            }}
-            disabled={loading}
-          >
-            Usar Gratuito
-          </button>
-        </div>
-
-        {/* PADRÃO (destaque) */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 18,
-            boxShadow: "0 4px 24px #00cfff19",
-            padding: "32px 24px 36px 24px",
-            textAlign: "center",
-            border: "3px solid #2196f3",
-            minWidth: 280,
-            maxWidth: 350,
-            minHeight: 420,
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-          }}
-        >
-          <div
-            style={{
-              color: "#fff",
-              background: "#2196f3",
-              fontWeight: 900,
-              fontSize: 24,
-              borderRadius: 8,
-              marginBottom: 10,
-              display: "inline-block",
-              padding: "4px 32px",
-            }}
-          >
-            Padrão
-          </div>
-
-          <div style={{ color: "#2196f3", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
-            {currencyBRL(precos.padrao)} <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
-          </div>
-          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("padrao")}</div>
-
-          <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
-            <li>✅ Cadastro ilimitado de matéria-prima</li>
-            <li>✅ Movimentação de estoque</li>
-            <li>✅ 60 receitas</li>
-            <li>✅ Monitore seu lucro</li>
-            <li>✅ Simulação de preço</li>
-            <li>✅ 3 blocos de markup</li>
-            <li>✅ Suporte humanizado</li>
-            <li>✅ Sistema em desenvolvimento: acompanhe novidades e sugira melhorias</li>
-          </ul>
-
-          <button
-            onClick={() => handleAssinar("Padrão")}
-            style={{
-              marginTop: 22,
-              background: "#2196f3",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 16,
-              border: "none",
-              borderRadius: 10,
-              padding: "12px 0",
-              width: "100%",
-              cursor: "pointer",
-              boxShadow: "0 2px 14px #2196f322",
-              transition: "background .18s",
-            }}
-            disabled={loading}
-          >
-            Assinar Padrão
-          </button>
-        </div>
-
-        {/* PREMIUM */}
-        <div
-          style={{
-            background: "#f7fbfd",
-            borderRadius: 18,
-            boxShadow: "0 2px 14px #fdab0022",
-            padding: "32px 24px 36px 24px",
-            textAlign: "center",
-            border: "2.5px solid #fdab00",
-            minWidth: 280,
-            maxWidth: 350,
-            minHeight: 420,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-          }}
-        >
-          <div
-            style={{
-              color: "#fff",
-              background: "#fdab00",
-              fontWeight: 900,
-              fontSize: 24,
-              borderRadius: 8,
-              marginBottom: 10,
-              display: "inline-block",
-              padding: "4px 32px",
-            }}
-          >
-            Premium
-          </div>
-
-          <div style={{ color: "#fdab00", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
-            {currencyBRL(precos.premium)}{" "}
+          <div style={priceStyle("#111827")}>
+            <span>{currencyBRL(0)}</span>
             <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
           </div>
-          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 20 }}>{notaCiclo("premium")}</div>
+          {/* Free sem nota de ciclo */}
 
-          <ul style={{ listStyle: "none", padding: 0, textAlign: "left", fontSize: 16, color: "#247", flex: 1 }}>
-            <li>✅ Cadastro ilimitado de matéria-prima</li>
-            <li>✅ Movimentação de estoque</li>
-            <li>✅ Receitas ilimitadas</li>
-            <li>✅ Monitore seu lucro</li>
-            <li>✅ Simulação de preço</li>
-            <li>✅ Blocos de markup ilimitados</li>
-            <li>✅ Suporte humanizado</li>
-            <li>✅ Sistema em desenvolvimento: acompanhe novidades e sugira melhorias</li>
+          <ul style={featureListStyle}>
+            <li>{check} Cadastro de até 5 produtos</li>
+            <li>{check} Cálculo com markup simples</li>
           </ul>
 
-          <button
-            onClick={() => handleAssinar("Premium")}
+          <div style={{ marginTop: "auto" }}>
+            <button
+              onClick={() => handleAssinar("free")}
+              style={{
+                background: "#eef2ff",
+                color: "#1f2937",
+                fontWeight: 800,
+                border: "none",
+                borderRadius: 12,
+                padding: "12px 16px",
+                cursor: "pointer",
+                textAlign: "center",
+                width: "100%",
+              }}
+              disabled={loading}
+            >
+              Começar Agora
+            </button>
+          </div>
+        </div>
+
+        {/* PROFISSIONAL (DESTAQUE) */}
+        <div style={cardStyle("#7c3aed", "#fb923c", true)}>
+          <div
             style={{
-              marginTop: 22,
-              background: "#fdab00",
+              position: "absolute",
+              transform: "translateY(-28px)",
+              left: 24,
+              background: "linear-gradient(135deg,#7c3aed,#fb923c)",
               color: "#fff",
-              fontWeight: 700,
-              fontSize: 16,
-              border: "none",
-              borderRadius: 10,
-              padding: "12px 0",
-              width: "100%",
-              cursor: "pointer",
-              boxShadow: "0 2px 14px #fdab0022",
-              transition: "background .18s",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 900,
             }}
-            disabled={loading}
           >
-            Assinar Premium
-          </button>
+            MAIS POPULAR
+          </div>
+
+          <h3 style={titleStyle("#7c3aed", "#fb923c")}>Profissional</h3>
+          <p style={{ color: "#6b7280", margin: "6px 0 0 0" }}>
+            Para quem quer crescer com segurança.
+          </p>
+
+          <div style={priceStyle("#111827")}>
+            <span>{currencyBRL(precos.pro)}</span>
+            <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
+          </div>
+          <div style={noteStyle}>{notaCiclo("pro")}</div>
+
+          <ul style={featureListStyle}>
+            <li>{check} Cálculos avançados (markup + lucro)</li>
+            <li>{check} Produtos e receitas ilimitados</li>
+            <li>{check} Gestão de despesas por categoria</li>
+            <li>{check} Impressão de receitas prontas</li>
+            <li>{check} Evolução com a Comunidade</li>
+          </ul>
+
+          <div style={{ marginTop: "auto" }}>
+            <button
+              onClick={() => handleAssinar("pro")}
+              style={buttonGradient("#7c3aed", "#fb923c")}
+              disabled={loading}
+            >
+              Escolher Plano Profissional
+            </button>
+          </div>
+        </div>
+
+        {/* EMPRESARIAL */}
+        <div style={cardStyle("#0ea5e9", "#22c55e")}>
+          <h3 style={titleStyle("#0ea5e9", "#22c55e")}>Empresarial</h3>
+          <p style={{ color: "#6b7280", margin: "6px 0 0 0" }}>
+            Para negócios com equipes e maior volume.
+          </p>
+
+          <div style={priceStyle("#111827")}>
+            <span>{currencyBRL(precos.enterprise)}</span>
+            <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
+          </div>
+          <div style={noteStyle}>{notaCiclo("enterprise")}</div>
+
+          <ul style={featureListStyle}>
+            <li>{check} Tudo do Profissional</li>
+            <li>{check} Acesso multiusuário (2–5 logins)</li>
+            <li>{check} Relatórios avançados com gráficos</li>
+            <li>{check} Exportação em PDF/Excel</li>
+            <li>{check} Suporte prioritário</li>
+          </ul>
+
+          <div style={{ marginTop: "auto" }}>
+            <button
+              onClick={() => handleAssinar("enterprise")}
+              style={buttonOutline("#0ea5e9", "#22c55e")}
+              disabled={loading}
+            >
+              Falar com Vendas
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: 36, color: "#8b8b8b", fontSize: 14 }}>
-        <b>Dica:</b> alterne entre mensal e anual para ver o preço por mês. No anual, a cobrança é feita 1x ao ano.
+      <div style={{ textAlign: "center", marginTop: 28, color: "#6b7280", fontSize: 13 }}>
+        Dica: alterne entre mensal e anual para ver o preço por mês. No anual, a cobrança é feita 1x ao ano.
       </div>
 
       <style>{`
