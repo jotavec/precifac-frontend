@@ -1,11 +1,11 @@
 // src/pages/FolhaDePagamento/FolhaDePagamento.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { FaTrashAlt } from "react-icons/fa";
 import "./FolhaDePagamento.css";
 import ModalFuncionario from "./ModalFuncionario";
 import api from "../../services/api";
 
-// --- helpers de formatação ---
+/* ===== utils de formatação ===== */
 function parseBR(str) {
   if (!str) return 0;
   return parseFloat(String(str).replace(/\./g, "").replace(",", "."));
@@ -25,7 +25,7 @@ function formatPercentForDisplay(value, editing) {
   let v = String(value || "").replace(/\D/g, "");
   if (!v) return editing ? "" : "0";
   if (editing) {
-    while (v.length < 3) v = "0" + v; // garante pelo menos 0,00
+    while (v.length < 3) v = "0" + v; // 0,00
     const intPart = v.slice(0, -2);
     const decPart = v.slice(-2);
     return `${intPart},${decPart}`.replace(/^0+(\d)/, "$1");
@@ -101,12 +101,12 @@ export default function FolhaDePagamento() {
 
   const inputRefs = useRef([]);
 
-  // ------- API: listar -------
+  /* ===== API: listar ===== */
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await api.get("/folhapagamento/funcionarios");
+        const { data } = await api.get("/folhapagamento/funcionarios", { withCredentials: true });
         setFuncionarios(Array.isArray(data) ? data : []);
       } catch {
         setFuncionarios([]);
@@ -116,8 +116,8 @@ export default function FolhaDePagamento() {
     })();
   }, []);
 
-  // recalcula valores R$ dos percentuais quando salário muda
-  function calcularCamposPercentuais(ft) {
+  /* recalcula valores R$ dos percentuais quando salário muda */
+  const calcularCamposPercentuais = useCallback((ft) => {
     const salarioNum = parseBR(ft.salario);
     const novo = { ...ft };
     CAMPOS_PERCENTUAIS.forEach(({ key }) => {
@@ -126,44 +126,62 @@ export default function FolhaDePagamento() {
       novo[`${key}Valor`] = maskMoneyBR(String(Math.round(valorNum * 100)));
     });
     return novo;
-  }
+  }, []);
 
-  function handleSalarioChange(e) {
-    let only = String(e.target.value).replace(/[^\d]/g, "");
-    if (!only) {
-      setFuncionarioTemp((ft) => calcularCamposPercentuais({ ...ft, salario: "" }));
-      return;
-    }
-    if (only.length > 9) only = only.slice(0, 9);
-    const number = Number(only) / 100;
-    const formatted = number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    setFuncionarioTemp((ft) => calcularCamposPercentuais({ ...ft, salario: formatted }));
-  }
+  const handleSalarioChange = useCallback(
+    (e) => {
+      let only = String(e.target.value).replace(/[^\d]/g, "");
+      if (!only) {
+        setFuncionarioTemp((ft) => calcularCamposPercentuais({ ...ft, salario: "" }));
+        return;
+      }
+      if (only.length > 9) only = only.slice(0, 9);
+      const number = Number(only) / 100;
+      const formatted = number.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      setFuncionarioTemp((ft) => calcularCamposPercentuais({ ...ft, salario: formatted }));
+    },
+    [calcularCamposPercentuais]
+  );
 
   function abrirModal(novo = true, idx = null) {
     if (novo) {
       setFuncionarioTemp(getFuncionarioVazio());
       setTotalHorasMes("220");
       setEditando(null);
+      setEditingPercent({});
     } else {
       const f = funcionarios[idx];
       setFuncionarioTemp(f);
       setTotalHorasMes(f.totalHorasMes || "220");
       setEditando(idx);
+      setEditingPercent({});
     }
     setModalAberto(true);
-    setTimeout(() => inputRefs.current[1]?.focus(), 100);
+    requestAnimationFrame(() => {
+      inputRefs.current[1]?.focus();
+    });
   }
 
-  // ------- API: salvar/criar e editar -------
+  /* ===== API: salvar/criar & editar ===== */
   async function salvarFuncionario() {
     try {
       if (editando === null) {
-        const { data: novo } = await api.post("/folhapagamento/funcionarios", funcionarioTemp);
+        const { data: novo } = await api.post(
+          "/folhapagamento/funcionarios",
+          funcionarioTemp,
+          { withCredentials: true }
+        );
         setFuncionarios((prev) => [...prev, novo]);
       } else {
         const id = funcionarios[editando].id;
-        const { data: atualizado } = await api.put(`/folhapagamento/funcionarios/${id}`, funcionarioTemp);
+        const { data: atualizado } = await api.put(
+          `/folhapagamento/funcionarios/${id}`,
+          funcionarioTemp,
+          { withCredentials: true }
+        );
         setFuncionarios((prev) => prev.map((f) => (f.id === id ? atualizado : f)));
       }
       setModalAberto(false);
@@ -172,27 +190,27 @@ export default function FolhaDePagamento() {
     }
   }
 
-  // ------- API: excluir -------
+  /* ===== API: excluir ===== */
   async function excluirFuncionario(idx) {
     try {
       const id = funcionarios[idx].id;
-      await api.delete(`/folhapagamento/funcionarios/${id}`);
+      await api.delete(`/folhapagamento/funcionarios/${id}`, { withCredentials: true });
       setFuncionarios((prev) => prev.filter((f) => f.id !== id));
     } catch {
       alert("Não foi possível excluir o funcionário.");
     }
   }
 
-  // espelha totalHorasMes no objeto em edição
+  /* espelha totalHorasMes no objeto em edição */
   useEffect(() => {
     setFuncionarioTemp((ft) => ({ ...ft, totalHorasMes }));
   }, [totalHorasMes]);
 
-  // recalcula percentuais quando o salário muda
+  /* recalcula percentuais quando o salário muda */
   useEffect(() => {
     if (!funcionarioTemp.salario) return;
     setFuncionarioTemp((ft) => calcularCamposPercentuais(ft));
-  }, [funcionarioTemp.salario]);
+  }, [funcionarioTemp.salario, calcularCamposPercentuais]);
 
   const totalFolha = funcionarios.reduce((acc, f) => acc + calcularTotalFuncionarioObj(f), 0);
   const valorMedioHora = valorHoraMedio(funcionarios);
@@ -324,6 +342,7 @@ export default function FolhaDePagamento() {
         formatPercentForDisplay={formatPercentForDisplay}
         valorHoraFuncionario={valorHoraFuncionario}
         salvarFuncionario={salvarFuncionario}
+        onChangeSalario={handleSalarioChange}
       />
     </div>
   );
