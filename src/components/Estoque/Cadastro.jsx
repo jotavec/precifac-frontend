@@ -13,7 +13,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import api from "../../services/api";
 
-// Switch totalmente funcional para Chrome/Edge/Safari/Firefox
+// Switch totalmente funcional
 function SwitchAtivo({ checked, onChange, loading }) {
   return (
     <label className="switch-ativo" style={{ opacity: loading ? 0.5 : 1, position: "relative" }}>
@@ -91,8 +91,6 @@ const COLUNAS_CADASTRO = [
 ];
 
 export default function Cadastro() {
-  // ====== NORMAL DOS PLANOS (Cadastros é liberado no plano gratuito) ======
-
   const [refreshCategorias, setRefreshCategorias] = useState(0);
   const [refreshMarcas, setRefreshMarcas] = useState(0);
 
@@ -119,7 +117,7 @@ export default function Cadastro() {
     fetchColunasPreferidas();
   }, []);
 
-  // ← AJUSTE: sem :userId na URL
+  // Preferências (rota sem :userId)
   async function fetchColunasPreferidas() {
     try {
       const { data } = await api.get("/preferencias/colunas-cadastro");
@@ -200,24 +198,46 @@ export default function Cadastro() {
     setManualModalOpen(true);
   }
 
-  // >>> NÃO enviamos mais `rotuloNutricional` por enquanto (feature pausada)
+  // ——— SALVAR (normaliza marca/categoria/unidade) ———
   async function handleSalvarIngrediente(ingrediente) {
-    const { id, /* rotuloNutricional = [] */ _omit, ...outros } = ingrediente;
+    const { id, _omit, ...outros } = ingrediente;
 
-    const custoUnitario =
-      Number(ingrediente.totalEmbalagem) > 0 && Number(ingrediente.custoTotal) > 0
-        ? Number(ingrediente.custoTotal) / Number(ingrediente.totalEmbalagem)
-        : 0;
+    // normalizações
+    const marcaNorm = Array.isArray(outros.marca)
+      ? outros.marca.filter(Boolean).join(", ")
+      : (outros.marca ?? "");
+
+    let categoriaNorm = outros.categoria;
+    if (Array.isArray(categoriaNorm)) {
+      categoriaNorm = categoriaNorm.filter(Boolean).join(", ");
+    } else if (categoriaNorm && typeof categoriaNorm === "object") {
+      categoriaNorm = categoriaNorm.value ?? categoriaNorm.label ?? "";
+    } else {
+      categoriaNorm = categoriaNorm ?? "";
+    }
+
+    let unidadeNorm = outros.unidade;
+    if (unidadeNorm && typeof unidadeNorm === "object") {
+      unidadeNorm = unidadeNorm.value ?? unidadeNorm.label ?? "";
+    } else {
+      unidadeNorm = unidadeNorm ?? "";
+    }
+
+    const totalEmb = Number(outros.totalEmbalagem || 0);
+    const custoTot = Number(outros.custoTotal || 0);
+    const custoUnit = totalEmb > 0 && custoTot > 0 ? (custoTot / totalEmb) : 0;
 
     const payload = {
       ...outros,
-      // rotuloNutricional: <pausado>,
-      estoque: Number(ingrediente.estoque || 0),
-      custoTotal: Number(ingrediente.custoTotal || 0),
-      custoUnitario: custoUnitario.toString(),
-      ativo: !!ingrediente.ativo,
-      totalEmbalagem: ingrediente.totalEmbalagem ?? "",
-      estoqueMinimo: ingrediente.estoqueMinimo ?? ""
+      marca: marcaNorm,
+      categoria: categoriaNorm,
+      unidade: unidadeNorm,
+      estoque: Number(outros.estoque || 0),
+      custoTotal: custoTot,
+      custoUnitario: custoUnit.toString(),
+      ativo: !!outros.ativo,
+      totalEmbalagem: outros.totalEmbalagem ?? "",
+      estoqueMinimo: outros.estoqueMinimo ?? ""
     };
 
     try {
@@ -239,11 +259,11 @@ export default function Cadastro() {
         }
         return [...prev, produtoSalvo];
       });
+      setManualModalOpen(false);
     } catch (e) {
       console.error(e);
-      alert("Erro ao salvar produto!");
-    } finally {
-      setManualModalOpen(false);
+      const msg = e?.response?.data?.error || e?.message || "Erro ao salvar produto!";
+      alert(msg);
     }
   }
 
@@ -365,7 +385,6 @@ export default function Cadastro() {
     if (coluna.key === "custoTotal") return renderCustoTotal(item);
     if (coluna.key === "custoUnitario") return renderCustoUnitario(item);
     if (coluna.key === "marca") {
-      // SUPORTA MULTI-MARCAS ARRAY ou string (retrocompatível)
       let marcas = [];
       if (Array.isArray(item.marca)) {
         marcas = item.marca.filter(Boolean);
@@ -535,7 +554,6 @@ export default function Cadastro() {
                     {colunasTabela.map(coluna => (
                       <td key={coluna.key}>{renderCelula(coluna, item)}</td>
                     ))}
-                    {/* ATIVO */}
                     <td className="td-ativo">
                       <SwitchAtivo
                         checked={!!item.ativo}
@@ -543,14 +561,12 @@ export default function Cadastro() {
                         loading={ativandoId === item.id}
                       />
                     </td>
-                    {/* AÇÕES */}
                     <td className="td-acoes">
                       <button className="btn-editar" onClick={() => editarIngrediente(item)}>
                         Editar
                       </button>
                     </td>
                   </tr>
-                  {/* Linha separadora azul clarinho */}
                   {i < ingredientesFiltrados.length - 1 && (
                     <tr>
                       <td colSpan={colunasTabela.length + 2}>
