@@ -107,6 +107,7 @@ export default function TabelaPlanos({ userEmail }) {
     flexDirection: "column",
     justifyContent: "flex-start",
     textAlign: "left",
+    position: "relative",        // <<<<< garante que o selo absoluto use este card como referência
   });
 
   const titleStyle = (gradStart, gradEnd) => ({
@@ -331,14 +332,16 @@ export default function TabelaPlanos({ userEmail }) {
           <div
             style={{
               position: "absolute",
-              transform: "translateY(-28px)",
+              top: -14,          // <<< agora realmente “em cima” do card
               left: 24,
+              zIndex: 2,
               background: "linear-gradient(135deg,#7c3aed,#fb923c)",
               color: "#fff",
               padding: "6px 12px",
               borderRadius: 999,
               fontSize: 12,
               fontWeight: 900,
+              pointerEvents: "none",
             }}
           >
             MAIS POPULAR
