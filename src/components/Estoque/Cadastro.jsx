@@ -13,6 +13,23 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import api from "../../services/api";
 
+// ================== helpers ==================
+function toStr(v, { joinAll = false } = {}) {
+  if (v == null) return "";
+  if (Array.isArray(v)) {
+    const arr = v
+      .map(x => (typeof x === "string" ? x : (x?.value ?? x?.label ?? "")))
+      .filter(Boolean);
+    return joinAll ? arr.join(", ") : (arr[0] || "");
+  }
+  if (typeof v === "object") return v?.value ?? v?.label ?? "";
+  return String(v);
+}
+
+function gerarCodigoUnico() {
+  return Date.now().toString().slice(-6) + Math.floor(Math.random() * 900 + 100);
+}
+
 // Switch totalmente funcional
 function SwitchAtivo({ checked, onChange, loading }) {
   return (
@@ -27,10 +44,6 @@ function SwitchAtivo({ checked, onChange, loading }) {
       />
     </label>
   );
-}
-
-function gerarCodigoUnico() {
-  return Date.now().toString().slice(-6) + Math.floor(Math.random() * 900 + 100);
 }
 
 function FotoCelula({ imagem, nome }) {
@@ -140,7 +153,7 @@ export default function Cadastro() {
   }
 
   const ingredientesFiltrados = ingredientes.filter((item) =>
-    (item.nome + item.codigo + (item.codBarras || "") + item.marca)
+    (toStr(item.nome) + toStr(item.codigo) + toStr(item.codBarras) + toStr(item.marca))
       .toLowerCase()
       .includes(busca.toLowerCase())
   );
@@ -198,46 +211,38 @@ export default function Cadastro() {
     setManualModalOpen(true);
   }
 
-  // ——— SALVAR (normaliza marca/categoria/unidade) ———
+  // ——— SALVAR (normaliza tudo) ———
   async function handleSalvarIngrediente(ingrediente) {
-    const { id, _omit, ...outros } = ingrediente;
+    const { id, _omit, ...rest } = ingrediente;
 
-    // normalizações
-    const marcaNorm = Array.isArray(outros.marca)
-      ? outros.marca.filter(Boolean).join(", ")
-      : (outros.marca ?? "");
+    const codigo         = toStr(rest.codigo);
+    const codBarras      = toStr(rest.codBarras);
+    const nome           = toStr(rest.nome);
+    const categoria      = toStr(rest.categoria);                 // primeiro/único
+    const marca          = toStr(rest.marca, { joinAll: true });  // multi vira "A, B, C"
+    const unidade        = toStr(rest.unidade);
 
-    let categoriaNorm = outros.categoria;
-    if (Array.isArray(categoriaNorm)) {
-      categoriaNorm = categoriaNorm.filter(Boolean).join(", ");
-    } else if (categoriaNorm && typeof categoriaNorm === "object") {
-      categoriaNorm = categoriaNorm.value ?? categoriaNorm.label ?? "";
-    } else {
-      categoriaNorm = categoriaNorm ?? "";
-    }
-
-    let unidadeNorm = outros.unidade;
-    if (unidadeNorm && typeof unidadeNorm === "object") {
-      unidadeNorm = unidadeNorm.value ?? unidadeNorm.label ?? "";
-    } else {
-      unidadeNorm = unidadeNorm ?? "";
-    }
-
-    const totalEmb = Number(outros.totalEmbalagem || 0);
-    const custoTot = Number(outros.custoTotal || 0);
-    const custoUnit = totalEmb > 0 && custoTot > 0 ? (custoTot / totalEmb) : 0;
+    const estoque        = Number(rest.estoque || 0);
+    const custoTotal     = Number(rest.custoTotal || 0);
+    const totalEmbalagem = Number(rest.totalEmbalagem || 0);
+    const custoUnitario  = totalEmbalagem > 0 && custoTotal > 0
+      ? (custoTotal / totalEmbalagem)
+      : 0;
 
     const payload = {
-      ...outros,
-      marca: marcaNorm,
-      categoria: categoriaNorm,
-      unidade: unidadeNorm,
-      estoque: Number(outros.estoque || 0),
-      custoTotal: custoTot,
-      custoUnitario: custoUnit.toString(),
-      ativo: !!outros.ativo,
-      totalEmbalagem: outros.totalEmbalagem ?? "",
-      estoqueMinimo: outros.estoqueMinimo ?? ""
+      codigo,
+      codBarras,
+      nome,
+      categoria,
+      marca,
+      unidade,
+      estoque,
+      custoTotal,
+      custoUnitario: custoUnitario.toFixed(4),
+      ativo: !!rest.ativo,
+      totalEmbalagem: toStr(rest.totalEmbalagem),
+      estoqueMinimo:  toStr(rest.estoqueMinimo),
+      imagem: rest.imagem ?? undefined, // se existir, mantém
     };
 
     try {
@@ -251,11 +256,11 @@ export default function Cadastro() {
       }
 
       setIngredientes(prev => {
-        const idx = prev.findIndex(item => item.id === produtoSalvo.id);
-        if (idx !== -1) {
-          const nova = [...prev];
-          nova[idx] = produtoSalvo;
-          return nova;
+        const i = prev.findIndex(p => p.id === produtoSalvo.id);
+        if (i !== -1) {
+          const novo = [...prev];
+          novo[i] = produtoSalvo;
+          return novo;
         }
         return [...prev, produtoSalvo];
       });
