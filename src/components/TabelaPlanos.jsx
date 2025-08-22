@@ -1,15 +1,13 @@
 import React, { useMemo, useState } from "react";
 import axios from "axios";
 
-// IDs de planos do Mercado Pago
-// Mensal (já existentes no seu arquivo atual)
+// IDs de planos do Mercado Pago (exemplo; ajuste conforme seu backend)
 const planosMensal = {
   free: null,
   pro: "b05758cf2d2844c0b1e807e4c6768618",
   enterprise: "37036273772c472d894fbbcee4ae32d8",
 };
 
-// Anual (crie no Mercado Pago e cole os IDs aqui)
 const planosAnual = {
   free: null,
   pro: "COLE_ID_ANUAL_PROFISSIONAL_AQUI",
@@ -91,6 +89,15 @@ export default function TabelaPlanos({ userEmail }) {
     }
   }
 
+  // Abrir WhatsApp/Contate.me com mensagem pré-preenchida
+  const abrirContatoVendas = (mensagem) => {
+    const numero = "5562992622545";
+    const msg = encodeURIComponent(mensagem);
+    // Usa contate.me (abre WhatsApp com o número e texto)
+    const url = `https://contate.me/${numero}?text=${msg}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   // Helpers visuais (borda gradiente + superfície neutra)
   const cardStyle = (gradStart, gradEnd, emphasized = false) => ({
     background: `linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, ${gradStart}, ${gradEnd}) border-box`,
@@ -107,7 +114,7 @@ export default function TabelaPlanos({ userEmail }) {
     flexDirection: "column",
     justifyContent: "flex-start",
     textAlign: "left",
-    position: "relative",        // <<<<< garante que o selo absoluto use este card como referência
+    position: "relative", // garante que o selo absoluto use este card como referência
   });
 
   const titleStyle = (gradStart, gradEnd) => ({
@@ -299,7 +306,6 @@ export default function TabelaPlanos({ userEmail }) {
             <span>{currencyBRL(0)}</span>
             <span style={{ color: "#6b7280", fontSize: 14 }}>/mês</span>
           </div>
-          {/* Free sem nota de ciclo */}
 
           <ul style={featureListStyle}>
             <li>{check} Cadastro de até 5 produtos</li>
@@ -329,10 +335,11 @@ export default function TabelaPlanos({ userEmail }) {
 
         {/* PROFISSIONAL (DESTAQUE) */}
         <div style={cardStyle("#7c3aed", "#fb923c", true)}>
+          {/* Selo posicionado em cima do card */}
           <div
             style={{
               position: "absolute",
-              top: -14,          // <<< agora realmente “em cima” do card
+              top: -14,
               left: 24,
               zIndex: 2,
               background: "linear-gradient(135deg,#7c3aed,#fb923c)",
@@ -400,7 +407,11 @@ export default function TabelaPlanos({ userEmail }) {
 
           <div style={{ marginTop: "auto" }}>
             <button
-              onClick={() => handleAssinar("enterprise")}
+              onClick={() =>
+                abrirContatoVendas(
+                  "Olá, gostaria de mais informações sobre o plano Profissional."
+                )
+              }
               style={buttonOutline("#0ea5e9", "#22c55e")}
               disabled={loading}
             >
