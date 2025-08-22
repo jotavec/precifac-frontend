@@ -119,10 +119,10 @@ export default function Cadastro() {
     fetchColunasPreferidas();
   }, []);
 
+  // ← AJUSTE: sem :userId na URL
   async function fetchColunasPreferidas() {
-    const userId = localStorage.getItem("user_id") || "1";
     try {
-      const { data } = await api.get(`/preferencias/colunas-cadastro/${userId}`);
+      const { data } = await api.get("/preferencias/colunas-cadastro");
       if (Array.isArray(data) && data.length > 0) setColunasPreferidas(data);
       else setColunasPreferidas(null);
     } catch {
@@ -471,6 +471,10 @@ export default function Cadastro() {
             <button
               className="cadastro-config-icon"
               title="Filtrar"
+              onClick={() => {
+                setModalConfigOpen(true);
+                setTimeout(fetchColunasPreferidas, 800);
+              }}
               style={{
                 width: 44,
                 height: 44,
@@ -483,10 +487,6 @@ export default function Cadastro() {
                 alignItems: "center",
                 justifyContent: "center",
                 boxShadow: "0 2px 8px rgba(35, 123, 231, 0.1)",
-              }}
-              onClick={() => {
-                setModalConfigOpen(true);
-                setTimeout(fetchColunasPreferidas, 800);
               }}
             >
               <FaFilter size={22} color="#237be7" />
