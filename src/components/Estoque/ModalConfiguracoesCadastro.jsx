@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import { FiX } from "react-icons/fi";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import api from "../../services/api"; // <-- usa o axios central
 
 // Switch azul igual o do app
 function Switch({ checked, onChange }) {
@@ -54,18 +55,20 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      const userId = localStorage.getItem("user_id") || "1";
-      fetch(`http://localhost:3000/api/preferencias/colunas-cadastro/${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0)
-            setColunas(data);
-          else
-            setColunas(COLUNAS_CADASTRO.map(item => ({ ...item, visivel: true })));
-        })
-        .catch(() => setColunas(COLUNAS_CADASTRO.map(item => ({ ...item, visivel: true }))));
-    }
+    if (!isOpen) return;
+
+    const userId = localStorage.getItem("user_id") || "1";
+    api
+      .get(`/preferencias/colunas-cadastro/${userId}`)
+      .then(({ data }) => {
+        if (Array.isArray(data) && data.length > 0)
+          setColunas(data);
+        else
+          setColunas(COLUNAS_CADASTRO.map(item => ({ ...item, visivel: true })));
+      })
+      .catch(() =>
+        setColunas(COLUNAS_CADASTRO.map(item => ({ ...item, visivel: true })))
+      );
   }, [isOpen]);
 
   if (!colunas) return null;
@@ -104,12 +107,7 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     setErro("");
     try {
       const userId = localStorage.getItem("user_id") || "1";
-      const res = await fetch("http://localhost:3000/api/preferencias/colunas-cadastro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, colunas }),
-      });
-      if (!res.ok) throw new Error("Falha ao salvar preferências");
+      await api.post("/preferencias/colunas-cadastro", { userId, colunas });
       alert("Preferências salvas! (Agora no banco 😁)");
       onRequestClose();
     } catch (e) {
@@ -281,29 +279,16 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable
               droppableId="colunas"
-              renderClone={(
-                provided,
-                snapshot,
-                rubric
-              ) => {
+              renderClone={(provided, snapshot, rubric) => {
                 const coluna = ordenadas[rubric.source.index];
                 return renderBloco(coluna, provided, snapshot, rubric.source.index);
               }}
             >
               {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                >
+                <div {...provided.droppableProps} ref={provided.innerRef}>
                   {ordenadas.map((coluna, idx) => (
-                    <Draggable
-                      key={coluna.key}
-                      draggableId={coluna.key}
-                      index={idx}
-                    >
-                      {(prov, snapshot) =>
-                        renderBloco(coluna, prov, snapshot, idx)
-                      }
+                    <Draggable key={coluna.key} draggableId={coluna.key} index={idx}>
+                      {(prov, snapshot) => renderBloco(coluna, prov, snapshot, idx)}
                     </Draggable>
                   ))}
                   {provided.placeholder}
