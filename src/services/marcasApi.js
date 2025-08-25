@@ -1,44 +1,22 @@
-const API_URL = "/api";
+// src/services/marcasApi.js
+import api from "./api"; // <- usa o cliente axios central
 
-export async function listarMarcas(userId) {
-  const resp = await fetch(`${API_URL}/marcas`, {
-    headers: { "x-user-id": userId },
-    credentials: "include",
-  });
-  return resp.json();
+export async function listarMarcas() {
+  const { data } = await api.get("/marcas");
+  return data;
 }
 
-export async function adicionarMarca(nome, userId) {
-  const resp = await fetch(`${API_URL}/marcas`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome, userId }),
-  });
-  return resp.json();
+export async function adicionarMarca(nome) {
+  const { data } = await api.post("/marcas", { nome });
+  return data;
 }
 
-export async function deletarMarca(id, userId) {
-  const resp = await fetch(`${API_URL}/marcas/${id}`, {
-    method: "DELETE",
-    headers: { "x-user-id": userId },
-    credentials: "include",
-  });
-  return resp.ok;
+export async function deletarMarca(id) {
+  const resp = await api.delete(`/marcas/${id}`);
+  return resp.status === 200 || resp.status === 204;
 }
 
-export async function editarMarca(id, novoNome, userId) {
-  const resp = await fetch(`${API_URL}/marcas/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": userId,
-    },
-    credentials: "include",
-    body: JSON.stringify({ nome: novoNome, userId }),
-  });
-  return resp.json();
+export async function editarMarca(id, novoNome) {
+  const { data } = await api.put(`/marcas/${id}`, { nome: novoNome });
+  return data;
 }
