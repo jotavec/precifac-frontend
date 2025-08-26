@@ -18,6 +18,8 @@ const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).repl
 // base final: https://.../api
 const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
 
+console.log("[API] FINAL_BASE_URL =", FINAL_BASE_URL);
+
 /* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
 function getCookie(name) {
   if (typeof document === "undefined") return null;
