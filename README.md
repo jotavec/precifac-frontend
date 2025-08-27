@@ -47,7 +47,22 @@ npm run preview
 
 ## Deployment
 
-This application is configured for deployment on Vercel with SPA (Single Page Application) routing support. The `vercel.json` configuration ensures that direct route access (e.g., `/login`, `/perfil`) works correctly by serving the main `index.html` file for all non-asset routes.
+This application is configured for deployment on Vercel with SPA (Single Page Application) routing support and API proxying. The `vercel.json` configuration includes:
+
+### API Proxy Rules
+All `/api/*` requests are automatically proxied to the backend API at `https://api.calculaaibr.com/api/$1`. This ensures that API calls work correctly even when the Vite build doesn't inject environment variables and the app calls relative `/api` paths.
+
+**Supported HTTP Methods**: GET, POST, PUT, PATCH, DELETE, OPTIONS
+
+**Examples**:
+- `POST /api/users/login` → `https://api.calculaaibr.com/api/users/login`
+- `GET /api/users/me` → `https://api.calculaaibr.com/api/users/me`
+- `DELETE /api/receitas/123` → `https://api.calculaaibr.com/api/receitas/123`
+
+### SPA Routing
+The configuration also ensures that direct route access (e.g., `/login`, `/perfil`) works correctly by serving the main `index.html` file for all non-asset routes that don't match API patterns.
+
+**Route Priority**: API proxy rules are evaluated before the SPA fallback, ensuring proper API routing.
 
 ## Expanding the ESLint configuration
 
