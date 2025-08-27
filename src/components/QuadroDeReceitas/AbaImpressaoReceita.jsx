@@ -1,9 +1,8 @@
 import React from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import FichaTecnicaPDF from "./FichaTecnicaPDF";
+import { toPublicUrl } from "../../lib/api";
 import "./AbaImpressaoReceita.css";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 const TEMPO_UNIDADE_TXT = ["dias", "meses", "anos"];
 
 function renderizaMarcasImpressao(marca) {
@@ -31,11 +30,7 @@ function renderizaMarcasImpressao(marca) {
 }
 
 function getImgSrc(imagem) {
-  if (!imagem) return null;
-  if (imagem.startsWith("http")) return imagem;
-  if (imagem.startsWith("/uploads/")) return BACKEND_URL.replace(/\/$/, "") + imagem;
-  if (imagem.startsWith("data:image")) return imagem;
-  return null;
+  return toPublicUrl(imagem);
 }
 
 function FolhaHeader({

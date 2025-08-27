@@ -2,17 +2,10 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
 import imageCompression from "browser-image-compression";
 import { FaUpload, FaCamera, FaPlus, FaTrash } from "react-icons/fa";
+import { toPublicUrl } from "../../lib/api";
 import "./AbaGeralReceita.css";
 
-/** Para montar preview quando vier caminho relativo do backend */
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-function toPublicUrl(url) {
-  if (!url || url === "null" || url === "undefined") return "";
-  if (url.startsWith("data:image")) return url;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/uploads/")) return `${BACKEND_URL}${url}`;
-  return url;
-}
+
 
 // ========== COMPONENTE UPLOADER ============= //
 function UploaderDeImagem({ imagemInicial, onImagemFinalAlterada }) {

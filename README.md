@@ -45,6 +45,60 @@ npm run build
 npm run preview
 ```
 
+## API and Asset URL Helper
+
+The application includes a unified helper (`src/lib/api.js`) for constructing API and asset URLs that works consistently in both development and production environments.
+
+### Usage Examples
+
+```javascript
+import { api, toPublicUrl } from "../../lib/api";
+
+// API endpoints - automatically prefixed with /api
+const response = await fetch(api("/receitas"), { credentials: "include" });
+const response = await fetch(api("/users/me"));
+
+// Asset URLs (images, uploads, etc.)
+const imageUrl = toPublicUrl("/uploads/receita.jpg");
+const avatarUrl = toPublicUrl(user.avatarUrl);
+```
+
+### Environment Behavior
+
+**Development**: 
+- Vite proxy configuration automatically routes `/api/*` → `http://localhost:3000/*`
+- `api('/receitas')` → `/api/receitas` (handled by Vite proxy)
+- `toPublicUrl('/uploads/image.jpg')` → `http://localhost:3000/uploads/image.jpg`
+
+**Production**: 
+- Vercel rewrites handle `/api/*` → `https://api.calculaaibr.com/api/*`
+- `api('/receitas')` → `/api/receitas` (handled by Vercel rewrite)
+- `toPublicUrl('/uploads/image.jpg')` → `https://api.calculaaibr.com/uploads/image.jpg`
+
+### Environment Variables
+
+The helper respects these environment variables:
+- `VITE_BACKEND_URL`: Backend base URL (e.g., `https://api.calculaaibr.com`)
+- `VITE_API_PREFIX`: API prefix (defaults to `/api`)
+
+In preview environments where `VITE_BACKEND_URL` is not set, the helper falls back to relative `/api` paths, allowing the proxy/rewrite rules to handle routing.
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
 ## Deployment
 
 This application is configured for deployment on Vercel with SPA (Single Page Application) routing support and API proxying. The `vercel.json` configuration includes:

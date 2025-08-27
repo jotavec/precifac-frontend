@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaPlus, FaCog } from "react-icons/fa";
+import { api, toPublicUrl, PUBLIC_BASE } from "../../lib/api";
 import AbaGeralReceita from "./AbaGeralReceita";
 import AbaComposicaoReceita from "./AbaComposicaoReceita";
 import AbaProjecaoReceita from "./AbaProjecaoReceita";
@@ -13,11 +14,7 @@ import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
 import "./CentralReceitas.css";
 
-/** Bases do backend vindas do .env */
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
-const API_BASE = `${BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`; // usado para rotas da API (/api)
-const api = (path) => `${API_BASE}${path}`;
+
 
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
@@ -69,19 +66,12 @@ function parseBRL(valor) {
   return Number(valorLimpo);
 }
 
-/** ===== Helpers de URL da imagem ===== */
-function toPublicUrl(url) {
-  if (!url) return url;
-  if (url.startsWith("data:image")) return url; // base64 (preview)
-  if (url.startsWith("http")) return url;
-  if (url.startsWith("/uploads")) return `${BACKEND_URL}${url}`; // servir pelo host SEM /api
-  return url;
-}
 function toStoredUrl(url) {
   if (!url) return url;
-  // remove o host com ou sem /api
-  if (url.startsWith(API_BASE)) return url.replace(API_BASE, "");
-  if (url.startsWith(BACKEND_URL)) return url.replace(BACKEND_URL, "");
+  // remove o host - use the unified PUBLIC_BASE
+  if (url.startsWith(PUBLIC_BASE) && PUBLIC_BASE) {
+    return url.replace(PUBLIC_BASE, "");
+  }
   return url; // já relativo
 }
 

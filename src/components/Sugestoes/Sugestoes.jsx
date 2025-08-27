@@ -1,8 +1,6 @@
 // src/pages/Sugestoes.jsx
 import React, { useState, useEffect } from "react";
-
-const API_PREFIX = "/api";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import { api } from "../../lib/api";
 
 export default function Sugestoes() {
   const [assunto, setAssunto] = useState("");
@@ -49,7 +47,7 @@ export default function Sugestoes() {
     setEnviando(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${BACKEND_URL}${API_PREFIX}/sugestoes`, {
+      const res = await fetch(api("/sugestoes"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

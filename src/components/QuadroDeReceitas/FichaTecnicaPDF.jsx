@@ -1,7 +1,6 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import { toPublicUrl } from "../../lib/api";
 const BOX_SIZE = 300;
 const TEMPO_UNIDADE_TXT = ["dias", "meses", "anos"];
 
@@ -251,11 +250,7 @@ function HeaderFichaPDF({
       { descricao: "Refrigerado", temp: "4", tempoNum: "3", tempoUnidade: "dias" },
       { descricao: "Ambiente", temp: "20", tempoNum: "2", tempoUnidade: "anos" },
     ];
-  const receitaImgUrl = imagemFinal
-    ? (imagemFinal.startsWith("http")
-      ? imagemFinal
-      : (BACKEND_URL.replace(/\/$/, "") + "/" + imagemFinal.replace(/^\//, "")))
-    : null;
+  const receitaImgUrl = imagemFinal ? toPublicUrl(imagemFinal) : null;
   return (
     <View>
       <Text style={pdfStyles.titulo}>
