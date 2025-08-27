@@ -47,7 +47,22 @@ npm run preview
 
 ## Deployment
 
-This application is configured for deployment on Vercel with SPA (Single Page Application) routing support. The `vercel.json` configuration ensures that direct route access (e.g., `/login`, `/perfil`) works correctly by serving the main `index.html` file for all non-asset routes.
+This application is configured for deployment on Vercel with SPA (Single Page Application) routing support and API proxy configuration.
+
+### Vercel Configuration
+
+The `vercel.json` file includes the following route configuration in order:
+
+1. **API Proxy**: `/api/*` routes are proxied to `https://api.calculaaibr.com/api/*`
+2. **Static Assets**: `/assets/*`, `/favicon.ico`, `/robots.txt` are served directly
+3. **SPA Fallback**: All other routes serve `index.html` for client-side routing
+
+This ensures that:
+- API calls like `POST /api/users/login` are correctly proxied to the backend
+- Direct route access (e.g., `/login`, `/perfil`) works correctly for the SPA
+- Static assets are served efficiently
+
+**Important**: If Vite environment variables are not injected during build and the application falls back to using `/api` as the base URL, the Vercel proxy configuration will automatically handle routing these requests to the correct backend.
 
 ## Expanding the ESLint configuration
 
