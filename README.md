@@ -1,11 +1,74 @@
-# React + Vite
+# Precifac Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite application for pricing calculations and recipe management.
 
-Currently, two official plugins are available:
+## Environment Configuration
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Environment Variables
+
+The application requires the following environment variables to be configured:
+
+- `VITE_BACKEND_URL`: Backend API base URL (e.g., `https://api.calculaaibr.com`)
+- `VITE_API_PREFIX`: API route prefix (e.g., `/api`)
+
+### Setup for Different Environments
+
+#### Development
+Create a `.env` file in the root directory with your development configuration:
+```env
+VITE_BACKEND_URL=http://localhost:3000
+VITE_API_PREFIX=/api
+```
+
+#### Production
+For production deployment, use the environment variables from `.env.production.example`:
+```env
+VITE_BACKEND_URL=https://api.calculaaibr.com
+VITE_API_PREFIX=/api
+```
+
+### Expected Console Output
+
+When the application starts, you should see the following in the browser console:
+```
+[API] FINAL_BASE_URL = https://api.calculaaibr.com/api
+```
+
+This confirms that the API client is correctly configured to make requests to the production backend.
+
+## Development
+
+### Prerequisites
+- Node.js (version 16 or higher)
+- npm
+
+### Installation
+```bash
+npm install
+```
+
+### Running the Development Server
+```bash
+npm run dev
+```
+
+### Building for Production
+```bash
+npm run build
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+## Deployment
+
+The application is configured for deployment on Vercel with proper SPA (Single Page Application) routing support. The `vercel.json` configuration ensures that:
+
+- Static assets are served directly
+- All client-side routes (e.g., `/login`, `/perfil`) are properly handled by serving the main `index.html` file
+- API requests are made directly to the configured backend domain
 
 ## Expanding the ESLint configuration
 
