@@ -6,6 +6,7 @@ import {
   editarMarca,
 } from "../../services/marcasApi";
 import { FaTrash, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import { useAuth } from "../../App";
 
 const BG_MODAL = "#fff";
 const CARD_BG = "#fff";
@@ -24,6 +25,10 @@ export default function ModalMarcas({ open, onClose, refresh }) {
   const [editIdx, setEditIdx] = useState(null);
   const [editNome, setEditNome] = useState("");
 
+  // Integrar AuthContext para checar se há usuário logado
+  const { user } = useAuth();
+  const isAuthenticated = Boolean(user);
+
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -34,6 +39,11 @@ export default function ModalMarcas({ open, onClose, refresh }) {
   }, [open, refresh]);
 
   async function handleAdicionarMarca() {
+    if (!isAuthenticated) {
+      alert("Você precisa estar logado para adicionar marcas!");
+      return;
+    }
+    
     const nome = novaMarca.trim();
     if (!nome) return;
     if (marcas.some((m) => m.nome && m.nome.toLowerCase() === nome.toLowerCase())) {
@@ -54,6 +64,11 @@ export default function ModalMarcas({ open, onClose, refresh }) {
   }
 
   async function handleRemoverMarca(id) {
+    if (!isAuthenticated) {
+      alert("Você precisa estar logado para remover marcas!");
+      return;
+    }
+    
     if (!window.confirm("Tem certeza que deseja remover esta marca?")) return;
     setLoading(true);
     try {
@@ -71,11 +86,21 @@ export default function ModalMarcas({ open, onClose, refresh }) {
   }
 
   function startEdit(idx, nomeAtual) {
+    if (!isAuthenticated) {
+      alert("Você precisa estar logado para editar marcas!");
+      return;
+    }
+    
     setEditIdx(idx);
     setEditNome(nomeAtual);
   }
 
   async function saveEdit(marca) {
+    if (!isAuthenticated) {
+      alert("Você precisa estar logado para editar marcas!");
+      return;
+    }
+    
     const novoNome = editNome.trim();
     if (!novoNome) return;
     if (
@@ -151,6 +176,20 @@ export default function ModalMarcas({ open, onClose, refresh }) {
             title="Fechar"
           >×</button>
         </div>
+
+        {!isAuthenticated && (
+          <div style={{
+            background: "#fff3cd",
+            color: "#856404",
+            padding: "8px 12px",
+            borderRadius: 8,
+            fontSize: 14,
+            marginBottom: 16,
+            border: "1px solid #ffeaa7"
+          }}>
+            ⚠️ Você precisa estar logado para criar, editar ou remover marcas.
+          </div>
+        )}
 
         <div style={{ margin: "18px 0 18px 0", minHeight: 120 }}>
           {loading && <div style={{ color: "#bbb" }}>Carregando...</div>}
@@ -258,10 +297,10 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                     <button
                       onClick={() => startEdit(idx, marca.nome)}
                       style={{
-                        background: "#fff",
-                        border: `1.4px solid ${BTN_AZUL}`,
-                        color: BTN_AZUL,
-                        cursor: "pointer",
+                        background: isAuthenticated ? "#fff" : "#f8f9fa",
+                        border: `1.4px solid ${isAuthenticated ? BTN_AZUL : "#dee2e6"}`,
+                        color: isAuthenticated ? BTN_AZUL : "#6c757d",
+                        cursor: isAuthenticated ? "pointer" : "not-allowed",
                         height: 36,
                         width: 36,
                         display: "inline-flex",
@@ -269,18 +308,23 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                         justifyContent: "center",
                         borderRadius: 9,
                         marginLeft: 2,
-                        boxShadow: "0 2px 8px #00cfff1a",
+                        boxShadow: isAuthenticated ? "0 2px 8px #00cfff1a" : "none",
                         transition: "background .13s, border-color .13s, color .13s",
                         fontSize: 0, // evita interferência de CSS externo em ícones
+                        opacity: isAuthenticated ? 1 : 0.6
                       }}
-                      title="Editar"
-                      aria-label="Editar"
-                      disabled={loading}
-                      onMouseOver={e => { e.currentTarget.style.background = "#f0fbff"; }}
-                      onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
+                      title={isAuthenticated ? "Editar" : "Faça login para editar"}
+                      aria-label={isAuthenticated ? "Editar" : "Faça login para editar"}
+                      disabled={loading || !isAuthenticated}
+                      onMouseOver={e => { 
+                        if (isAuthenticated) e.currentTarget.style.background = "#f0fbff"; 
+                      }}
+                      onMouseOut={e => { 
+                        if (isAuthenticated) e.currentTarget.style.background = "#fff"; 
+                      }}
                     >
                       <span style={{ lineHeight: 0, display: "inline-flex" }}>
-                        <FaEdit size={18} color={BTN_AZUL} style={{ display: "block", pointerEvents: "none" }} />
+                        <FaEdit size={18} color={isAuthenticated ? BTN_AZUL : "#6c757d"} style={{ display: "block", pointerEvents: "none" }} />
                       </span>
                     </button>
 
@@ -288,10 +332,10 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                     <button
                       onClick={() => handleRemoverMarca(marca.id)}
                       style={{
-                        background: "#fff",
-                        border: `1.4px solid ${BTN_VERMELHO}`,
-                        color: BTN_VERMELHO,
-                        cursor: "pointer",
+                        background: isAuthenticated ? "#fff" : "#f8f9fa",
+                        border: `1.4px solid ${isAuthenticated ? BTN_VERMELHO : "#dee2e6"}`,
+                        color: isAuthenticated ? BTN_VERMELHO : "#6c757d",
+                        cursor: isAuthenticated ? "pointer" : "not-allowed",
                         height: 36,
                         width: 36,
                         display: "inline-flex",
@@ -301,15 +345,20 @@ export default function ModalMarcas({ open, onClose, refresh }) {
                         marginLeft: 6,
                         transition: "background .13s, border-color .13s, color .13s",
                         fontSize: 0,
+                        opacity: isAuthenticated ? 1 : 0.6
                       }}
-                      title={`Remover "${marca.nome}"`}
-                      aria-label={`Remover ${marca.nome}`}
-                      disabled={loading}
-                      onMouseOver={e => { e.currentTarget.style.background = "#fff5f5"; }}
-                      onMouseOut={e => { e.currentTarget.style.background = "#fff"; }}
+                      title={isAuthenticated ? `Remover "${marca.nome}"` : "Faça login para remover"}
+                      aria-label={isAuthenticated ? `Remover ${marca.nome}` : "Faça login para remover"}
+                      disabled={loading || !isAuthenticated}
+                      onMouseOver={e => { 
+                        if (isAuthenticated) e.currentTarget.style.background = "#fff5f5"; 
+                      }}
+                      onMouseOut={e => { 
+                        if (isAuthenticated) e.currentTarget.style.background = "#fff"; 
+                      }}
                     >
                       <span style={{ lineHeight: 0, display: "inline-flex" }}>
-                        <FaTrash size={18} color={BTN_VERMELHO} style={{ display: "block", pointerEvents: "none" }} />
+                        <FaTrash size={18} color={isAuthenticated ? BTN_VERMELHO : "#6c757d"} style={{ display: "block", pointerEvents: "none" }} />
                       </span>
                     </button>
                   </>
@@ -323,27 +372,28 @@ export default function ModalMarcas({ open, onClose, refresh }) {
             type="text"
             value={novaMarca}
             onChange={e => setNovaMarca(e.target.value)}
-            placeholder="Nova marca"
+            placeholder={isAuthenticated ? "Nova marca" : "Faça login para adicionar marcas"}
             style={{
               flex: 1,
-              background: "#fff",
-              color: TEXT_COLOR,
-              border: `1.7px solid ${BORDER}`,
+              background: isAuthenticated ? "#fff" : "#f8f9fa",
+              color: isAuthenticated ? TEXT_COLOR : "#6c757d",
+              border: `1.7px solid ${isAuthenticated ? BORDER : "#dee2e6"}`,
               borderRadius: 9,
               padding: "10px 11px",
               fontSize: 15,
               outline: "none",
               fontWeight: 600,
               marginRight: 0,
+              opacity: isAuthenticated ? 1 : 0.6
             }}
-            onKeyDown={e => { if (e.key === "Enter") handleAdicionarMarca(); }}
-            disabled={loading}
+            onKeyDown={e => { if (e.key === "Enter" && isAuthenticated) handleAdicionarMarca(); }}
+            disabled={loading || !isAuthenticated}
           />
           <button
             onClick={handleAdicionarMarca}
-            disabled={loading || !novaMarca.trim()}
+            disabled={loading || !novaMarca.trim() || !isAuthenticated}
             style={{
-              background: BTN_AZUL,
+              background: isAuthenticated ? BTN_AZUL : "#6c757d",
               color: "#fff",
               fontWeight: 800,
               padding: "0 22px",
@@ -351,17 +401,23 @@ export default function ModalMarcas({ open, onClose, refresh }) {
               border: "none",
               borderRadius: 9,
               fontSize: 15.5,
-              cursor: "pointer",
+              cursor: isAuthenticated ? "pointer" : "not-allowed",
               letterSpacing: ".05em",
-              boxShadow: "0 2px 9px #00cfff2a",
+              boxShadow: isAuthenticated ? "0 2px 9px #00cfff2a" : "none",
               transition: "background .13s",
               minWidth: 112,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center"
+              justifyContent: "center",
+              opacity: isAuthenticated ? 1 : 0.6
             }}
-            onMouseOver={e => e.currentTarget.style.background = BTN_AZUL_HOVER}
-            onMouseOut={e => e.currentTarget.style.background = BTN_AZUL}
+            title={isAuthenticated ? "Adicionar marca" : "Faça login para adicionar marcas"}
+            onMouseOver={e => {
+              if (isAuthenticated) e.currentTarget.style.background = BTN_AZUL_HOVER;
+            }}
+            onMouseOut={e => {
+              if (isAuthenticated) e.currentTarget.style.background = BTN_AZUL;
+            }}
           >
             Adicionar
           </button>

@@ -249,18 +249,38 @@ export default function App() {
     e.preventDefault();
     setMsg("Enviando...");
     try {
+      // 1. Criar usuário
       const { data } = await api.post("/users", {
         name: form.name,
         email: form.email,
         password: form.password
       });
-      // se backend devolver token, injeta em memória (opcional)
-      if (data?.token) {
-        api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+      
+      setMsg("Fazendo login automático...");
+      
+      // 2. Realizar login automático para estabelecer sessão
+      try {
+        const { data: loginData } = await api.post("/users/login", {
+          email: form.email,
+          password: form.password
+        });
+
+        // 3. Injetar token em memória
+        if (loginData?.token) {
+          api.defaults.headers.common.Authorization = `Bearer ${loginData.token}`;
+        }
+
+        // 4. Definir usuário logado
+        setUser(loginData.user || loginData);
+        setMsg("");
+        if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
+      } catch (loginErr) {
+        // Se o login automático falhar, ainda assim mostra que o cadastro foi bem-sucedido
+        console.warn("Cadastro realizado, mas login automático falhou:", loginErr);
+        setUser(data.user || data);
+        setMsg("Cadastro realizado! Faça login para continuar.");
+        // Não redireciona automaticamente se o login falhar
       }
-      setUser(data.user || data);
-      setMsg("");
-      if (typeof window !== "undefined") window.history.replaceState({}, "", "/");
     } catch (err) {
       const text = err?.response?.data?.error || "Erro ao cadastrar.";
       setMsg(text);
