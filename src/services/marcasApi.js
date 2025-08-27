@@ -20,3 +20,8 @@ export async function editarMarca(id, novoNome) {
   const { data } = await api.put(`/marcas/${id}`, { nome: novoNome });
   return data;
 }
+
+export async function listarMarcasProduto() {
+  const { data } = await api.get("/catalogo/marcas-produto");
+  return data;
+}

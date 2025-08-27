@@ -3,8 +3,8 @@ import Cropper from "react-easy-crop";
 import ModalCategorias from "./ModalCategorias";
 import ModalRotuloNutricional from "./ModalRotuloNutricional";
 import ModalMarcas from "./ModalMarcas";
-import { listarMarcas } from "../../services/marcasApi";
-import { listarCategorias } from "../../services/categoriasApi";
+import { listarMarcasProduto } from "../../services/marcasApi";
+import { listarCategoriasProduto } from "../../services/categoriasApi";
 import Select from "react-select";
 import { FaCog, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import "./ModalCadastroManual.css";
@@ -325,10 +325,10 @@ export default function ModalCadastroManual({
   }, [ingrediente.custoTotal]);
 
   useEffect(() => {
-    if (open) listarMarcas().then(setMarcas);
+    if (open) listarMarcasProduto().then(setMarcas);
   }, [open, modalMarcasOpen]);
   useEffect(() => {
-    if (open) listarCategorias().then(setCategorias);
+    if (open) listarCategoriasProduto().then(setCategorias);
   }, [open, modalCategoriasOpen]);
 
   useEffect(() => {

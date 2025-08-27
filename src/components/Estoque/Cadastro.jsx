@@ -7,8 +7,8 @@ import ModalImportarProdutos from "./ModalImportarProdutos";
 import ConfirmDeleteModal from "../modals/ConfirmDeleteModal";
 import ModalConfiguracoesCadastro from "./ModalConfiguracoesCadastro";
 import "./Cadastro.css";
-import { listarMarcas, adicionarMarca } from "../../services/marcasApi";
-import { listarCategorias, adicionarCategoria } from "../../services/categoriasApi";
+import { adicionarMarca, listarMarcasProduto } from "../../services/marcasApi";
+import { adicionarCategoria, listarCategoriasProduto } from "../../services/categoriasApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import api from "../../services/api";
@@ -304,10 +304,11 @@ export default function Cadastro() {
 
   async function handleImportarDados(produtos) {
     try {
-      const marcasExistentes = await listarMarcas();
-      const categoriasExistentes = await listarCategorias();
-      const marcasMap = new Map(marcasExistentes.map(m => [m.nome.toLowerCase(), m]));
-      const categoriasMap = new Map(categoriasExistentes.map(c => [c.nome.toLowerCase(), c]));
+      // Use normalized endpoints that combine existing + suggested values
+      const marcasNormalizadas = await listarMarcasProduto();
+      const categoriasNormalizadas = await listarCategoriasProduto();
+      const marcasMap = new Map(marcasNormalizadas.map(m => [m.nome.toLowerCase(), m]));
+      const categoriasMap = new Map(categoriasNormalizadas.map(c => [c.nome.toLowerCase(), c]));
 
       for (let produto of produtos) {
         const marcaNome = (produto.marca || "").trim();

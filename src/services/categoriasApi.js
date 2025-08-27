@@ -20,3 +20,8 @@ export async function editarCategoria(id, novoNome) {
   const { data } = await api.put(`/categorias/${id}`, { nome: novoNome });
   return data;
 }
+
+export async function listarCategoriasProduto() {
+  const { data } = await api.get("/catalogo/categorias-produto");
+  return data;
+}
