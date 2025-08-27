@@ -14,9 +14,20 @@ import { useAuth } from "../../App";
 import "./CentralReceitas.css";
 
 /** Bases do backend vindas do .env */
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
-const API_BASE = `${BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`; // usado para rotas da API (/api)
+const VITE_API_URL = import.meta.env.VITE_API_URL;
+
+let BACKEND_URL, API_BASE;
+
+if (VITE_API_URL) {
+  // Use complete API URL if provided
+  API_BASE = String(VITE_API_URL).replace(/\/+$/, "");
+  // Extract backend URL for uploads (remove /api suffix if present)
+  BACKEND_URL = API_BASE.replace(/\/api$/, "");
+} else {
+  // Fallback to legacy configuration
+  BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
+  API_BASE = `${BACKEND_URL}${import.meta.env.VITE_API_PREFIX || ""}`; // usado para rotas da API (/api)
+}
 const api = (path) => `${API_BASE}${path}`;
 
 const ABAS = [

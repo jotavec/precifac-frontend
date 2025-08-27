@@ -5,18 +5,32 @@ import axios from "axios";
 
 /**
  * Config do Vite:
- * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com
- * - VITE_API_PREFIX: ex. /api
+ * - VITE_API_URL: ex. https://app.calculaaibr.com/api (preferred, complete API URL)
+ * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com (fallback)
+ * - VITE_API_PREFIX: ex. /api (fallback)
  */
-const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "";
-const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
+const VITE_API_URL = import.meta?.env?.VITE_API_URL;
 
-// normaliza
-const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
-const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
+let FINAL_BASE_URL, BACKEND_URL;
 
-// base final: https://.../api
-const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+if (VITE_API_URL) {
+  // Use complete API URL if provided
+  FINAL_BASE_URL = String(VITE_API_URL).replace(/\/+$/, "");
+  // Extract backend URL for static files (remove /api suffix if present)
+  BACKEND_URL = FINAL_BASE_URL.replace(/\/api$/, "");
+} else {
+  // Fallback to legacy configuration
+  const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "";
+  const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
+  
+  // normaliza
+  const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
+  const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
+  
+  // base final: https://.../api
+  FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+  BACKEND_URL = BASE_URL;
+}
 
 console.log("[API] FINAL_BASE_URL =", FINAL_BASE_URL);
 
@@ -91,4 +105,6 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { BASE_URL, API_PREFIX, FINAL_BASE_URL };
+export { FINAL_BASE_URL, BACKEND_URL };
+// Backward compatibility
+export { BACKEND_URL as BASE_URL };

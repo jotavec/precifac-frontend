@@ -1,4 +1,54 @@
-# React + Vite
+# Precifac Frontend
+
+This is a React application built with Vite for pricing and cost management.
+
+## Environment Configuration
+
+Copy `.env.example` to `.env` and configure the API URL:
+
+```bash
+cp .env.example .env
+```
+
+### API Configuration
+
+The application supports two configuration methods:
+
+1. **Recommended**: Use `VITE_API_URL` for the complete API endpoint:
+   ```
+   VITE_API_URL=https://app.calculaaibr.com/api
+   ```
+
+2. **Legacy**: Use separate backend URL and API prefix:
+   ```
+   VITE_BACKEND_URL=https://calculaai-backend.onrender.com
+   VITE_API_PREFIX=/api
+   ```
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Production Build
+
+```bash
+npm run build
+```
+
+### Production Deployment
+
+For production deployment, ensure the following environment variable is set:
+
+```
+VITE_API_URL=https://app.calculaaibr.com/api
+```
+
+This can be configured in your hosting platform's environment variables or in a `.env` file during the build process.
+
+## Technical Details
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
