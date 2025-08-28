@@ -15,8 +15,9 @@ const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
 const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
 const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
 
-// base final: https://.../api
-const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
+// base final: https://...
+// OBS: o prefixo da API (ex.: /api) será adicionado manualmente nas chamadas
+const FINAL_BASE_URL = `${BASE_URL || ""}`; // sem /api fixo
 
 console.log("[API] FINAL_BASE_URL =", FINAL_BASE_URL);
 
@@ -75,11 +76,13 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     if (status === 401) {
       // limpa tokens locais (se existirem)
-      try {
-        localStorage.removeItem("token");
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("accessToken");
-      } catch {}
+        try {
+          localStorage.removeItem("token");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("accessToken");
+        } catch {
+          /* ignore token removal errors */
+        }
 
       // deixa o App decidir o que fazer:
       if (typeof window !== "undefined") {
