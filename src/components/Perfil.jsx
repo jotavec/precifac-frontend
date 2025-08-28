@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api, { BASE_URL } from "../services/api";
+import api, { API_PREFIX, BASE_URL } from "../services/api";
 import ModalToast from "./modals/ModalToast";
 import PerfilLoginSenha from "./PerfilLoginSenha";
 import Cropper from "react-easy-crop";
@@ -235,7 +235,7 @@ export default function Perfil({ onLogout, abaInicial }) {
     async function fetchUser() {
       setLoading(true);
       try {
-        const { data } = await api.get("/users/me");
+        const { data } = await api.get(`${API_PREFIX}/users/me`);
         const avatar = pickAvatarFrom(data);
         setUser({ ...data, avatarUrl: avatar });
         setAvatarPreview(avatar || null);
@@ -257,7 +257,7 @@ export default function Perfil({ onLogout, abaInicial }) {
           semNumero: false,
         };
 
-        const resConfig = await api.get("/company-config");
+        const resConfig = await api.get(`${API_PREFIX}/company-config`);
         if (resConfig.data) {
           novoForm = {
             ...novoForm,
@@ -299,7 +299,7 @@ export default function Perfil({ onLogout, abaInicial }) {
     // Faz o upload
     const formData = new FormData();
     formData.append("avatar", cropped.blob, "avatar.png");
-    const { data } = await api.post("/users/me/avatar", formData, {
+    const { data } = await api.post(`${API_PREFIX}/users/me/avatar`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
@@ -378,13 +378,13 @@ export default function Perfil({ onLogout, abaInicial }) {
     setEditando(false);
     setLoading(true);
     try {
-      await api.put("/users/me", {
+      await api.put(`${API_PREFIX}/users/me`, {
         name: form.nome,
         cpf: form.cpf,
         telefone: form.telefone,
       });
 
-      await api.post("/company-config", {
+      await api.post(`${API_PREFIX}/company-config`, {
         companyName: form.empresaNome,
         cnpj: form.cnpj,
         phone: form.telefoneEmpresa,
@@ -426,7 +426,7 @@ export default function Perfil({ onLogout, abaInicial }) {
     try {
       // vamos salvar como caminho de frontend (/avatars/XYZ.png)
       const chosen = `/avatars/${preset.id}`;
-      await api.put("/users/me", { avatarUrl: chosen });
+      await api.put(`${API_PREFIX}/users/me`, { avatarUrl: chosen });
       setUser((prev) => ({ ...prev, avatarUrl: chosen }));
       setAvatarPreview(chosen);
       setToastMsg("Avatar atualizado!");

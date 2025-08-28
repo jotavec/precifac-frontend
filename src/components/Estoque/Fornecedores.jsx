@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ModalCadastroFornecedor from "./ModalCadastroFornecedor";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
+import { API_PREFIX } from "../../services/api";
 import "./Fornecedores.css";
 
 export default function Fornecedores() {
@@ -32,7 +33,7 @@ export default function Fornecedores() {
   const [carregando, setCarregando] = useState(true);
   const [confirmExcluirIdx, setConfirmExcluirIdx] = useState(null);
 
-  const API = "/api/fornecedores";
+  const API = `${API_PREFIX}/fornecedores`;
 
   useEffect(() => {
     fetch(API, { credentials: "include" })

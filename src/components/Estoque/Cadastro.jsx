@@ -11,7 +11,7 @@ import { listarMarcas, adicionarMarca } from "../../services/marcasApi";
 import { listarCategorias, adicionarCategoria } from "../../services/categoriasApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import api from "../../services/api";
+import api, { API_PREFIX } from "../../services/api";
 
 // ================== helpers ==================
 function toStr(v, { joinAll = false } = {}) {
@@ -133,7 +133,7 @@ export default function Cadastro() {
   // Preferências (rota sem :userId)
   async function fetchColunasPreferidas() {
     try {
-      const { data } = await api.get("/preferencias/colunas-cadastro");
+      const { data } = await api.get(`${API_PREFIX}/preferencias/colunas-cadastro`);
       if (Array.isArray(data) && data.length > 0) setColunasPreferidas(data);
       else setColunasPreferidas(null);
     } catch {
@@ -144,7 +144,7 @@ export default function Cadastro() {
   async function fetchProdutos() {
     setLoading(true);
     try {
-      const { data } = await api.get("/produtos");
+      const { data } = await api.get(`${API_PREFIX}/produtos`);
       setIngredientes(Array.isArray(data) ? data : []);
     } catch {
       setIngredientes([]);
@@ -248,10 +248,10 @@ export default function Cadastro() {
     try {
       let produtoSalvo;
       if (id) {
-        const { data } = await api.put(`/produtos/${id}`, payload);
+        const { data } = await api.put(`${API_PREFIX}/produtos/${id}`, payload);
         produtoSalvo = data;
       } else {
-        const { data } = await api.post("/produtos", payload);
+        const { data } = await api.post(`${API_PREFIX}/produtos`, payload);
         produtoSalvo = data;
       }
 
@@ -283,7 +283,7 @@ export default function Cadastro() {
       return;
     }
     try {
-      await api.delete(`/produtos/${itemDelete.id}`);
+      await api.delete(`${API_PREFIX}/produtos/${itemDelete.id}`);
       setIngredientes(prev => prev.filter(item => item.id !== itemDelete.id));
     } catch (err) {
       alert("Erro ao excluir produto!");
@@ -322,7 +322,7 @@ export default function Cadastro() {
         }
       }
 
-      const { data: result } = await api.post("/produtos/importar", { produtos });
+      const { data: result } = await api.post(`${API_PREFIX}/produtos/importar`, { produtos });
       if (result.erros && result.erros.length > 0) {
         alert(
           "Alguns produtos não foram importados:\n" +
@@ -370,7 +370,7 @@ export default function Cadastro() {
   async function handleToggleAtivo(item) {
     setAtivandoId(item.id);
     try {
-      const { data: produtoAtualizado } = await api.put(`/produtos/${item.id}`, {
+      const { data: produtoAtualizado } = await api.put(`${API_PREFIX}/produtos/${item.id}`, {
         ...item,
         ativo: !item.ativo,
       });

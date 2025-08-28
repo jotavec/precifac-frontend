@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api, { API_PREFIX } from "../../services/api";
 import AbasModal from "./AbasModal";
 import DespesasFixasModal from "./DespesasFixasModal";
 import EncargosSobreVendaModal from "./EncargosSobreVendaModal";
@@ -552,8 +552,8 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     );
 
     try {
-      await axios.put(
-        `/api/markup-ideal/${bloco.id}`,
+      await api.put(
+        `${API_PREFIX}/markup-ideal/${bloco.id}`,
         {
           markup: bloco.markup,
           markupIdeal: markupIdeal,
@@ -574,7 +574,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchFiltro() {
       try {
-        const res = await axios.get("/api/filtro-faturamento", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/filtro-faturamento`, { withCredentials: true });
         if (res.data?.filtro) {
           setMediaTipo(res.data.filtro);
         } else {
@@ -589,7 +589,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchFaturamentos() {
       try {
-        const res = await axios.get("/api/sales-results", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/sales-results`, { withCredentials: true });
         const lista = Array.isArray(res.data) ? res.data : [];
         setFaturamentoLista(lista);
         let listaFiltrada = mediaTipo === "all" ? lista : lista.slice(-Number(mediaTipo));
@@ -609,7 +609,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchBlocos() {
       try {
-        const response = await axios.get("/api/markup-ideal", { withCredentials: true });
+        const response = await api.get(`${API_PREFIX}/markup-ideal`, { withCredentials: true });
         setBlocos(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setBlocos([]);
@@ -617,7 +617,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     }
     async function fetchDespesasFixas() {
       try {
-        const res = await axios.get("/api/despesasfixas", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/despesasfixas`, { withCredentials: true });
         if (Array.isArray(res.data)) {
           setDespesasFixasSubcats(res.data);
         } else if (res.data && Array.isArray(res.data.categorias)) {
@@ -640,7 +640,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     }
     async function fetchFuncionarios() {
       try {
-        const res = await axios.get("/api/folhapagamento/funcionarios", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/folhapagamento/funcionarios`, { withCredentials: true });
         setFuncionarios(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         setFuncionarios([]);
@@ -653,7 +653,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchEncargos() {
       try {
-        const res = await axios.get("/api/encargos-sobre-venda", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/encargos-sobre-venda`, { withCredentials: true });
         if (res.data) {
           setEncargos(res.data);
           if (Array.isArray(res.data.outros)) setOutrosEncargos(res.data.outros);
@@ -669,7 +669,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
   useEffect(() => {
     async function fetchEncargos() {
       try {
-        const res = await axios.get("/api/encargos-sobre-venda", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/encargos-sobre-venda`, { withCredentials: true });
         if (res.data) {
           setEncargos(res.data);
           if (Array.isArray(res.data.outros)) setOutrosEncargos(res.data.outros);
@@ -690,7 +690,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
       const ativosPorBloco = {};
       await Promise.all(blocos.map(async (bloco, idx) => {
         try {
-          const res = await axios.get(`/api/bloco-ativos/${bloco.id}`, { withCredentials: true });
+          const res = await api.get(`${API_PREFIX}/bloco-ativos/${bloco.id}`, { withCredentials: true });
           ativosPorBloco[idx] = res.data.ativos || {};
         } catch {
           ativosPorBloco[idx] = {};
@@ -705,7 +705,7 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
       if (modalConfigIdx === null || !blocos[modalConfigIdx]) return;
       const blocoId = blocos[modalConfigIdx].id;
       try {
-        const res = await axios.get(`/api/bloco-ativos/${blocoId}`, { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/bloco-ativos/${blocoId}`, { withCredentials: true });
         setCustosAtivosPorBloco(prev => ({
           ...prev,
           [modalConfigIdx]: res.data.ativos || {}
@@ -758,8 +758,8 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
         observacoes: "",
         totalEncargosReais: totalEncargosReais,
       };
-      const response = await axios.post(
-        "/api/markup-ideal",
+      const response = await api.post(
+        `${API_PREFIX}/markup-ideal`,
         blocoCompleto,
         { withCredentials: true }
       );
@@ -856,8 +856,8 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     try {
       const bloco = blocos[idx];
       if (!bloco?.id) return;
-      await axios.put(
-        `/api/markup-ideal/${bloco.id}`,
+      await api.put(
+        `${API_PREFIX}/markup-ideal/${bloco.id}`,
         { nome: novoNome },
         { withCredentials: true }
       );
@@ -877,8 +877,8 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
     if (idx == null) return;
     const bloco = blocos[idx];
     try {
-      await axios.delete(
-        `/api/markup-ideal/${bloco.id}`,
+      await api.delete(
+        `${API_PREFIX}/markup-ideal/${bloco.id}`,
         { withCredentials: true }
       );
       setBlocos(blocos => blocos.filter((_, i) => i !== idx));
@@ -911,11 +911,11 @@ export default function MarkupIdeal({ calcularTotalFuncionarioObj }) {
       outrosEncargos || []
     );
     try {
-      await axios.post(`/api/bloco-ativos/${blocoId}`,
+      await api.post(`${API_PREFIX}/bloco-ativos/${blocoId}`,
         { ativos: custosAtivosEdicao },
         { withCredentials: true }
       );
-      await axios.put(`/api/markup-ideal/${blocoId}`,
+      await api.put(`${API_PREFIX}/markup-ideal/${blocoId}`,
         { totalEncargosReais },
         { withCredentials: true }
       );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api, { API_PREFIX } from "../../services/api";
 import "./EncargosSobreVenda.css";
 
 // SECTIONS dos blocos tradicionais:
@@ -103,7 +103,7 @@ export default function EncargosSobreVenda() {
     async function fetchData() {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:3000/api/encargos-sobre-venda", { withCredentials: true });
+        const res = await api.get(`${API_PREFIX}/encargos-sobre-venda`, { withCredentials: true });
         if (res.data && res.data.data) {
           setData(res.data.data || INITIAL_DATA);
           setOutros(res.data.outros || []);
@@ -124,7 +124,7 @@ export default function EncargosSobreVenda() {
     if (loading) return;
     async function saveData() {
       try {
-        await axios.post("http://localhost:3000/api/encargos-sobre-venda", { data, outros }, { withCredentials: true });
+        await api.post(`${API_PREFIX}/encargos-sobre-venda`, { data, outros }, { withCredentials: true });
       } catch (err) { }
     }
     saveData();
