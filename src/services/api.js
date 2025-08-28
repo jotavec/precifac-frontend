@@ -11,13 +11,14 @@ import axios from "axios";
 const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "";
 const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
 
-// normaliza
+// normaliza para evitar barras duplicadas
 const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
-const API_PREFIX = ("/" + String(RAW_API_PREFIX || "").replace(/^\/+/, "")).replace(/\/+$/, "");
+const API_PREFIX = String(RAW_API_PREFIX || "")
+  .replace(/^\/+/, "/") // garante uma barra inicial
+  .replace(/\/+$/, ""); // remove barras finais
 
-// base final: https://...
-// OBS: o prefixo da API (ex.: /api) será adicionado manualmente nas chamadas
-const FINAL_BASE_URL = `${BASE_URL || ""}`; // sem /api fixo
+// base final: https://.../api
+const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
 
 console.log("[API] FINAL_BASE_URL =", FINAL_BASE_URL);
 
@@ -26,6 +27,11 @@ function getCookie(name) {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
+}
+
+function removeCookie(name) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; Max-Age=0; path=/;`;
 }
 
 function getToken() {
@@ -76,13 +82,16 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     if (status === 401) {
       // limpa tokens locais (se existirem)
-        try {
-          localStorage.removeItem("token");
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("accessToken");
-        } catch {
-          /* ignore token removal errors */
-        }
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("accessToken");
+        removeCookie("token");
+        removeCookie("authToken");
+        removeCookie("accessToken");
+      } catch {
+        /* ignore token removal errors */
+      }
 
       // deixa o App decidir o que fazer:
       if (typeof window !== "undefined") {
