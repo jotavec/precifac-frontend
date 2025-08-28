@@ -9,6 +9,7 @@ import Select from "react-select";
 import { FaCog, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import "./ModalCadastroManual.css";
 import { BsInfoCircle } from "react-icons/bs";
+import { API_PREFIX } from "../../services/api";
 
 function formatarDataBR(dataStr) {
   if (!dataStr) return "";
@@ -108,7 +109,7 @@ async function buscarImagensPexels(nome, page = 1) {
 async function buscarNomePorCodigoBarras(codBarras) {
   if (!codBarras) return "";
   try {
-    const res = await fetch(`/api/buscar-nome-codbarras/${codBarras}`);
+    const res = await fetch(`${API_PREFIX}/buscar-nome-codbarras/${codBarras}`);
     if (!res.ok) return "";
     const data = await res.json();
     return data.nome || "";
@@ -241,7 +242,7 @@ export default function ModalCadastroManual({
   // Busca as opções SEMPRE que abrir o modal OU trocar para aba de rótulo
   useEffect(() => {
     if (open && abaBloco === "rotulo") {
-      fetch("/api/categorias-nutricionais", { credentials: "include" })
+      fetch(`${API_PREFIX}/categorias-nutricionais`, { credentials: "include" })
         .then(res => res.json())
         .then(data => setCategoriasNutricionais(Array.isArray(data) ? data : []));
     }
@@ -443,7 +444,7 @@ export default function ModalCadastroManual({
   useEffect(() => {
     if (abaBloco === "historico" && ingrediente?.id) {
       setLoadingEntradas(true);
-      fetch(`/api/produtos/${ingrediente.id}/entradas`, { credentials: "include" })
+      fetch(`${API_PREFIX}/produtos/${ingrediente.id}/entradas`, { credentials: "include" })
         .then(res => res.json())
         .then(data => setEntradas(Array.isArray(data) ? data : []))
         .catch(() => setEntradas([]))

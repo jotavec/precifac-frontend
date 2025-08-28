@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import axios from "axios";
+import api, { API_PREFIX } from "../services/api";
 
 // IDs de planos do Mercado Pago (exemplo; ajuste conforme seu backend)
 const planosMensal = {
@@ -64,8 +64,8 @@ export default function TabelaPlanos({ userEmail }) {
 
     try {
       setLoading(true);
-      const { data } = await axios.post(
-        "/api/mercadopago/criar-assinatura",
+      const { data } = await api.post(
+        `${API_PREFIX}/mercadopago/criar-assinatura`,
         { email, planoId },
         { withCredentials: true }
       );

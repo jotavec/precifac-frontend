@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { API_PREFIX } from "../../services/api";
 
 export default function ImportarNotaFiscalXML({ onUpload }) {
   const [file, setFile] = useState(null);
@@ -21,7 +22,7 @@ export default function ImportarNotaFiscalXML({ onUpload }) {
     const formData = new FormData();
     formData.append("xml", file);
     try {
-      const res = await fetch("/api/produtos/importar-xml-nfe", {
+      const res = await fetch(`${API_PREFIX}/produtos/importar-xml-nfe`, {
         method: "POST",
         body: formData
       });

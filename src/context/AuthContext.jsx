@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
-import api from "../services/api"; // se seu alias "@" estiver configurado, pode usar "@/services/api"
+import api, { API_PREFIX } from "../services/api"; // se seu alias "@" estiver configurado, pode usar "@/services/api"
 
 const AuthContext = createContext({
   user: null,
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   // Busca o usuário logado no mount
   const loadMe = async () => {
     try {
-      const { data } = await api.get("/users/me");
+      const { data } = await api.get(`${API_PREFIX}/users/me`);
       setUser(data);
     } catch (err) {
       setUser(null);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
 
   // Faz login, salva token e atualiza o usuário
   const login = async (email, password) => {
-    const { data } = await api.post("/users/login", { email, password });
+    const { data } = await api.post(`${API_PREFIX}/users/login`, { email, password });
     // salva o token para o interceptor injetar nos próximos requests
     try {
       localStorage.setItem("token", data?.token || "");
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
   // Faz logout no backend e limpa o token local
   const logout = async () => {
     try {
-      await api.post("/users/logout");
+      await api.post(`${API_PREFIX}/users/logout`);
     } catch {}
     try {
       localStorage.removeItem("token");

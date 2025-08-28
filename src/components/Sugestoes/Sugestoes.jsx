@@ -1,7 +1,7 @@
 // src/pages/Sugestoes.jsx
 import React, { useState, useEffect } from "react";
+import { API_PREFIX } from "../../services/api";
 
-const API_PREFIX = "/api";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function Sugestoes() {

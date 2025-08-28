@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
+import { API_PREFIX } from "../../services/api";
 import "./Movimentacoes.css";
 
 // Estilo dos selects igual aos inputs do sistema
@@ -144,7 +145,7 @@ export default function Movimentacoes() {
   // Busca movimentações
   function buscarMovs() {
     setCarregando(true);
-    fetch("/api/movimentacoes", { credentials: "include" })
+    fetch(`${API_PREFIX}/movimentacoes`, { credentials: "include" })
       .then(res => res.json())
       .then(data => setMovs(data))
       .finally(() => setCarregando(false));
@@ -155,7 +156,7 @@ export default function Movimentacoes() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/produtos", { credentials: "include" })
+    fetch(`${API_PREFIX}/produtos`, { credentials: "include" })
       .then(res => res.json())
       .then(setProdutos);
   }, []);
@@ -176,7 +177,7 @@ export default function Movimentacoes() {
 
     setDeletando(mov.id);
     try {
-      const rota = `/api/movimentacoes/${mov.tipo === "entrada" ? "entrada" : "saida"}/${mov.id}`;
+      const rota = `${API_PREFIX}/movimentacoes/${mov.tipo === "entrada" ? "entrada" : "saida"}/${mov.id}`;
       const res = await fetch(rota, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error("Erro ao deletar movimentação");
       buscarMovs();
