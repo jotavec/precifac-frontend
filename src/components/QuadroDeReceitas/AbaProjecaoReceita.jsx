@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { API_PREFIX } from "../../services/api";
+import { API_URL } from "../../services/api";
 import { FaPlus, FaEdit, FaTrash, FaCalendarAlt } from "react-icons/fa";
 import "./AbaProjecaoReceita.css";
 
@@ -107,7 +107,7 @@ export default function AbaProjecaoReceita({
 
   async function fetchTiposProduto() {
     try {
-      const res = await fetch(`${API_PREFIX}/receitas/tipos-produto`, { credentials: "include" });
+      const res = await fetch(`${API_URL}/receitas/tipos-produto`, { credentials: "include" });
       const data = await res.json();
       setTiposProduto(
         Array.isArray(data)
@@ -121,7 +121,7 @@ export default function AbaProjecaoReceita({
 
   async function handleAddTipo(novoNome) {
     try {
-      const res = await fetch(`${API_PREFIX}/receitas/tipos-produto`, {
+      const res = await fetch(`${API_URL}/receitas/tipos-produto`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -142,7 +142,7 @@ export default function AbaProjecaoReceita({
     const tipo = tiposProduto[idx];
     if (!tipo) return;
     try {
-      const res = await fetch(`${API_PREFIX}/receitas/tipos-produto/${tipo.value}`, {
+      const res = await fetch(`${API_URL}/receitas/tipos-produto/${tipo.value}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -187,7 +187,7 @@ export default function AbaProjecaoReceita({
   }
   async function fetchProfissoesDiretas() {
     try {
-      const res = await fetch(`${API_PREFIX}/folhapagamento/funcionarios/profissoes-diretas`, { credentials: "include" });
+      const res = await fetch(`${API_URL}/folhapagamento/funcionarios/profissoes-diretas`, { credentials: "include" });
       const data = await res.json();
       setProfissoesDiretas(Array.isArray(data) ? data.map(cargo => ({ value: cargo, label: cargo })) : []);
     } catch (error) {
@@ -196,7 +196,7 @@ export default function AbaProjecaoReceita({
   }
   async function fetchCargosValorHora() {
     try {
-      const res = await fetch(`${API_PREFIX}/folhapagamento/funcionarios`, { credentials: "include" });
+      const res = await fetch(`${API_URL}/folhapagamento/funcionarios`, { credentials: "include" });
       const data = await res.json();
       const cargos = Array.isArray(data) ? data.map(f => ({ cargo: f.cargo, valorHora: calcularValorHoraFuncionario(f) })) : [];
       setCargosComValorHora(cargos);

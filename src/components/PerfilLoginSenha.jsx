@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api, { API_PREFIX } from "../services/api";
+import api, { API_URL } from "../services/api";
 
 export default function PerfilLoginSenha({ email }) {
   const [senha, setSenha] = useState("");
@@ -24,7 +24,7 @@ export default function PerfilLoginSenha({ email }) {
     }
 
     try {
-      const { data } = await api.post(`${API_PREFIX}/users/change-password`, {
+      const { data } = await api.post(`${API_URL}/users/change-password`, {
         senhaNova: senha,
       });
 
