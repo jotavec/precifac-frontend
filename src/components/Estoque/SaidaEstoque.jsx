@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
-import { API_PREFIX } from "../../services/api";
+import { API_URL } from "../../services/api";
 import "./EntradaEstoque.css"; // Usa o mesmo CSS global do restante
 
 // ====== ESTILO REACT-SELECT (azul/padrão do app) ======
@@ -111,7 +111,7 @@ export default function SaidaEstoque() {
   const [carregando, setCarregando] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_PREFIX}/produtos`)
+    fetch(`${API_URL}/produtos`)
       .then(res => res.json())
       .then(data => setProdutos(data))
       .catch(() => setMsg("Erro ao buscar produtos"));
@@ -184,7 +184,7 @@ export default function SaidaEstoque() {
     try {
       for (const saida of listaFinal) {
         if (!saida.produtoId || !saida.quantidade) continue;
-        await fetch(`${API_PREFIX}/produtos/saida-estoque`, {
+        await fetch(`${API_URL}/produtos/saida-estoque`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

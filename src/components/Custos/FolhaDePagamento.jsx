@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { FaTrashAlt } from "react-icons/fa";
 import "./FolhaDePagamento.css";
 import ModalFuncionario from "./ModalFuncionario";
-import api, { API_PREFIX } from "../../services/api";
+import api, { API_URL } from "../../services/api";
 
 /* ===== utils de formatação ===== */
 function parseBR(str) {
@@ -106,7 +106,7 @@ export default function FolhaDePagamento() {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await api.get(`${API_PREFIX}/folhapagamento/funcionarios`, { withCredentials: true });
+        const { data } = await api.get(`${API_URL}/folhapagamento/funcionarios`, { withCredentials: true });
         setFuncionarios(Array.isArray(data) ? data : []);
       } catch {
         setFuncionarios([]);
@@ -170,7 +170,7 @@ export default function FolhaDePagamento() {
     try {
       if (editando === null) {
         const { data: novo } = await api.post(
-          `${API_PREFIX}/folhapagamento/funcionarios`,
+          `${API_URL}/folhapagamento/funcionarios`,
           funcionarioTemp,
           { withCredentials: true }
         );
@@ -178,7 +178,7 @@ export default function FolhaDePagamento() {
       } else {
         const id = funcionarios[editando].id;
         const { data: atualizado } = await api.put(
-          `${API_PREFIX}/folhapagamento/funcionarios/${id}`,
+          `${API_URL}/folhapagamento/funcionarios/${id}`,
           funcionarioTemp,
           { withCredentials: true }
         );
@@ -194,7 +194,7 @@ export default function FolhaDePagamento() {
   async function excluirFuncionario(idx) {
     try {
       const id = funcionarios[idx].id;
-      await api.delete(`${API_PREFIX}/folhapagamento/funcionarios/${id}`, { withCredentials: true });
+      await api.delete(`${API_URL}/folhapagamento/funcionarios/${id}`, { withCredentials: true });
       setFuncionarios((prev) => prev.filter((f) => f.id !== id));
     } catch {
       alert("Não foi possível excluir o funcionário.");

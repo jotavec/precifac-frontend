@@ -3,24 +3,9 @@
 
 import axios from "axios";
 
-/**
- * Config do Vite:
- * - VITE_BACKEND_URL: ex. https://calculaai-backend.onrender.com
- * - VITE_API_PREFIX: ex. /api
- */
-const RAW_BASE_URL = import.meta?.env?.VITE_BACKEND_URL || "";
-const RAW_API_PREFIX = import.meta?.env?.VITE_API_PREFIX || "/api";
-
-// normaliza para evitar barras duplicadas
-const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
-const API_PREFIX = String(RAW_API_PREFIX || "")
-  .replace(/^\/+/, "/") // garante uma barra inicial
-  .replace(/\/+$/, ""); // remove barras finais
-
-// base final: https://.../api
-const FINAL_BASE_URL = `${BASE_URL}${API_PREFIX}`;
-
-console.log("[API] FINAL_BASE_URL =", FINAL_BASE_URL);
+// Base do backend (opcional) e prefixo fixo da API
+const BASE_URL = (import.meta?.env?.VITE_BACKEND_URL || "").replace(/\/+$/, "");
+const API_URL = "/api"; // prefixo único das rotas da API
 
 /* Utilidades para pegar token (se você também persistir no localStorage/cookie) */
 function getCookie(name) {
@@ -50,9 +35,10 @@ function getToken() {
   }
 }
 
-/* Axios instance apontando DIRETO pro backend (Render) */
+/* Axios instance apontando para o mesmo host do frontend
+   (ou para VITE_BACKEND_URL, se definido) */
 const api = axios.create({
-  baseURL: FINAL_BASE_URL,
+  baseURL: BASE_URL,
   withCredentials: true, // envia/recebe cookies (SameSite=None; Secure)
   headers: {
     "Content-Type": "application/json",
@@ -103,4 +89,4 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { BASE_URL, API_PREFIX, FINAL_BASE_URL };
+export { BASE_URL, API_URL };

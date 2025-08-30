@@ -11,12 +11,13 @@ import { pdf } from "@react-pdf/renderer";
 import FichaTecnicaPDF from "./FichaTecnicaPDF";
 import ModalUpgradePlano from "../modals/ModalUpgradePlano";
 import { useAuth } from "../../App";
-import { API_PREFIX, BASE_URL } from "../../services/api";
+import { API_URL, BASE_URL } from "../../services/api";
 import "./CentralReceitas.css";
 
 /** Bases do backend vindas do .env */
 const BACKEND_URL = BASE_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"; // usado para servir /uploads
 const api = (path) => `${BACKEND_URL}${path}`;
+const API_BASE = `${BACKEND_URL}${API_URL}`;
 
 const ABAS = [
   { label: "Composição", componente: AbaComposicaoReceita },
@@ -143,14 +144,14 @@ export default function CentralReceitas() {
 
   async function fetchReceitas() {
     try {
-      const res = await fetch(api(`${API_PREFIX}/receitas`), { credentials: "include" });
+      const res = await fetch(api(`${API_URL}/receitas`), { credentials: "include" });
       if (res.ok) setReceitas(await res.json());
     } catch {}
   }
 
   async function fetchBlocosMarkup() {
     try {
-      const res = await fetch(api(`${API_PREFIX}/markup-ideal`), { credentials: "include" });
+      const res = await fetch(api(`${API_URL}/markup-ideal`), { credentials: "include" });
       if (res.ok) setBlocosMarkup(await res.json());
     } catch {
       setBlocosMarkup([]);
@@ -159,10 +160,10 @@ export default function CentralReceitas() {
 
   async function fetchPerfil() {
     try {
-      const resUser = await fetch(api(`${API_PREFIX}/users/me`), { credentials: "include" });
+      const resUser = await fetch(api(`${API_URL}/users/me`), { credentials: "include" });
       const user = resUser.ok ? await resUser.json() : {};
 
-      const resConfig = await fetch(api(`${API_PREFIX}/company-config`), { credentials: "include" });
+      const resConfig = await fetch(api(`${API_URL}/company-config`), { credentials: "include" });
       const empresa = resConfig.ok ? await resConfig.json() : {};
 
       setPerfil({
@@ -222,7 +223,7 @@ export default function CentralReceitas() {
   async function confirmarDelete() {
     if (!receitaPraDeletar) return;
     try {
-      const res = await fetch(api(`${API_PREFIX}/receitas/${receitaPraDeletar.id}`), {
+      const res = await fetch(api(`${API_URL}/receitas/${receitaPraDeletar.id}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -402,7 +403,7 @@ export default function CentralReceitas() {
     if (selecionados.length === 0) return;
     for (const id of selecionados) {
       try {
-        await fetch(api(`${API_PREFIX}/receitas/${id}`), { method: "DELETE", credentials: "include" });
+        await fetch(api(`${API_URL}/receitas/${id}`), { method: "DELETE", credentials: "include" });
       } catch {}
     }
     await fetchReceitas();
@@ -484,14 +485,14 @@ export default function CentralReceitas() {
     try {
       let res;
       if (editandoId) {
-        res = await fetch(api(`${API_PREFIX}/receitas/${editandoId}`), {
+        res = await fetch(api(`${API_URL}/receitas/${editandoId}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(dadosReceita),
         });
       } else {
-        res = await fetch(api(`${API_PREFIX}/receitas`), {
+        res = await fetch(api(`${API_URL}/receitas`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

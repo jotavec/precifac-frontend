@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import { FiX } from "react-icons/fi";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import api, { API_PREFIX } from "../../services/api"; // <-- usa o axios central
+import api, { API_URL } from "../../services/api"; // <-- usa o axios central
 
 // Switch azul igual o do app
 function Switch({ checked, onChange }) {
@@ -59,7 +59,7 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
 
     const userId = localStorage.getItem("user_id") || "1";
     api
-      .get(`${API_PREFIX}/preferencias/colunas-cadastro/${userId}`)
+      .get(`${API_URL}/preferencias/colunas-cadastro/${userId}`)
       .then(({ data }) => {
         if (Array.isArray(data) && data.length > 0)
           setColunas(data);
@@ -107,7 +107,7 @@ export default function ModalConfiguracoesCadastro({ isOpen, onRequestClose }) {
     setErro("");
     try {
       const userId = localStorage.getItem("user_id") || "1";
-      await api.post(`${API_PREFIX}/preferencias/colunas-cadastro`, { userId, colunas });
+      await api.post(`${API_URL}/preferencias/colunas-cadastro`, { userId, colunas });
       alert("Preferências salvas! (Agora no banco 😁)");
       onRequestClose();
     } catch (e) {

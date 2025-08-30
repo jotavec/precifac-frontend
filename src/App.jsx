@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import api, { API_PREFIX } from "./services/api";
+import api, { API_URL } from "./services/api";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import Custos from "./components/Custos/Custos";
@@ -158,7 +158,7 @@ export default function App() {
     let canceled = false;
     async function fetchUser() {
       try {
-        const res = await api.get(`${API_PREFIX}/users/me`);
+        const res = await api.get(`${API_URL}/users/me`);
         if (!canceled) setUser(res.data);
       } catch {
         if (!canceled) setUser(null);
@@ -175,7 +175,7 @@ export default function App() {
     if (!user) return;
     async function fetchFuncionarios() {
       try {
-        const res = await api.get(`${API_PREFIX}/folhapagamento/funcionarios`);
+        const res = await api.get(`${API_URL}/folhapagamento/funcionarios`);
         setCategoriasCustos(cats => {
           const novas = [...cats];
           novas[1].funcionarios = Array.isArray(res.data) ? res.data : [];
@@ -194,7 +194,7 @@ export default function App() {
 
   async function handleAddFuncionario(novoFuncionario) {
     try {
-      const { data } = await api.post(`${API_PREFIX}/folhapagamento/funcionarios`, novoFuncionario);
+      const { data } = await api.post(`${API_URL}/folhapagamento/funcionarios`, novoFuncionario);
       setCategoriasCustos(cats => {
         const novas = [...cats];
         novas[1].funcionarios = [...novas[1].funcionarios, data];
@@ -209,7 +209,7 @@ export default function App() {
   async function handleEditarFuncionario(idx, funcionarioEditado) {
     try {
       const id = categoriasCustos[1].funcionarios[idx].id;
-      const { data } = await api.put(`${API_PREFIX}/folhapagamento/funcionarios/${id}`, funcionarioEditado);
+      const { data } = await api.put(`${API_URL}/folhapagamento/funcionarios/${id}`, funcionarioEditado);
       setCategoriasCustos(cats => {
         const novas = [...cats];
         novas[1].funcionarios = novas[1].funcionarios.map((f, i) => (i === idx ? data : f));
@@ -224,7 +224,7 @@ export default function App() {
   async function handleExcluirFuncionario(idx) {
     try {
       const id = categoriasCustos[1].funcionarios[idx].id;
-      await api.delete(`${API_PREFIX}/folhapagamento/funcionarios/${id}`);
+      await api.delete(`${API_URL}/folhapagamento/funcionarios/${id}`);
       setCategoriasCustos(cats => {
         const novas = [...cats];
         novas[1].funcionarios = novas[1].funcionarios.filter((_, i) => i !== idx);
@@ -249,7 +249,7 @@ export default function App() {
     e.preventDefault();
     setMsg("Enviando...");
     try {
-      const { data } = await api.post(`${API_PREFIX}/users`, {
+      const { data } = await api.post(`${API_URL}/users`, {
         name: form.name,
         email: form.email,
         password: form.password
@@ -272,7 +272,7 @@ export default function App() {
     e.preventDefault();
     setMsg("Entrando...");
     try {
-      const { data } = await api.post(`${API_PREFIX}/users/login`, {
+      const { data } = await api.post(`${API_URL}/users/login`, {
         email: form.email,
         password: form.password
       });
@@ -293,7 +293,7 @@ export default function App() {
 
   async function handleLogout() {
     try {
-      await api.post(`${API_PREFIX}/users/logout`);
+      await api.post(`${API_URL}/users/logout`);
     } catch {}
     // limpa o header em memória
     try {
